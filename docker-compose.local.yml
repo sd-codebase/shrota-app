@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shrota-postgres
+    environment:
+      POSTGRES_USER: shrota
+      POSTGRES_PASSWORD: shrota123
+      POSTGRES_DB: shrota
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: ./be
+    container_name: shrota-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://shrota:shrota123@postgres:5432/shrota
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./be/uploads:/app/uploads
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./ui
+      args:
+        VITE_API_URL: http://localhost:8000
+        VITE_CDN_URL: http://localhost:8080
+    container_name: shrota-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  cdn:
+    image: nginx:alpine
+    container_name: shrota-cdn
+    ports:
+      - "8080:80"
+    volumes:
+      - ./audio-library:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
