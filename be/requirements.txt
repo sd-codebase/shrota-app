@@ -1,0 +1,12 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.9
+pydantic>=2.10.0
+python-dotenv>=1.0.0
+
+# PostgreSQL
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0
+
+# MongoDB (keep for migration, remove after)
+motor>=3.6.0

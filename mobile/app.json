@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "AudioBook",
+    "slug": "audiobook-demo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f1a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.audiobook.demo",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0f1a"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.audiobook.demo",
+      "permissions": [
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-dev-client",
+        {
+          "addGeneratedScheme": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.0.21",
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "178d41e0-126a-44cc-bc7d-ecaeeae2d9ac"
+      }
+    }
+  }
+}
