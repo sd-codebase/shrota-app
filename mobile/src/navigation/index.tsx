@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { MainScreen } from '../screens/MainScreen';
 import { BooksScreen } from '../screens/BooksScreen';
+import { BookDetailsScreen } from '../screens/BookDetailsScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { RootStackParamList } from '../types';
@@ -32,6 +33,7 @@ export function AppNavigator() {
       >
         <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Books" component={BooksScreen} />
+        <Stack.Screen name="BookDetails" component={BookDetailsScreen} />
         <Stack.Screen name="Downloads" component={DownloadsScreen} />
         <Stack.Screen
           name="Player"

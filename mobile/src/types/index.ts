@@ -129,6 +129,7 @@ export interface DownloadProgress {
 export type RootStackParamList = {
   Main: undefined;
   Books: { environment: Environment };
+  BookDetails: { book: AudioBook; environment: Environment };
   Downloads: undefined;
   Player: { book: AudioBook; chapterIndex?: number; environment?: Environment };
 };

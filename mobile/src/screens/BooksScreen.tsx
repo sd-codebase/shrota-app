@@ -39,7 +39,7 @@ export function BooksScreen() {
   const { environment } = route.params;
   const envConfig = ENVIRONMENTS[environment];
 
-  const { playBook, currentBook } = usePlayer();
+  const { currentBook } = usePlayer();
   const [books, setBooks] = useState<AudioBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,8 +69,8 @@ export function BooksScreen() {
     loadData();
   };
 
-  const handleBookPress = async (book: AudioBook) => {
-    await playBook(book);
+  const handleBookPress = (book: AudioBook) => {
+    navigation.navigate('BookDetails', { book, environment });
   };
 
   const handleMiniPlayerPress = () => {
@@ -112,7 +112,7 @@ export function BooksScreen() {
           </Text>
         </View>
       </View>
-      <Ionicons name="play-circle" size={40} color="#6c5ce7" />
+      <Ionicons name="chevron-forward" size={24} color="#6c5ce7" />
     </TouchableOpacity>
   );
 
