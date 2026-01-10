@@ -17,6 +17,9 @@ audio-library/
 # Claude
 .claude/
 
+# pgAdmin
+pg-admin-connect.md
+
 # OS
 .DS_Store
 Thumbs.db
