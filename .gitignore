@@ -5,6 +5,7 @@ __pycache__/
 *.so
 venv/
 .env
+.env.production
 
 # Audio/Media files (user data)
 be/uploads/
