@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { Environment } from '../config';
 import { AudioBook, DownloadedBook, DownloadProgress } from '../types';
 import {
   downloadBook as downloadBookService,
@@ -11,7 +12,7 @@ import {
 interface DownloadContextType {
   downloads: DownloadedBook[];
   activeDownloads: Map<string, DownloadProgress>;
-  downloadBook: (book: AudioBook) => Promise<void>;
+  downloadBook: (book: AudioBook, environment: Environment) => Promise<void>;
   cancelDownload: (bookId: string) => void;
   deleteDownload: (bookId: string) => Promise<void>;
   isDownloaded: (bookId: string) => boolean;
@@ -37,7 +38,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setDownloads(data);
   };
 
-  const downloadBook = async (book: AudioBook) => {
+  const downloadBook = async (book: AudioBook, environment: Environment) => {
     // Check if already downloaded or downloading
     if (downloads.some(d => d.id === book.id)) {
       throw new Error('Book is already downloaded');
@@ -60,7 +61,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      await downloadBookService(book, (progress) => {
+      await downloadBookService(book, environment, (progress) => {
         setActiveDownloads(prev => {
           const next = new Map(prev);
           next.set(book.id, progress);

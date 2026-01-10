@@ -33,7 +33,7 @@ function formatTime(seconds: number): string {
 }
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
-  const { book } = route.params;
+  const { book, environment } = route.params;
   const {
     currentBook,
     currentChapterIndex,
@@ -82,15 +82,18 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           },
         ]
       );
-    } else if (!bookIsDownloading) {
+    } else if (!bookIsDownloading && environment) {
       try {
-        await downloadBook(book);
+        await downloadBook(book, environment);
         Alert.alert('Success', 'Book downloaded for offline listening');
       } catch (error) {
         Alert.alert('Error', error instanceof Error ? error.message : 'Download failed');
       }
     }
   };
+
+  // Hide download button if no environment (e.g., when opened from downloads)
+  const canDownload = !!environment;
 
   const currentChapter = currentBook?.chapters[currentChapterIndex];
   // Playable chapters count for navigation
@@ -111,25 +114,27 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Now Playing</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={handleDownload}
-            style={styles.headerButton}
-            disabled={bookIsDownloading}
-          >
-            {bookIsDownloading ? (
-              <View style={styles.downloadProgress}>
-                <Text style={styles.downloadProgressText}>
-                  {Math.round(downloadProgress?.progress || 0)}%
-                </Text>
-              </View>
-            ) : (
-              <Ionicons
-                name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
-                size={24}
-                color={bookIsDownloaded ? '#00b894' : '#fff'}
-              />
-            )}
-          </TouchableOpacity>
+          {(canDownload || bookIsDownloaded) && (
+            <TouchableOpacity
+              onPress={handleDownload}
+              style={styles.headerButton}
+              disabled={bookIsDownloading}
+            >
+              {bookIsDownloading ? (
+                <View style={styles.downloadProgress}>
+                  <Text style={styles.downloadProgressText}>
+                    {Math.round(downloadProgress?.progress || 0)}%
+                  </Text>
+                </View>
+              ) : (
+                <Ionicons
+                  name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
+                  size={24}
+                  color={bookIsDownloaded ? '#00b894' : '#fff'}
+                />
+              )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => setShowChapterList(true)}
             style={styles.headerButton}

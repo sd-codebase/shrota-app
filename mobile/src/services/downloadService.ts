@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Environment } from '../config';
 import { AudioBook, AudioChapter, DownloadedBook, DownloadedChapter, DownloadProgress } from '../types';
 
 const DOWNLOADS_KEY = 'audiobook_downloads';
@@ -166,6 +167,7 @@ async function downloadChapter(
 // Download entire book
 export async function downloadBook(
   book: AudioBook,
+  environment: Environment,
   onProgress?: (progress: DownloadProgress) => void
 ): Promise<DownloadedBook> {
   await ensureDownloadDir();
@@ -279,6 +281,7 @@ export async function downloadBook(
     localPath: bookDir,
     downloadedAt: Date.now(),
     totalSize,
+    environment,
   };
 
   // Save to storage

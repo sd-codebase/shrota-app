@@ -1,20 +1,31 @@
-// API Configuration
-// For development, use your local IP address instead of localhost
-// e.g., http://192.168.1.100:8000
+// Environment Configuration
+export type Environment = 'staging' | 'production';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-export const CDN_URL = process.env.EXPO_PUBLIC_CDN_URL || 'http://localhost:8080';
+export const ENVIRONMENTS = {
+  staging: {
+    apiUrl: 'https://api.staging.shrota.in',
+    cdnUrl: 'https://audiolibrary.staging.shrota.in',
+    label: 'Staging',
+    color: '#f39c12',
+  },
+  production: {
+    apiUrl: 'https://api.shrota.in',
+    cdnUrl: 'https://audiolibrary.shrota.in',
+    label: 'Production',
+    color: '#27ae60',
+  },
+};
 
 // Helper to get full CDN URL for audio files
-export const getAudioUrl = (audioPath: string): string => {
+export const getAudioUrl = (audioPath: string, environment: Environment): string => {
   if (!audioPath) return '';
   if (audioPath.startsWith('http')) return audioPath;
-  return `${CDN_URL}/${audioPath}`;
+  return `${ENVIRONMENTS[environment].cdnUrl}/${audioPath}`;
 };
 
 // Helper to get full API URL for thumbnails
-export const getThumbnailUrl = (thumbnailPath: string): string => {
+export const getThumbnailUrl = (thumbnailPath: string, environment: Environment): string => {
   if (!thumbnailPath) return '';
   if (thumbnailPath.startsWith('http')) return thumbnailPath;
-  return `${API_URL}/files/thumbnail/${thumbnailPath}`;
+  return `${ENVIRONMENTS[environment].apiUrl}/files/thumbnail/${thumbnailPath}`;
 };

@@ -1,3 +1,5 @@
+import { Environment } from '../config';
+
 // Backend API Types
 export interface SocialMedia {
   facebook?: string;
@@ -111,6 +113,7 @@ export interface DownloadedBook extends Omit<AudioBook, 'chapters'> {
   localPath: string;  // Base directory for this book's downloads
   downloadedAt: number;
   totalSize: number;  // Total size in bytes
+  environment: Environment;  // Which environment this was downloaded from
 }
 
 export interface DownloadProgress {
@@ -124,13 +127,8 @@ export interface DownloadProgress {
 
 // Navigation Types
 export type RootStackParamList = {
-  Welcome: undefined;
-  MainTabs: undefined;
-  Player: { book: AudioBook; chapterIndex?: number };
-};
-
-export type MainTabParamList = {
-  Home: undefined;
-  Library: undefined;
+  Main: undefined;
+  Books: { environment: Environment };
   Downloads: undefined;
+  Player: { book: AudioBook; chapterIndex?: number; environment?: Environment };
 };

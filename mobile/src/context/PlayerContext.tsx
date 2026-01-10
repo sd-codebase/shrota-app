@@ -90,7 +90,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } else {
       // Use remote streaming URLs
       // Filter only playable chapters (published with audio URL)
-      const playableChapters = book.chapters.filter(ch => ch.isPublished && ch.audioUrl);
+      const audioBook = book as AudioBook;
+      const playableChapters = audioBook.chapters.filter(ch => ch.isPublished && ch.audioUrl);
 
       if (playableChapters.length === 0) {
         console.warn('Book has no playable chapters');

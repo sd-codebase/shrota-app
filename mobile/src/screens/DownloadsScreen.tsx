@@ -17,6 +17,7 @@ import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { useDownload } from '../context/DownloadContext';
 import { formatBytes } from '../services/downloadService';
+import { ENVIRONMENTS } from '../config';
 import { DownloadedBook, RootStackParamList } from '../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -80,34 +81,46 @@ export function DownloadsScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: DownloadedBook }) => (
-    <TouchableOpacity
-      style={styles.item}
-      onPress={() => handlePlay(item)}
-      activeOpacity={0.8}
-    >
-      <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.itemAuthor} numberOfLines={1}>
-          {item.author}
-        </Text>
-        <View style={styles.itemMeta}>
-          <Text style={styles.itemDuration}>{formatDuration(item.duration)}</Text>
-          <Text style={styles.itemSize}>{formatBytes(item.totalSize)}</Text>
-        </View>
-        <Text style={styles.itemDate}>Downloaded {formatDate(item.downloadedAt)}</Text>
-      </View>
+  const renderItem = ({ item }: { item: DownloadedBook }) => {
+    const envConfig = item.environment ? ENVIRONMENTS[item.environment] : null;
+    return (
       <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDelete(item)}
+        style={styles.item}
+        onPress={() => handlePlay(item)}
+        activeOpacity={0.8}
       >
-        <Ionicons name="trash-outline" size={22} color="#ff6b6b" />
+        <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+        <View style={styles.itemInfo}>
+          <View style={styles.titleRow}>
+            <Text style={styles.itemTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+            {envConfig && (
+              <View style={[styles.envBadge, { backgroundColor: envConfig.color }]}>
+                <Text style={styles.envBadgeText}>
+                  {item.environment === 'production' ? 'PROD' : 'STG'}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.itemAuthor} numberOfLines={1}>
+            {item.author}
+          </Text>
+          <View style={styles.itemMeta}>
+            <Text style={styles.itemDuration}>{formatDuration(item.duration)}</Text>
+            <Text style={styles.itemSize}>{formatBytes(item.totalSize)}</Text>
+          </View>
+          <Text style={styles.itemDate}>Downloaded {formatDate(item.downloadedAt)}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item)}
+        >
+          <Ionicons name="trash-outline" size={22} color="#ff6b6b" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -124,10 +137,18 @@ export function DownloadsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0f0f1a" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Downloads</Text>
-        <Text style={styles.headerSubtitle}>
-          {sortedDownloads.length} {sortedDownloads.length === 1 ? 'audiobook' : 'audiobooks'}
-        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Downloads</Text>
+          <Text style={styles.headerSubtitle}>
+            {sortedDownloads.length} {sortedDownloads.length === 1 ? 'audiobook' : 'audiobooks'}
+          </Text>
+        </View>
       </View>
 
       <FlatList
@@ -154,12 +175,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f1a',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     color: '#fff',
   },
@@ -196,9 +223,25 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     justifyContent: 'center',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+  },
+  envBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  envBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
     color: '#fff',
   },
   itemAuthor: {
