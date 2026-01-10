@@ -9,13 +9,19 @@
 
 | Name | Points to |
 |------|-----------|
-| @ | VPS IP |
-| www | VPS IP |
+| admin | VPS IP |
 | api | VPS IP |
 | audiolibrary | VPS IP |
-| staging | VPS IP |
+| admin.staging | VPS IP |
 | api.staging | VPS IP |
 | audiolibrary.staging | VPS IP |
+
+## Port Mapping
+
+| Environment | Docker Nginx Port | Host Nginx Proxies To |
+|-------------|-------------------|----------------------|
+| Production | 8081 | 127.0.0.1:8081 |
+| Staging | 8080 | 127.0.0.1:8080 |
 
 ---
 
@@ -26,7 +32,7 @@
 sudo apt update && sudo apt upgrade -y
 
 # Install essential tools
-sudo apt install -y curl git nano ufw
+sudo apt install -y curl git ufw
 ```
 
 ---
@@ -38,8 +44,6 @@ sudo apt install -y curl git nano ufw
 sudo ufw allow OpenSSH
 sudo ufw allow 80
 sudo ufw allow 443
-sudo ufw allow 8080   # Staging nginx
-sudo ufw allow 8443   # Staging nginx SSL
 sudo ufw enable
 
 # Check status
@@ -99,7 +103,7 @@ cd shrota-app
 ### Production
 ```bash
 cp .env.production.example .env.production
-nano .env.production
+vi .env.production
 ```
 
 Update values:
@@ -110,7 +114,7 @@ DB_PASSWORD=your_strong_password_here
 ### Staging
 ```bash
 cp .env.staging.example .env.staging
-nano .env.staging
+vi .env.staging
 ```
 
 Update values:
@@ -128,21 +132,7 @@ mkdir -p audio-library/shrota-audio-library
 
 ---
 
-## Step 8: Start Production
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-```
-
-Verify:
-```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f
-```
-
----
-
-## Step 9: Start Staging
+## Step 8: Start Staging
 
 ```bash
 docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
@@ -156,41 +146,37 @@ docker compose -f docker-compose.staging.yml logs -f
 
 ---
 
+## Step 9: Start Production
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+Verify:
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+---
+
 ## Step 10: Configure Host Nginx (Reverse Proxy)
 
 ```bash
-sudo nano /etc/nginx/sites-available/shrota
+sudo vi /etc/nginx/sites-available/shrota
 ```
 
 Paste this configuration:
 
 ```nginx
-# ===================
-# PRODUCTION
-# ===================
-
-# UI - shrota.in
+# PRODUCTION (port 8081)
 server {
     listen 80;
-    server_name shrota.in www.shrota.in;
-
-    location / {
-        proxy_pass http://127.0.0.1:80;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-# API - api.shrota.in
-server {
-    listen 80;
-    server_name api.shrota.in;
+    server_name admin.shrota.in api.shrota.in audiolibrary.shrota.in;
     client_max_body_size 100M;
 
     location / {
-        proxy_pass http://127.0.0.1:80;
+        proxy_pass http://127.0.0.1:8081;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -198,40 +184,10 @@ server {
     }
 }
 
-# Audio Library - audiolibrary.shrota.in
+# STAGING (port 8080)
 server {
     listen 80;
-    server_name audiolibrary.shrota.in;
-
-    location / {
-        proxy_pass http://127.0.0.1:80;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-# ===================
-# STAGING
-# ===================
-
-# UI - staging.shrota.in
-server {
-    listen 80;
-    server_name staging.shrota.in;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-# API - api.staging.shrota.in
-server {
-    listen 80;
-    server_name api.staging.shrota.in;
+    server_name admin.staging.shrota.in api.staging.shrota.in audiolibrary.staging.shrota.in;
     client_max_body_size 100M;
 
     location / {
@@ -240,18 +196,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-# Audio Library - audiolibrary.staging.shrota.in
-server {
-    listen 80;
-    server_name audiolibrary.staging.shrota.in;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 ```
@@ -272,10 +216,12 @@ sudo systemctl reload nginx
 # Install certbot
 sudo apt install -y certbot python3-certbot-nginx
 
-# Get certificates for all domains
-sudo certbot --nginx -d shrota.in -d www.shrota.in -d api.shrota.in -d audiolibrary.shrota.in -d staging.shrota.in -d api.staging.shrota.in -d audiolibrary.staging.shrota.in
+# Get certificates for staging
+sudo certbot --nginx -d admin.staging.shrota.in -d api.staging.shrota.in -d audiolibrary.staging.shrota.in
 
-# Auto-renewal is configured automatically
+# Get certificates for production
+sudo certbot --nginx -d admin.shrota.in -d api.shrota.in -d audiolibrary.shrota.in
+
 # Test renewal
 sudo certbot renew --dry-run
 ```
@@ -292,6 +238,7 @@ docker compose -f docker-compose.prod.yml logs -f backend
 
 # Staging
 docker compose -f docker-compose.staging.yml logs -f
+docker compose -f docker-compose.staging.yml logs -f backend-staging
 ```
 
 ### Restart Services
@@ -302,6 +249,7 @@ docker compose -f docker-compose.prod.yml restart backend
 
 # Staging
 docker compose -f docker-compose.staging.yml restart
+docker compose -f docker-compose.staging.yml restart backend-staging
 ```
 
 ### Stop Services
@@ -319,10 +267,10 @@ cd ~/apps/shrota-app
 git pull
 
 # Rebuild production
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 
 # Rebuild staging
-docker compose -f docker-compose.staging.yml up -d --build
+docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
 ```
 
 ### Check Container Status
@@ -332,8 +280,13 @@ docker ps
 
 ### Access Container Shell
 ```bash
+# Production
 docker exec -it shrota-backend /bin/sh
 docker exec -it shrota-postgres /bin/sh
+
+# Staging
+docker exec -it shrota-backend-staging /bin/sh
+docker exec -it shrota-postgres-staging /bin/sh
 ```
 
 ---
@@ -343,14 +296,14 @@ docker exec -it shrota-postgres /bin/sh
 ### Production
 | Service | URL |
 |---------|-----|
-| UI | https://shrota.in |
+| Admin UI | https://admin.shrota.in |
 | API | https://api.shrota.in |
 | Audio | https://audiolibrary.shrota.in |
 
 ### Staging
 | Service | URL |
 |---------|-----|
-| UI | https://staging.shrota.in |
+| Admin UI | https://admin.staging.shrota.in |
 | API | https://api.staging.shrota.in |
 | Audio | https://audiolibrary.staging.shrota.in |
 
@@ -362,12 +315,18 @@ docker exec -it shrota-postgres /bin/sh
 ```bash
 sudo lsof -i :80
 sudo lsof -i :8080
+sudo lsof -i :8081
 ```
 
 ### Check Docker container logs
 ```bash
+# Production
 docker logs shrota-backend
 docker logs shrota-nginx
+
+# Staging
+docker logs shrota-backend-staging
+docker logs shrota-nginx-staging
 ```
 
 ### Check nginx error logs
@@ -378,6 +337,20 @@ sudo tail -f /var/log/nginx/error.log
 ### Restart everything
 ```bash
 sudo systemctl restart nginx
-docker compose -f docker-compose.prod.yml restart
-docker compose -f docker-compose.staging.yml restart
+docker compose -f docker-compose.prod.yml --env-file .env.production restart
+docker compose -f docker-compose.staging.yml --env-file .env.staging restart
 ```
+
+### Port conflict error
+If you see "address already in use" error:
+- Production Docker nginx uses port **8081** (not 80)
+- Staging Docker nginx uses port **8080**
+- Host nginx uses port 80/443 and proxies to Docker containers
+
+---
+
+## vi Quick Reference
+- `i` - insert mode
+- `Esc` - exit insert mode
+- `:wq` - save and quit
+- `:q!` - quit without saving
