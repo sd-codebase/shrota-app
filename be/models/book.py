@@ -65,6 +65,7 @@ class Chapter(Base, SoftDeleteMixin):
     duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Relationship
     book = relationship("Book", back_populates="chapters")

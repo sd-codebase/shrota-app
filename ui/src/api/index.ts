@@ -15,6 +15,7 @@ import type {
   Chapter,
   FileUploadResponse,
   ThumbnailUploadResponse,
+  ChapterImageUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -269,3 +270,29 @@ export const uploadThumbnail = async (file: File, bookName: string): Promise<Thu
 };
 
 export const getThumbnailUrl = (filename: string) => `${API_URL}/files/thumbnail/${filename}`;
+
+// Chapter Images
+export const uploadChapterImage = async (
+  file: File,
+  bookName: string,
+  chapterOrder: number
+): Promise<ChapterImageUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('book_name', bookName);
+  formData.append('chapter_order', chapterOrder.toString());
+
+  const response = await fetch(`${API_URL}/files/upload/chapter-image`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Chapter image upload failed' }));
+    throw new Error(error.detail || 'Chapter image upload failed');
+  }
+
+  return response.json();
+};
+
+export const getChapterImageUrl = (filename: string) => `${API_URL}/files/chapter-image/${filename}`;

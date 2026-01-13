@@ -13,6 +13,8 @@ router = APIRouter(prefix="/files", tags=["Files"])
 Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR = os.path.join(UPLOAD_DIR, "thumbnails")
 Path(THUMBNAILS_DIR).mkdir(parents=True, exist_ok=True)
+CHAPTER_IMAGES_DIR = os.path.join(UPLOAD_DIR, "chapter-images")
+Path(CHAPTER_IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -113,6 +115,58 @@ async def get_thumbnail(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/chapter-image", status_code=status.HTTP_201_CREATED)
+async def upload_chapter_image(
+    file: UploadFile = File(...),
+    book_name: str = Form(...),
+    chapter_order: int = Form(...)
+):
+    """Upload a chapter image. Filename format: {book-name}-chapter-{order}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    # Create filename from book name and chapter order
+    safe_name = sanitize_filename(book_name)
+    file_name = f"{safe_name}-chapter-{chapter_order + 1}{file_extension}"
+    file_path = os.path.join(CHAPTER_IMAGES_DIR, file_name)
+
+    # Remove existing chapter image with same base name but different extension
+    base_name = f"{safe_name}-chapter-{chapter_order + 1}"
+    for ext in ALLOWED_IMAGE_EXTENSIONS:
+        existing_file = os.path.join(CHAPTER_IMAGES_DIR, f"{base_name}{ext}")
+        if os.path.exists(existing_file):
+            os.remove(existing_file)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save chapter image: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "book_name": book_name,
+        "chapter_order": chapter_order,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/chapter-image/{filename}")
+async def get_chapter_image(filename: str):
+    """Get a chapter image by filename."""
+    file_path = os.path.join(CHAPTER_IMAGES_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Chapter image not found")
 
     return FileResponse(path=file_path, filename=filename)
 

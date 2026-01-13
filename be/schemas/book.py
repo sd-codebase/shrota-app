@@ -8,6 +8,7 @@ class ChapterCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     order: int = Field(..., ge=0)
     file_id: Optional[str] = None
+    image: Optional[str] = None
 
 
 class ChapterUpdate(BaseModel):
@@ -18,6 +19,7 @@ class ChapterUpdate(BaseModel):
     duration: Optional[int] = None  # Duration in seconds (auto-set by HLS processing)
     file_size: Optional[int] = None  # File size in bytes (auto-set by HLS processing)
     is_published: Optional[bool] = None  # Publish status
+    image: Optional[str] = None
 
 
 class ChapterResponse(BaseModel):
@@ -31,6 +33,7 @@ class ChapterResponse(BaseModel):
     file_size: Optional[int] = None  # File size in bytes
     is_published: bool = False  # Publish status
     is_deleted: bool = False  # Soft delete flag
+    image: Optional[str] = None
 
 
 class BookCreate(BaseModel):

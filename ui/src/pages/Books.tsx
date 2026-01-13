@@ -55,6 +55,8 @@ import {
   getChapterFileUrl,
   uploadThumbnail,
   getThumbnailUrl,
+  uploadChapterImage,
+  getChapterImageUrl,
 } from '../api';
 
 function Books() {
@@ -72,6 +74,7 @@ function Books() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [thumbnailFileList, setThumbnailFileList] = useState<UploadFile[]>([]);
+  const [chapterImageFileList, setChapterImageFileList] = useState<UploadFile[]>([]);
   const [processingChapters, setProcessingChapters] = useState<Set<string>>(new Set());
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const [processingModalVisible, setProcessingModalVisible] = useState(false);
@@ -245,6 +248,7 @@ function Books() {
     chapterForm.resetFields();
     chapterForm.setFieldsValue({ order: book.chapters.length });
     setFileList([]);
+    setChapterImageFileList([]);
     setChapterModalOpen(true);
   };
 
@@ -255,6 +259,11 @@ function Books() {
     setFileList(
       chapter.file_id
         ? [{ uid: chapter.file_id, name: 'Audio file', status: 'done' }]
+        : []
+    );
+    setChapterImageFileList(
+      chapter.image
+        ? [{ uid: chapter.image, name: chapter.image, status: 'done', url: getChapterImageUrl(chapter.image) }]
         : []
     );
     setChapterModalOpen(true);
@@ -317,6 +326,7 @@ function Books() {
 
     try {
       let fileId = editingChapter?.file_id;
+      let imageFilename = editingChapter?.image;
 
       if (fileList.length > 0 && fileList[0].originFileObj) {
         setUploadProgress(0);
@@ -332,9 +342,22 @@ function Books() {
         fileId = undefined;
       }
 
+      // Handle chapter image upload
+      if (chapterImageFileList.length > 0 && chapterImageFileList[0].originFileObj) {
+        const imageResponse = await uploadChapterImage(
+          chapterImageFileList[0].originFileObj,
+          selectedBook.title,
+          values.order
+        );
+        imageFilename = imageResponse.filename;
+      } else if (chapterImageFileList.length === 0) {
+        imageFilename = undefined;
+      }
+
       const chapterData: ChapterCreate = {
         ...values,
         file_id: fileId,
+        image: imageFilename,
       };
 
       if (editingChapter) {
@@ -570,6 +593,32 @@ function Books() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                {/* Chapter image thumbnail */}
+                <div style={{ marginRight: 12 }}>
+                  {chapter.image ? (
+                    <Popover
+                      content={
+                        <img
+                          src={getChapterImageUrl(chapter.image)}
+                          alt={chapter.title}
+                          style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8 }}
+                        />
+                      }
+                      placement="right"
+                      trigger="hover"
+                    >
+                      <img
+                        src={getChapterImageUrl(chapter.image)}
+                        alt={chapter.title}
+                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+                      />
+                    </Popover>
+                  ) : (
+                    <div style={{ width: 40, height: 40, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <PictureOutlined style={{ color: '#ccc', fontSize: 16 }} />
+                    </div>
+                  )}
+                </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{
@@ -935,6 +984,24 @@ function Books() {
             rules={[{ required: true, message: 'Please enter order' }]}
           >
             <InputNumber min={0} style={{ width: '100%' }} disabled={uploadProgress !== null} />
+          </Form.Item>
+          <Form.Item label="Chapter Image">
+            <Upload
+              listType="picture-card"
+              fileList={chapterImageFileList}
+              beforeUpload={() => false}
+              onChange={({ fileList }) => setChapterImageFileList(fileList)}
+              maxCount={1}
+              accept=".jpg,.jpeg,.png,.webp"
+              disabled={uploadProgress !== null}
+            >
+              {chapterImageFileList.length === 0 && (
+                <div>
+                  <PictureOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
           <Form.Item label="Audio File">
             <Upload

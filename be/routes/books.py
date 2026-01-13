@@ -38,6 +38,7 @@ def chapter_to_response(chapter: Chapter) -> dict:
         "file_size": chapter.file_size,
         "is_published": chapter.is_published,
         "is_deleted": chapter.is_deleted,
+        "image": chapter.image,
     }
 
 
@@ -390,6 +391,7 @@ async def add_chapter(book_id: str, chapter: ChapterCreate, db: AsyncSession = D
         order=chapter.order,
         file_id=chapter.file_id,
         is_published=False,
+        image=chapter.image,
     )
 
     db.add(new_chapter)

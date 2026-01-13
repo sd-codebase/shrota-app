@@ -84,6 +84,7 @@ export interface Chapter {
   duration?: number;  // Duration in seconds
   file_size?: number;  // File size in bytes
   is_published: boolean;  // Publish status
+  image?: string;
 }
 
 export interface ChapterCreate {
@@ -91,6 +92,7 @@ export interface ChapterCreate {
   description?: string;
   order: number;
   file_id?: string;
+  image?: string;
 }
 
 export interface Book {
@@ -124,6 +126,13 @@ export interface BookCreate {
 export interface ThumbnailUploadResponse {
   filename: string;
   book_name: string;
+  content_type: string;
+}
+
+export interface ChapterImageUploadResponse {
+  filename: string;
+  book_name: string;
+  chapter_order: number;
   content_type: string;
 }
 
