@@ -17,6 +17,12 @@ CHAPTER_IMAGES_DIR = os.path.join(UPLOAD_DIR, "chapter-images")
 Path(CHAPTER_IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 GENRE_THUMBNAILS_DIR = os.path.join(UPLOAD_DIR, "genre-thumbnails")
 Path(GENRE_THUMBNAILS_DIR).mkdir(parents=True, exist_ok=True)
+AUTHOR_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "author-photos")
+Path(AUTHOR_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
+ARTIST_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "artist-photos")
+Path(ARTIST_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
+PUBLICATION_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "publication-photos")
+Path(PUBLICATION_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -218,6 +224,147 @@ async def get_genre_thumbnail(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Genre thumbnail not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/author-photo", status_code=status.HTTP_201_CREATED)
+async def upload_author_photo(
+    file: UploadFile = File(...),
+    author_name: str = Form(...)
+):
+    """Upload an author photo. Filename format: {author-name}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    safe_name = sanitize_filename(author_name)
+    file_name = f"{safe_name}{file_extension}"
+    file_path = os.path.join(AUTHOR_PHOTOS_DIR, file_name)
+
+    for ext in ALLOWED_IMAGE_EXTENSIONS:
+        existing_file = os.path.join(AUTHOR_PHOTOS_DIR, f"{safe_name}{ext}")
+        if os.path.exists(existing_file):
+            os.remove(existing_file)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save author photo: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "author_name": author_name,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/author-photo/{filename}")
+async def get_author_photo(filename: str):
+    """Get an author photo by filename."""
+    file_path = os.path.join(AUTHOR_PHOTOS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Author photo not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/artist-photo", status_code=status.HTTP_201_CREATED)
+async def upload_artist_photo(
+    file: UploadFile = File(...),
+    artist_name: str = Form(...)
+):
+    """Upload an artist photo. Filename format: {artist-name}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    safe_name = sanitize_filename(artist_name)
+    file_name = f"{safe_name}{file_extension}"
+    file_path = os.path.join(ARTIST_PHOTOS_DIR, file_name)
+
+    for ext in ALLOWED_IMAGE_EXTENSIONS:
+        existing_file = os.path.join(ARTIST_PHOTOS_DIR, f"{safe_name}{ext}")
+        if os.path.exists(existing_file):
+            os.remove(existing_file)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save artist photo: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "artist_name": artist_name,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/artist-photo/{filename}")
+async def get_artist_photo(filename: str):
+    """Get an artist photo by filename."""
+    file_path = os.path.join(ARTIST_PHOTOS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artist photo not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/publication-photo", status_code=status.HTTP_201_CREATED)
+async def upload_publication_photo(
+    file: UploadFile = File(...),
+    publication_name: str = Form(...)
+):
+    """Upload a publication photo. Filename format: {publication-name}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    safe_name = sanitize_filename(publication_name)
+    file_name = f"{safe_name}{file_extension}"
+    file_path = os.path.join(PUBLICATION_PHOTOS_DIR, file_name)
+
+    for ext in ALLOWED_IMAGE_EXTENSIONS:
+        existing_file = os.path.join(PUBLICATION_PHOTOS_DIR, f"{safe_name}{ext}")
+        if os.path.exists(existing_file):
+            os.remove(existing_file)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save publication photo: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "publication_name": publication_name,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/publication-photo/{filename}")
+async def get_publication_photo(filename: str):
+    """Get a publication photo by filename."""
+    file_path = os.path.join(PUBLICATION_PHOTOS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Publication photo not found")
 
     return FileResponse(path=file_path, filename=filename)
 

@@ -8,8 +8,11 @@ import {
   Input,
   message,
   Popconfirm,
+  Upload,
+  Popover,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
 import type { Publication, PublicationCreate } from '../types';
 import {
   getPublications,
@@ -17,6 +20,8 @@ import {
   updatePublication,
   deletePublication,
   bulkCreatePublications,
+  uploadPublicationPhoto,
+  getPublicationPhotoUrl,
 } from '../api';
 
 function Publications() {
@@ -25,6 +30,7 @@ function Publications() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bulkDrawerOpen, setBulkDrawerOpen] = useState(false);
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
+  const [photoFileList, setPhotoFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
   const [bulkForm] = Form.useForm();
 
@@ -47,12 +53,18 @@ function Publications() {
   const handleAdd = () => {
     setEditingPublication(null);
     form.resetFields();
+    setPhotoFileList([]);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record: Publication) => {
     setEditingPublication(record);
     form.setFieldsValue(record);
+    setPhotoFileList(
+      record.photo
+        ? [{ uid: record.photo, name: record.photo, status: 'done', url: getPublicationPhotoUrl(record.photo) }]
+        : []
+    );
     setDrawerOpen(true);
   };
 
@@ -68,11 +80,30 @@ function Publications() {
 
   const handleSubmit = async (values: PublicationCreate) => {
     try {
+      let photoFilename = editingPublication?.photo;
+
+      // Upload new photo if a new file was selected
+      if (photoFileList.length > 0 && photoFileList[0].originFileObj) {
+        const photoResponse = await uploadPublicationPhoto(
+          photoFileList[0].originFileObj,
+          values.name
+        );
+        photoFilename = photoResponse.filename;
+      } else if (photoFileList.length === 0) {
+        // Photo was removed
+        photoFilename = undefined;
+      }
+
+      const publicationData: PublicationCreate = {
+        ...values,
+        photo: photoFilename,
+      };
+
       if (editingPublication) {
-        await updatePublication(editingPublication.id, values);
+        await updatePublication(editingPublication.id, publicationData);
         message.success('Publication updated');
       } else {
-        await createPublication(values);
+        await createPublication(publicationData);
         message.success('Publication created');
       }
       setDrawerOpen(false);
@@ -113,6 +144,36 @@ function Publications() {
   };
 
   const columns = [
+    {
+      title: '',
+      dataIndex: 'photo',
+      key: 'photo',
+      width: 50,
+      render: (photo: string) =>
+        photo ? (
+          <Popover
+            content={
+              <img
+                src={getPublicationPhotoUrl(photo)}
+                alt="photo"
+                style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8 }}
+              />
+            }
+            placement="right"
+            trigger="hover"
+          >
+            <img
+              src={getPublicationPhotoUrl(photo)}
+              alt="photo"
+              style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+            />
+          </Popover>
+        ) : (
+          <div style={{ width: 32, height: 32, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PictureOutlined style={{ color: '#ccc', fontSize: 14 }} />
+          </div>
+        ),
+    },
     {
       title: 'Name',
       dataIndex: 'name',
@@ -188,6 +249,23 @@ function Publications() {
           </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} placeholder="Optional description" />
+          </Form.Item>
+          <Form.Item label="Photo">
+            <Upload
+              listType="picture-card"
+              fileList={photoFileList}
+              beforeUpload={() => false}
+              onChange={({ fileList }) => setPhotoFileList(fileList)}
+              maxCount={1}
+              accept=".jpg,.jpeg,.png,.webp"
+            >
+              {photoFileList.length === 0 && (
+                <div>
+                  <PictureOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
         </Form>
       </Drawer>

@@ -20,6 +20,7 @@ def publication_to_response(publication: Publication) -> dict:
         "id": str(publication.id),
         "name": publication.name,
         "description": publication.description,
+        "photo": publication.photo,
         "is_deleted": publication.is_deleted,
         "created_at": publication.created_at,
         "updated_at": publication.updated_at,
@@ -53,6 +54,7 @@ async def create_publication(publication: PublicationCreate, db: AsyncSession = 
     new_publication = Publication(
         name=publication.name,
         description=publication.description,
+        photo=publication.photo,
     )
     db.add(new_publication)
     await db.commit()
@@ -63,7 +65,7 @@ async def create_publication(publication: PublicationCreate, db: AsyncSession = 
 @router.post("/bulk", response_model=list[PublicationResponse], status_code=status.HTTP_201_CREATED)
 async def bulk_create_publications(data: PublicationBulkCreate, db: AsyncSession = Depends(get_db)):
     new_publications = [
-        Publication(name=p.name, description=p.description)
+        Publication(name=p.name, description=p.description, photo=p.photo)
         for p in data.publications
     ]
     db.add_all(new_publications)

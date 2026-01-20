@@ -17,6 +17,9 @@ import type {
   ThumbnailUploadResponse,
   ChapterImageUploadResponse,
   GenreThumbnailUploadResponse,
+  AuthorPhotoUploadResponse,
+  ArtistPhotoUploadResponse,
+  PublicationPhotoUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -318,3 +321,66 @@ export const uploadGenreThumbnail = async (file: File, genreName: string): Promi
 };
 
 export const getGenreThumbnailUrl = (filename: string) => `${API_URL}/files/genre-thumbnail/${filename}`;
+
+// Author Photos
+export const uploadAuthorPhoto = async (file: File, authorName: string): Promise<AuthorPhotoUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('author_name', authorName);
+
+  const response = await fetch(`${API_URL}/files/upload/author-photo`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Author photo upload failed' }));
+    throw new Error(error.detail || 'Author photo upload failed');
+  }
+
+  return response.json();
+};
+
+export const getAuthorPhotoUrl = (filename: string) => `${API_URL}/files/author-photo/${filename}`;
+
+// Artist Photos
+export const uploadArtistPhoto = async (file: File, artistName: string): Promise<ArtistPhotoUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('artist_name', artistName);
+
+  const response = await fetch(`${API_URL}/files/upload/artist-photo`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Artist photo upload failed' }));
+    throw new Error(error.detail || 'Artist photo upload failed');
+  }
+
+  return response.json();
+};
+
+export const getArtistPhotoUrl = (filename: string) => `${API_URL}/files/artist-photo/${filename}`;
+
+// Publication Photos
+export const uploadPublicationPhoto = async (file: File, publicationName: string): Promise<PublicationPhotoUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('publication_name', publicationName);
+
+  const response = await fetch(`${API_URL}/files/upload/publication-photo`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Publication photo upload failed' }));
+    throw new Error(error.detail || 'Publication photo upload failed');
+  }
+
+  return response.json();
+};
+
+export const getPublicationPhotoUrl = (filename: string) => `${API_URL}/files/publication-photo/${filename}`;

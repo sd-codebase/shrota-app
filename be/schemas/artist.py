@@ -9,6 +9,7 @@ class ArtistCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     bio: Optional[str] = Field(None, max_length=1000)
     social_media: Optional[SocialMedia] = None
+    photo: Optional[str] = Field(None, max_length=500)
 
 
 class ArtistBulkCreate(BaseModel):
@@ -19,6 +20,7 @@ class ArtistUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     bio: Optional[str] = Field(None, max_length=1000)
     social_media: Optional[SocialMedia] = None
+    photo: Optional[str] = Field(None, max_length=500)
 
 
 class ArtistResponse(BaseModel):
@@ -26,6 +28,7 @@ class ArtistResponse(BaseModel):
     name: str
     bio: Optional[str] = None
     social_media: Optional[SocialMedia] = None
+    photo: Optional[str] = None
     is_deleted: bool = False
     created_at: datetime
     updated_at: datetime

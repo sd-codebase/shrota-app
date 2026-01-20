@@ -8,8 +8,11 @@ import {
   Input,
   message,
   Popconfirm,
+  Upload,
+  Popover,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
 import type { Author, AuthorCreate, SocialMedia } from '../types';
 import {
   getAuthors,
@@ -17,6 +20,8 @@ import {
   updateAuthor,
   deleteAuthor,
   bulkCreateAuthors,
+  uploadAuthorPhoto,
+  getAuthorPhotoUrl,
 } from '../api';
 
 function Authors() {
@@ -25,6 +30,7 @@ function Authors() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bulkDrawerOpen, setBulkDrawerOpen] = useState(false);
   const [editingAuthor, setEditingAuthor] = useState<Author | null>(null);
+  const [photoFileList, setPhotoFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
   const [bulkForm] = Form.useForm();
 
@@ -47,6 +53,7 @@ function Authors() {
   const handleAdd = () => {
     setEditingAuthor(null);
     form.resetFields();
+    setPhotoFileList([]);
     setDrawerOpen(true);
   };
 
@@ -56,6 +63,11 @@ function Authors() {
       ...record,
       social_media: record.social_media || {},
     });
+    setPhotoFileList(
+      record.photo
+        ? [{ uid: record.photo, name: record.photo, status: 'done', url: getAuthorPhotoUrl(record.photo) }]
+        : []
+    );
     setDrawerOpen(true);
   };
 
@@ -71,8 +83,23 @@ function Authors() {
 
   const handleSubmit = async (values: AuthorCreate & { social_media?: SocialMedia }) => {
     try {
+      let photoFilename = editingAuthor?.photo;
+
+      // Upload new photo if a new file was selected
+      if (photoFileList.length > 0 && photoFileList[0].originFileObj) {
+        const photoResponse = await uploadAuthorPhoto(
+          photoFileList[0].originFileObj,
+          values.name
+        );
+        photoFilename = photoResponse.filename;
+      } else if (photoFileList.length === 0) {
+        // Photo was removed
+        photoFilename = undefined;
+      }
+
       const authorData: AuthorCreate = {
         ...values,
+        photo: photoFilename,
         social_media: values.social_media && Object.values(values.social_media).some(v => v)
           ? values.social_media
           : undefined,
@@ -123,6 +150,36 @@ function Authors() {
   };
 
   const columns = [
+    {
+      title: '',
+      dataIndex: 'photo',
+      key: 'photo',
+      width: 50,
+      render: (photo: string) =>
+        photo ? (
+          <Popover
+            content={
+              <img
+                src={getAuthorPhotoUrl(photo)}
+                alt="photo"
+                style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8 }}
+              />
+            }
+            placement="right"
+            trigger="hover"
+          >
+            <img
+              src={getAuthorPhotoUrl(photo)}
+              alt="photo"
+              style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+            />
+          </Popover>
+        ) : (
+          <div style={{ width: 32, height: 32, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PictureOutlined style={{ color: '#ccc', fontSize: 14 }} />
+          </div>
+        ),
+    },
     {
       title: 'Name',
       dataIndex: 'name',
@@ -199,6 +256,23 @@ function Authors() {
           </Form.Item>
           <Form.Item name="bio" label="Bio">
             <Input.TextArea rows={3} placeholder="Author biography" />
+          </Form.Item>
+          <Form.Item label="Photo">
+            <Upload
+              listType="picture-card"
+              fileList={photoFileList}
+              beforeUpload={() => false}
+              onChange={({ fileList }) => setPhotoFileList(fileList)}
+              maxCount={1}
+              accept=".jpg,.jpeg,.png,.webp"
+            >
+              {photoFileList.length === 0 && (
+                <div>
+                  <PictureOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
           <h4>Social Media Links</h4>
           <Form.Item name={['social_media', 'facebook']} label="Facebook">

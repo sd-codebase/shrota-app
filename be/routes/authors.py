@@ -21,6 +21,7 @@ def author_to_response(author: Author) -> dict:
         "name": author.name,
         "bio": author.bio,
         "social_media": author.social_media,
+        "photo": author.photo,
         "is_deleted": author.is_deleted,
         "created_at": author.created_at,
         "updated_at": author.updated_at,
@@ -55,6 +56,7 @@ async def create_author(author: AuthorCreate, db: AsyncSession = Depends(get_db)
         name=author.name,
         bio=author.bio,
         social_media=author.social_media.model_dump() if author.social_media else None,
+        photo=author.photo,
     )
     db.add(new_author)
     await db.commit()
@@ -69,6 +71,7 @@ async def bulk_create_authors(data: AuthorBulkCreate, db: AsyncSession = Depends
             name=a.name,
             bio=a.bio,
             social_media=a.social_media.model_dump() if a.social_media else None,
+            photo=a.photo,
         )
         for a in data.authors
     ]

@@ -31,6 +31,7 @@ export interface Author {
   name: string;
   bio?: string;
   social_media?: SocialMedia;
+  photo?: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,12 +40,14 @@ export interface AuthorCreate {
   name: string;
   bio?: string;
   social_media?: SocialMedia;
+  photo?: string;
 }
 
 export interface Publication {
   id: string;
   name: string;
   description?: string;
+  photo?: string;
   created_at: string;
   updated_at: string;
 }
@@ -52,6 +55,7 @@ export interface Publication {
 export interface PublicationCreate {
   name: string;
   description?: string;
+  photo?: string;
 }
 
 export interface Artist {
@@ -59,6 +63,7 @@ export interface Artist {
   name: string;
   bio?: string;
   social_media?: SocialMedia;
+  photo?: string;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +72,7 @@ export interface ArtistCreate {
   name: string;
   bio?: string;
   social_media?: SocialMedia;
+  photo?: string;
 }
 
 export interface SocialMedia {
@@ -143,6 +149,24 @@ export interface ChapterImageUploadResponse {
 export interface GenreThumbnailUploadResponse {
   filename: string;
   genre_name: string;
+  content_type: string;
+}
+
+export interface AuthorPhotoUploadResponse {
+  filename: string;
+  author_name: string;
+  content_type: string;
+}
+
+export interface ArtistPhotoUploadResponse {
+  filename: string;
+  artist_name: string;
+  content_type: string;
+}
+
+export interface PublicationPhotoUploadResponse {
+  filename: string;
+  publication_name: string;
   content_type: string;
 }
 

@@ -21,6 +21,7 @@ def artist_to_response(artist: Artist) -> dict:
         "name": artist.name,
         "bio": artist.bio,
         "social_media": artist.social_media,
+        "photo": artist.photo,
         "is_deleted": artist.is_deleted,
         "created_at": artist.created_at,
         "updated_at": artist.updated_at,
@@ -55,6 +56,7 @@ async def create_artist(artist: ArtistCreate, db: AsyncSession = Depends(get_db)
         name=artist.name,
         bio=artist.bio,
         social_media=artist.social_media.model_dump() if artist.social_media else None,
+        photo=artist.photo,
     )
     db.add(new_artist)
     await db.commit()
@@ -69,6 +71,7 @@ async def bulk_create_artists(data: ArtistBulkCreate, db: AsyncSession = Depends
             name=a.name,
             bio=a.bio,
             social_media=a.social_media.model_dump() if a.social_media else None,
+            photo=a.photo,
         )
         for a in data.artists
     ]
