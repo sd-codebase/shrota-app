@@ -45,6 +45,7 @@ class BookCreate(BaseModel):
     publisher_id: Optional[str] = None
     language_id: Optional[str] = None
     thumbnail: Optional[str] = None
+    is_adult: bool = False  # Adult content flag
 
     @field_validator("information")
     @classmethod
@@ -65,6 +66,7 @@ class BookUpdate(BaseModel):
     language_id: Optional[str] = None
     thumbnail: Optional[str] = None
     is_published: Optional[bool] = None  # Publish status
+    is_adult: Optional[bool] = None  # Adult content flag
 
     @field_validator("information")
     @classmethod
@@ -88,6 +90,7 @@ class BookResponse(BaseModel):
     thumbnail: Optional[str] = None
     total_duration: Optional[int] = None  # Auto-calculated sum of chapter durations
     is_published: bool = False  # Publish status
+    is_adult: bool = False  # Adult content flag
     is_deleted: bool = False  # Soft delete flag
     chapters: list[ChapterResponse] = []
     created_at: datetime

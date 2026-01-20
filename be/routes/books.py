@@ -62,6 +62,7 @@ def book_to_response(book: Book) -> dict:
         "thumbnail": book.thumbnail,
         "total_duration": book.total_duration,
         "is_published": book.is_published,
+        "is_adult": book.is_adult,
         "is_deleted": book.is_deleted,
         "chapters": chapters,
         "created_at": book.created_at,
@@ -225,6 +226,7 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
         thumbnail=book.thumbnail,
         total_duration=0,
         is_published=False,
+        is_adult=book.is_adult,
         publisher_id=publisher_uuid,
         language_id=language_uuid,
     )

@@ -548,6 +548,15 @@ function Books() {
       ),
     },
     {
+      title: 'Adult',
+      dataIndex: 'is_adult',
+      key: 'is_adult',
+      width: 70,
+      render: (isAdult: boolean) => (
+        isAdult ? <Tag color="red">18+</Tag> : null
+      ),
+    },
+    {
       title: '',
       key: 'actions',
       width: 50,
@@ -941,6 +950,9 @@ function Books() {
                 </div>
               )}
             </Upload>
+          </Form.Item>
+          <Form.Item name="is_adult" label="Adult Content" valuePropName="checked">
+            <Switch />
           </Form.Item>
         </Form>
       </Drawer>

@@ -38,6 +38,7 @@ class Book(Base, TimestampMixin, SoftDeleteMixin):
     thumbnail: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     total_duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_adult: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Foreign keys
     publisher_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("publications.id"), nullable=True)

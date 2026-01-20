@@ -109,6 +109,7 @@ export interface Book {
   thumbnail?: string;
   total_duration?: number;  // Auto-calculated sum of chapter durations
   is_published: boolean;  // Publish status
+  is_adult: boolean;  // Adult content flag
   chapters: Chapter[];
   created_at: string;
   updated_at: string;
@@ -123,6 +124,7 @@ export interface BookCreate {
   publisher_id?: string;
   language_id?: string;
   thumbnail?: string;
+  is_adult?: boolean;  // Adult content flag
 }
 
 export interface ThumbnailUploadResponse {
