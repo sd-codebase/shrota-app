@@ -8,8 +8,11 @@ import {
   Input,
   message,
   Popconfirm,
+  Upload,
+  Popover,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
 import type { Genre, GenreCreate } from '../types';
 import {
   getGenres,
@@ -17,6 +20,8 @@ import {
   updateGenre,
   deleteGenre,
   bulkCreateGenres,
+  uploadGenreThumbnail,
+  getGenreThumbnailUrl,
 } from '../api';
 
 function Genres() {
@@ -25,6 +30,7 @@ function Genres() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bulkDrawerOpen, setBulkDrawerOpen] = useState(false);
   const [editingGenre, setEditingGenre] = useState<Genre | null>(null);
+  const [thumbnailFileList, setThumbnailFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
   const [bulkForm] = Form.useForm();
 
@@ -47,12 +53,18 @@ function Genres() {
   const handleAdd = () => {
     setEditingGenre(null);
     form.resetFields();
+    setThumbnailFileList([]);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record: Genre) => {
     setEditingGenre(record);
     form.setFieldsValue(record);
+    setThumbnailFileList(
+      record.thumbnail
+        ? [{ uid: record.thumbnail, name: record.thumbnail, status: 'done', url: getGenreThumbnailUrl(record.thumbnail) }]
+        : []
+    );
     setDrawerOpen(true);
   };
 
@@ -68,11 +80,30 @@ function Genres() {
 
   const handleSubmit = async (values: GenreCreate) => {
     try {
+      let thumbnailFilename = editingGenre?.thumbnail;
+
+      // Upload new thumbnail if a new file was selected
+      if (thumbnailFileList.length > 0 && thumbnailFileList[0].originFileObj) {
+        const thumbnailResponse = await uploadGenreThumbnail(
+          thumbnailFileList[0].originFileObj,
+          values.name
+        );
+        thumbnailFilename = thumbnailResponse.filename;
+      } else if (thumbnailFileList.length === 0) {
+        // Thumbnail was removed
+        thumbnailFilename = undefined;
+      }
+
+      const genreData: GenreCreate = {
+        ...values,
+        thumbnail: thumbnailFilename,
+      };
+
       if (editingGenre) {
-        await updateGenre(editingGenre.id, values);
+        await updateGenre(editingGenre.id, genreData);
         message.success('Genre updated');
       } else {
-        await createGenre(values);
+        await createGenre(genreData);
         message.success('Genre created');
       }
       setDrawerOpen(false);
@@ -113,6 +144,36 @@ function Genres() {
   };
 
   const columns = [
+    {
+      title: '',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
+      width: 50,
+      render: (thumbnail: string) =>
+        thumbnail ? (
+          <Popover
+            content={
+              <img
+                src={getGenreThumbnailUrl(thumbnail)}
+                alt="thumbnail"
+                style={{ maxWidth: 300, maxHeight: 300, borderRadius: 8 }}
+              />
+            }
+            placement="right"
+            trigger="hover"
+          >
+            <img
+              src={getGenreThumbnailUrl(thumbnail)}
+              alt="thumbnail"
+              style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+            />
+          </Popover>
+        ) : (
+          <div style={{ width: 32, height: 32, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PictureOutlined style={{ color: '#ccc', fontSize: 14 }} />
+          </div>
+        ),
+    },
     {
       title: 'Name',
       dataIndex: 'name',
@@ -188,6 +249,23 @@ function Genres() {
           </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} placeholder="Optional description" />
+          </Form.Item>
+          <Form.Item label="Thumbnail">
+            <Upload
+              listType="picture-card"
+              fileList={thumbnailFileList}
+              beforeUpload={() => false}
+              onChange={({ fileList }) => setThumbnailFileList(fileList)}
+              maxCount={1}
+              accept=".jpg,.jpeg,.png,.webp"
+            >
+              {thumbnailFileList.length === 0 && (
+                <div>
+                  <PictureOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
         </Form>
       </Drawer>

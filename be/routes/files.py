@@ -15,6 +15,8 @@ THUMBNAILS_DIR = os.path.join(UPLOAD_DIR, "thumbnails")
 Path(THUMBNAILS_DIR).mkdir(parents=True, exist_ok=True)
 CHAPTER_IMAGES_DIR = os.path.join(UPLOAD_DIR, "chapter-images")
 Path(CHAPTER_IMAGES_DIR).mkdir(parents=True, exist_ok=True)
+GENRE_THUMBNAILS_DIR = os.path.join(UPLOAD_DIR, "genre-thumbnails")
+Path(GENRE_THUMBNAILS_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -167,6 +169,55 @@ async def get_chapter_image(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Chapter image not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/genre-thumbnail", status_code=status.HTTP_201_CREATED)
+async def upload_genre_thumbnail(
+    file: UploadFile = File(...),
+    genre_name: str = Form(...)
+):
+    """Upload a genre thumbnail. Filename format: {genre-name}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    # Create filename from genre name
+    safe_name = sanitize_filename(genre_name)
+    file_name = f"{safe_name}{file_extension}"
+    file_path = os.path.join(GENRE_THUMBNAILS_DIR, file_name)
+
+    # Remove existing genre thumbnail with same base name but different extension
+    for ext in ALLOWED_IMAGE_EXTENSIONS:
+        existing_file = os.path.join(GENRE_THUMBNAILS_DIR, f"{safe_name}{ext}")
+        if os.path.exists(existing_file):
+            os.remove(existing_file)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save genre thumbnail: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "genre_name": genre_name,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/genre-thumbnail/{filename}")
+async def get_genre_thumbnail(filename: str):
+    """Get a genre thumbnail by filename."""
+    file_path = os.path.join(GENRE_THUMBNAILS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Genre thumbnail not found")
 
     return FileResponse(path=file_path, filename=filename)
 

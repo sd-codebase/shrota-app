@@ -20,6 +20,7 @@ def genre_to_response(genre: Genre) -> dict:
         "id": str(genre.id),
         "name": genre.name,
         "description": genre.description,
+        "thumbnail": genre.thumbnail,
         "is_deleted": genre.is_deleted,
         "created_at": genre.created_at,
         "updated_at": genre.updated_at,
@@ -53,6 +54,7 @@ async def create_genre(genre: GenreCreate, db: AsyncSession = Depends(get_db)):
     new_genre = Genre(
         name=genre.name,
         description=genre.description,
+        thumbnail=genre.thumbnail,
     )
     db.add(new_genre)
     await db.commit()
@@ -63,7 +65,7 @@ async def create_genre(genre: GenreCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/bulk", response_model=list[GenreResponse], status_code=status.HTTP_201_CREATED)
 async def bulk_create_genres(data: GenreBulkCreate, db: AsyncSession = Depends(get_db)):
     new_genres = [
-        Genre(name=g.name, description=g.description)
+        Genre(name=g.name, description=g.description, thumbnail=g.thumbnail)
         for g in data.genres
     ]
     db.add_all(new_genres)

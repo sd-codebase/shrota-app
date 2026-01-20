@@ -15,6 +15,7 @@ export interface Genre {
   id: string;
   name: string;
   description?: string;
+  thumbnail?: string;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +23,7 @@ export interface Genre {
 export interface GenreCreate {
   name: string;
   description?: string;
+  thumbnail?: string;
 }
 
 export interface Author {
@@ -133,6 +135,12 @@ export interface ChapterImageUploadResponse {
   filename: string;
   book_name: string;
   chapter_order: number;
+  content_type: string;
+}
+
+export interface GenreThumbnailUploadResponse {
+  filename: string;
+  genre_name: string;
   content_type: string;
 }
 

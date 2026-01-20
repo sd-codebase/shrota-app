@@ -16,6 +16,7 @@ import type {
   FileUploadResponse,
   ThumbnailUploadResponse,
   ChapterImageUploadResponse,
+  GenreThumbnailUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -296,3 +297,24 @@ export const uploadChapterImage = async (
 };
 
 export const getChapterImageUrl = (filename: string) => `${API_URL}/files/chapter-image/${filename}`;
+
+// Genre Thumbnails
+export const uploadGenreThumbnail = async (file: File, genreName: string): Promise<GenreThumbnailUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('genre_name', genreName);
+
+  const response = await fetch(`${API_URL}/files/upload/genre-thumbnail`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Genre thumbnail upload failed' }));
+    throw new Error(error.detail || 'Genre thumbnail upload failed');
+  }
+
+  return response.json();
+};
+
+export const getGenreThumbnailUrl = (filename: string) => `${API_URL}/files/genre-thumbnail/${filename}`;
