@@ -5,6 +5,7 @@ from models.genre import Genre
 from models.language import Language
 from models.publication import Publication
 from models.book import Book, Chapter, book_authors, book_artists, book_genres
+from models.admin import Admin
 
 __all__ = [
     "Base",
@@ -20,4 +21,5 @@ __all__ = [
     "book_authors",
     "book_artists",
     "book_genres",
+    "Admin",
 ]

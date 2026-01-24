@@ -176,3 +176,26 @@ export interface FileUploadResponse {
   stored_filename: string;
   content_type: string;
 }
+
+// Auth types
+export interface Admin {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  admin: Admin;
+}

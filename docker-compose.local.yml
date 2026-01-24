@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: shrota-postgres
     environment:
-      POSTGRES_USER: shrota
-      POSTGRES_PASSWORD: shrota123
-      POSTGRES_DB: shrota
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
@@ -16,9 +16,10 @@ services:
     build: ./be
     container_name: shrota-backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://shrota:shrota123@postgres:5432/shrota
-      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       AUDIO_LIBRARY_DIR: /app/audio-library/shrota-audio-library
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "8000:8000"
     volumes:
@@ -32,8 +33,8 @@ services:
     build:
       context: ./ui
       args:
-        VITE_API_URL: http://localhost:8000
-        VITE_CDN_URL: http://localhost:8080
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_CDN_URL: ${VITE_CDN_URL}
     container_name: shrota-frontend
     ports:
       - "3000:80"

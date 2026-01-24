@@ -22,6 +22,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres-staging:5432/${DB_NAME}
       CORS_ORIGINS: ${CORS_ORIGINS}
       AUDIO_LIBRARY_DIR: /app/audio-library/shrota-audio-library
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     volumes:
       - uploads_staging:/app/uploads
       - ./audio-library:/app/audio-library

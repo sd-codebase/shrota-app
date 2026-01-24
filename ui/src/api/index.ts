@@ -20,6 +20,9 @@ import type {
   AuthorPhotoUploadResponse,
   ArtistPhotoUploadResponse,
   PublicationPhotoUploadResponse,
+  LoginRequest,
+  LoginResponse,
+  Admin,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -384,3 +387,17 @@ export const uploadPublicationPhoto = async (file: File, publicationName: string
 };
 
 export const getPublicationPhotoUrl = (filename: string) => `${API_URL}/files/publication-photo/${filename}`;
+
+// Auth
+export const login = (credentials: LoginRequest) =>
+  request<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
+
+export const getCurrentAdmin = (token: string) =>
+  request<Admin>('/auth/me', {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });

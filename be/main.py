@@ -12,6 +12,7 @@ from routes import (
     publications_router,
     books_router,
     files_router,
+    auth_router,
 )
 
 
@@ -33,6 +34,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(languages_router)
 app.include_router(genres_router)
 app.include_router(authors_router)

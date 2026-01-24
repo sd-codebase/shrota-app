@@ -5,3 +5,4 @@ from routes.artists import router as artists_router
 from routes.publications import router as publications_router
 from routes.books import router as books_router
 from routes.files import router as files_router
+from routes.auth import router as auth_router

@@ -1,6 +1,6 @@
 .PHONY: staging-up staging-down staging-build staging-deploy staging-logs staging-migrate \
         prod-up prod-down prod-build prod-deploy prod-logs prod-migrate \
-        local-up local-down
+        local-up local-down local-build local-logs
 
 # =============================================================================
 # STAGING COMMANDS
@@ -54,7 +54,13 @@ prod-migrate:
 # LOCAL COMMANDS
 # =============================================================================
 local-up:
-	docker compose -f docker-compose.local.yml up -d
+	docker compose --env-file .env.local -f docker-compose.local.yml up -d
 
 local-down:
-	docker compose -f docker-compose.local.yml down
+	docker compose --env-file .env.local -f docker-compose.local.yml down
+
+local-build:
+	docker compose --env-file .env.local -f docker-compose.local.yml up -d --build
+
+local-logs:
+	docker compose --env-file .env.local -f docker-compose.local.yml logs -f
