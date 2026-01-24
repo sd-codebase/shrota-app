@@ -52,6 +52,11 @@ services:
       - ./nginx/cdn.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
+  website-staging:
+    build: ./website
+    container_name: shrota-website-staging
+    restart: unless-stopped
+
   nginx-staging:
     image: nginx:alpine
     container_name: shrota-nginx-staging
@@ -65,6 +70,7 @@ services:
       - backend-staging
       - frontend-staging
       - cdn-staging
+      - website-staging
     restart: unless-stopped
 
 volumes:

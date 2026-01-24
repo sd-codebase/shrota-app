@@ -12,6 +12,7 @@ make local-down    # Stop all containers
 | Service  | Port | URL                    |
 |----------|------|------------------------|
 | Frontend | 3000 | http://localhost:3000  |
+| Website  | 3001 | http://localhost:3001  |
 | Backend  | 8000 | http://localhost:8000  |
 | CDN      | 8080 | http://localhost:8080  |
 | Postgres | 5432 | localhost:5432         |
