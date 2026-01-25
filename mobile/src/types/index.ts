@@ -1,5 +1,3 @@
-import { Environment } from '../config';
-
 // Backend API Types
 export interface SocialMedia {
   facebook?: string;
@@ -47,36 +45,35 @@ export interface Chapter {
   order: number;
   file_id?: string;
   audio_url?: string;
-  duration?: number;  // Duration in seconds
-  file_size?: number;  // File size in bytes
-  is_published: boolean;  // Publish status
+  duration?: number;
+  file_size?: number;
+  is_published: boolean;
 }
 
 export interface Book {
   id: string;
   title: string;
-  genre_ids: string[];  // Multiple genres
+  genre_ids: string[];
   information: string;
-  author_ids: string[];  // Multiple authors
-  artist_ids: string[];  // Multiple narrators
+  author_ids: string[];
+  artist_ids: string[];
   publisher_id?: string;
   language_id?: string;
   thumbnail?: string;
-  total_duration?: number;  // Auto-calculated sum of chapter durations
-  is_published: boolean;  // Publish status
+  total_duration?: number;
+  is_published: boolean;
   chapters: Chapter[];
   created_at: string;
   updated_at: string;
 }
 
-// Extended Book with resolved references
 export interface BookWithDetails extends Book {
-  authors?: Author[];  // Multiple authors
+  authors?: Author[];
   genre?: Genre;
   publisher?: Publication;
 }
 
-// Audio Player Types (used by TrackPlayer)
+// Audio Player Types
 export interface AudioBook {
   id: string;
   title: string;
@@ -94,8 +91,8 @@ export interface AudioChapter {
   description?: string;
   order: number;
   audioUrl: string;
-  duration: number;  // Duration in seconds (from backend)
-  isPublished: boolean;  // Publish status for "coming soon" indicator
+  duration: number;
+  isPublished: boolean;
 }
 
 export interface DownloadedChapter {
@@ -103,22 +100,21 @@ export interface DownloadedChapter {
   title: string;
   description?: string;
   order: number;
-  localAudioUrl: string;  // Local file path to m3u8
+  localAudioUrl: string;
   duration: number;
   isPublished: boolean;
 }
 
 export interface DownloadedBook extends Omit<AudioBook, 'chapters'> {
   chapters: DownloadedChapter[];
-  localPath: string;  // Base directory for this book's downloads
+  localPath: string;
   downloadedAt: number;
-  totalSize: number;  // Total size in bytes
-  environment: Environment;  // Which environment this was downloaded from
+  totalSize: number;
 }
 
 export interface DownloadProgress {
   bookId: string;
-  progress: number;  // 0-100
+  progress: number;
   currentChapter: number;
   totalChapters: number;
   status: 'pending' | 'downloading' | 'completed' | 'error';
@@ -127,9 +123,8 @@ export interface DownloadProgress {
 
 // Navigation Types
 export type RootStackParamList = {
-  Main: undefined;
-  Books: { environment: Environment };
-  BookDetails: { book: AudioBook; environment: Environment };
+  Books: undefined;
+  BookDetails: { book: AudioBook };
   Downloads: undefined;
-  Player: { book: AudioBook; chapterIndex?: number; environment?: Environment };
+  Player: { book: AudioBook; chapterIndex?: number };
 };

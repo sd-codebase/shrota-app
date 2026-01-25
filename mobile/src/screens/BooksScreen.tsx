@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  Image,
   TouchableOpacity,
   TextInput,
   StyleSheet,
@@ -11,18 +10,17 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { fetchAudioBooks } from '../services/api';
-import { ENVIRONMENTS } from '../config';
 import { AudioBook, RootStackParamList } from '../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type BooksRouteProp = RouteProp<RootStackParamList, 'Books'>;
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -35,10 +33,6 @@ function formatDuration(seconds: number): string {
 
 export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<BooksRouteProp>();
-  const { environment } = route.params;
-  const envConfig = ENVIRONMENTS[environment];
-
   const { currentBook } = usePlayer();
   const [books, setBooks] = useState<AudioBook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +43,7 @@ export function BooksScreen() {
   const loadData = async () => {
     try {
       setError(null);
-      const data = await fetchAudioBooks(environment);
+      const data = await fetchAudioBooks();
       setBooks(data.all);
     } catch (err) {
       console.error('Failed to load audiobooks:', err);
@@ -62,7 +56,7 @@ export function BooksScreen() {
 
   useEffect(() => {
     loadData();
-  }, [environment]);
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -70,12 +64,12 @@ export function BooksScreen() {
   };
 
   const handleBookPress = (book: AudioBook) => {
-    navigation.navigate('BookDetails', { book, environment });
+    navigation.navigate('BookDetails', { book });
   };
 
   const handleMiniPlayerPress = () => {
     if (currentBook) {
-      navigation.navigate('Player', { book: currentBook, environment });
+      navigation.navigate('Player', { book: currentBook });
     }
   };
 
@@ -97,7 +91,13 @@ export function BooksScreen() {
       onPress={() => handleBookPress(item)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+      <Image
+        source={{ uri: item.thumbnail }}
+        style={styles.thumbnail}
+        priority="high"
+        cachePolicy="memory-disk"
+        contentFit="cover"
+      />
       <View style={styles.itemInfo}>
         <Text style={styles.itemTitle} numberOfLines={2}>
           {item.title}
@@ -125,7 +125,7 @@ export function BooksScreen() {
       <Text style={styles.emptyText}>
         {searchQuery
           ? `No books matching "${searchQuery}"`
-          : 'No audiobooks available in this environment.'}
+          : 'No audiobooks available yet.'}
       </Text>
     </View>
   );
@@ -135,7 +135,7 @@ export function BooksScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#0f0f1a" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={envConfig.color} />
+          <ActivityIndicator size="large" color="#6c5ce7" />
           <Text style={styles.loadingText}>Loading audiobooks...</Text>
         </View>
       </SafeAreaView>
@@ -147,18 +147,16 @@ export function BooksScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0f0f1a" />
 
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{envConfig.label}</Text>
-          <View style={[styles.envBadge, { backgroundColor: envConfig.color }]}>
-            <Text style={styles.envBadgeText}>{environment.toUpperCase()}</Text>
-          </View>
+        <View style={styles.headerLeft}>
+          <Ionicons name="headset" size={28} color="#6c5ce7" />
+          <Text style={styles.headerTitle}>Shrota</Text>
         </View>
+        <TouchableOpacity
+          style={styles.downloadsButton}
+          onPress={() => navigation.navigate('Downloads')}
+        >
+          <Ionicons name="download-outline" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -199,8 +197,8 @@ export function BooksScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={envConfig.color}
-              colors={[envConfig.color]}
+              tintColor="#6c5ce7"
+              colors={['#6c5ce7']}
             />
           }
         />
@@ -229,33 +227,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  headerTitleContainer: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
     color: '#fff',
   },
-  envBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  envBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
+  downloadsButton: {
+    padding: 8,
   },
   searchContainer: {
     flexDirection: 'row',

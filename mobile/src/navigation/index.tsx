@@ -2,7 +2,6 @@ import React, { createRef } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { MainScreen } from '../screens/MainScreen';
 import { BooksScreen } from '../screens/BooksScreen';
 import { BookDetailsScreen } from '../screens/BookDetailsScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
@@ -31,7 +30,6 @@ export function AppNavigator() {
           animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Books" component={BooksScreen} />
         <Stack.Screen name="BookDetails" component={BookDetailsScreen} />
         <Stack.Screen name="Downloads" component={DownloadsScreen} />

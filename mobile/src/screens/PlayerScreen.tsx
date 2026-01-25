@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
@@ -11,11 +10,12 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Slider from '@react-native-community/slider';
-import { usePlayer, PLAYBACK_SPEEDS, PlaybackSpeed } from '../context/PlayerContext';
+import { usePlayer, PLAYBACK_SPEEDS } from '../context/PlayerContext';
 import { useDownload } from '../context/DownloadContext';
 import { RootStackParamList } from '../types';
 import { formatBytes } from '../services/downloadService';
@@ -33,7 +33,7 @@ function formatTime(seconds: number): string {
 }
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
-  const { book, environment } = route.params;
+  const { book } = route.params;
   const {
     currentBook,
     currentChapterIndex,
@@ -82,9 +82,9 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           },
         ]
       );
-    } else if (!bookIsDownloading && environment) {
+    } else if (!bookIsDownloading) {
       try {
-        await downloadBook(book, environment);
+        await downloadBook(book);
         Alert.alert('Success', 'Book downloaded for offline listening');
       } catch (error) {
         Alert.alert('Error', error instanceof Error ? error.message : 'Download failed');
@@ -92,11 +92,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     }
   };
 
-  // Hide download button if no environment (e.g., when opened from downloads)
-  const canDownload = !!environment;
-
   const currentChapter = currentBook?.chapters[currentChapterIndex];
-  // Playable chapters count for navigation
   const playableChaptersCount = currentBook?.chapters.length ?? 0;
   const hasNextChapter = currentBook && currentChapterIndex < playableChaptersCount - 1;
   const hasPrevChapter = currentBook && currentChapterIndex > 0;
@@ -114,27 +110,25 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Now Playing</Text>
         <View style={styles.headerRight}>
-          {(canDownload || bookIsDownloaded) && (
-            <TouchableOpacity
-              onPress={handleDownload}
-              style={styles.headerButton}
-              disabled={bookIsDownloading}
-            >
-              {bookIsDownloading ? (
-                <View style={styles.downloadProgress}>
-                  <Text style={styles.downloadProgressText}>
-                    {Math.round(downloadProgress?.progress || 0)}%
-                  </Text>
-                </View>
-              ) : (
-                <Ionicons
-                  name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
-                  size={24}
-                  color={bookIsDownloaded ? '#00b894' : '#fff'}
-                />
-              )}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={handleDownload}
+            style={styles.headerButton}
+            disabled={bookIsDownloading}
+          >
+            {bookIsDownloading ? (
+              <View style={styles.downloadProgress}>
+                <Text style={styles.downloadProgressText}>
+                  {Math.round(downloadProgress?.progress || 0)}%
+                </Text>
+              </View>
+            ) : (
+              <Ionicons
+                name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
+                size={24}
+                color={bookIsDownloaded ? '#00b894' : '#fff'}
+              />
+            )}
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setShowChapterList(true)}
             style={styles.headerButton}
@@ -148,7 +142,10 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         <Image
           source={{ uri: book.thumbnail }}
           style={styles.artwork}
-          defaultSource={require('../../assets/icon.png')}
+          placeholder={require('../../assets/icon.png')}
+          priority="high"
+          cachePolicy="memory-disk"
+          contentFit="cover"
         />
 
         <View style={styles.info}>
@@ -225,7 +222,6 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           </Text>
         )}
 
-        {/* Speed Button */}
         <TouchableOpacity
           style={styles.speedButton}
           onPress={() => setShowSpeedPicker(true)}
@@ -305,7 +301,6 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                     ]}
                     onPress={() => {
                       if (isPlayable) {
-                        // Find the index in playable chapters
                         const playableIndex = currentBook?.chapters.findIndex(ch => ch.id === chapter.id) ?? -1;
                         if (playableIndex >= 0) {
                           playChapter(playableIndex);
@@ -476,7 +471,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -551,7 +545,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
-  // Speed Button & Picker
   speedButton: {
     marginTop: 16,
     paddingHorizontal: 20,

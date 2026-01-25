@@ -2,11 +2,11 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { AudioBook } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -26,7 +26,13 @@ export function AudioBookCard({ book, onPress }: AudioBookCardProps) {
       onPress={() => onPress(book)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: book.thumbnail }} style={styles.thumbnail} />
+      <Image
+        source={{ uri: book.thumbnail }}
+        style={styles.thumbnail}
+        priority="high"
+        cachePolicy="memory-disk"
+        contentFit="cover"
+      />
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {book.title}

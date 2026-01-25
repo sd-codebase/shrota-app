@@ -1,12 +1,10 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Environment } from '../config';
 import { AudioBook, AudioChapter, DownloadedBook, DownloadedChapter, DownloadProgress } from '../types';
 
 const DOWNLOADS_KEY = 'audiobook_downloads';
 const DOWNLOADS_DIR = (FileSystem.documentDirectory || '') + 'audiobooks/';
 
-// Ensure download directory exists
 export async function ensureDownloadDir(): Promise<void> {
   const dirInfo = await FileSystem.getInfoAsync(DOWNLOADS_DIR);
   if (!dirInfo.exists) {
@@ -14,7 +12,6 @@ export async function ensureDownloadDir(): Promise<void> {
   }
 }
 
-// Get all downloaded books
 export async function getDownloads(): Promise<DownloadedBook[]> {
   try {
     const data = await AsyncStorage.getItem(DOWNLOADS_KEY);
@@ -24,24 +21,20 @@ export async function getDownloads(): Promise<DownloadedBook[]> {
   }
 }
 
-// Save downloads to storage
 export async function saveDownloads(downloads: DownloadedBook[]): Promise<void> {
   await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
 }
 
-// Check if book is downloaded
 export async function isBookDownloaded(bookId: string): Promise<boolean> {
   const downloads = await getDownloads();
   return downloads.some((d) => d.id === bookId);
 }
 
-// Get a specific downloaded book
 export async function getDownloadedBook(bookId: string): Promise<DownloadedBook | undefined> {
   const downloads = await getDownloads();
   return downloads.find((d) => d.id === bookId);
 }
 
-// Parse M3U8 playlist and extract segment URLs
 async function parseM3U8(m3u8Url: string): Promise<string[]> {
   try {
     const response = await fetch(m3u8Url);
@@ -53,12 +46,9 @@ async function parseM3U8(m3u8Url: string): Promise<string[]> {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      // Skip comments and empty lines
       if (trimmed.startsWith('#') || trimmed === '') continue;
 
-      // This is a segment file
       if (trimmed.endsWith('.ts')) {
-        // Handle relative or absolute URLs
         if (trimmed.startsWith('http')) {
           segments.push(trimmed);
         } else {
@@ -74,7 +64,6 @@ async function parseM3U8(m3u8Url: string): Promise<string[]> {
   }
 }
 
-// Download a single file
 async function downloadFile(
   url: string,
   localPath: string,
@@ -103,7 +92,6 @@ async function downloadFile(
   return (fileInfo as any).size || 0;
 }
 
-// Create local M3U8 playlist pointing to local segment files
 function createLocalM3U8Content(segmentFiles: string[]): string {
   let content = '#EXTM3U\n';
   content += '#EXT-X-VERSION:3\n';
@@ -120,7 +108,6 @@ function createLocalM3U8Content(segmentFiles: string[]): string {
   return content;
 }
 
-// Download a single chapter (all HLS segments)
 async function downloadChapter(
   chapter: AudioChapter,
   bookDir: string,
@@ -128,10 +115,8 @@ async function downloadChapter(
 ): Promise<{ localPath: string; size: number }> {
   const chapterDir = `${bookDir}chapter-${chapter.order}/`;
 
-  // Create chapter directory
   await FileSystem.makeDirectoryAsync(chapterDir, { intermediates: true });
 
-  // Parse M3U8 to get segment URLs
   const segmentUrls = await parseM3U8(chapter.audioUrl);
 
   if (segmentUrls.length === 0) {
@@ -141,7 +126,6 @@ async function downloadChapter(
   let totalSize = 0;
   const localSegments: string[] = [];
 
-  // Download each segment
   for (let i = 0; i < segmentUrls.length; i++) {
     const segmentUrl = segmentUrls[i];
     const segmentName = `chunk_${String(i).padStart(3, '0')}.ts`;
@@ -156,7 +140,6 @@ async function downloadChapter(
     }
   }
 
-  // Create local M3U8 playlist
   const localM3U8Content = createLocalM3U8Content(localSegments);
   const localM3U8Path = chapterDir + 'playlist.m3u8';
   await FileSystem.writeAsStringAsync(localM3U8Path, localM3U8Content);
@@ -164,15 +147,12 @@ async function downloadChapter(
   return { localPath: localM3U8Path, size: totalSize };
 }
 
-// Download entire book
 export async function downloadBook(
   book: AudioBook,
-  environment: Environment,
   onProgress?: (progress: DownloadProgress) => void
 ): Promise<DownloadedBook> {
   await ensureDownloadDir();
 
-  // Filter playable chapters
   const playableChapters = book.chapters.filter(ch => ch.isPublished && ch.audioUrl);
 
   if (playableChapters.length === 0) {
@@ -181,16 +161,13 @@ export async function downloadBook(
 
   const bookDir = `${DOWNLOADS_DIR}${book.id}/`;
 
-  // Check if already downloading or downloaded
   const existing = await getDownloadedBook(book.id);
   if (existing) {
     throw new Error('Book is already downloaded');
   }
 
-  // Create book directory
   await FileSystem.makeDirectoryAsync(bookDir, { intermediates: true });
 
-  // Download thumbnail
   let localThumbnail = '';
   if (book.thumbnail) {
     try {
@@ -198,7 +175,6 @@ export async function downloadBook(
       await downloadFile(book.thumbnail, thumbnailPath);
       localThumbnail = thumbnailPath;
     } catch {
-      // Thumbnail download failed, use remote URL
       localThumbnail = book.thumbnail;
     }
   }
@@ -206,7 +182,6 @@ export async function downloadBook(
   const downloadedChapters: DownloadedChapter[] = [];
   let totalSize = 0;
 
-  // Download each chapter
   for (let i = 0; i < playableChapters.length; i++) {
     const chapter = playableChapters[i];
 
@@ -250,7 +225,6 @@ export async function downloadBook(
         isPublished: chapter.isPublished,
       });
     } catch (error) {
-      // Clean up on failure
       await FileSystem.deleteAsync(bookDir, { idempotent: true });
 
       if (onProgress) {
@@ -268,7 +242,6 @@ export async function downloadBook(
     }
   }
 
-  // Create downloaded book object
   const downloadedBook: DownloadedBook = {
     id: book.id,
     title: book.title,
@@ -281,10 +254,8 @@ export async function downloadBook(
     localPath: bookDir,
     downloadedAt: Date.now(),
     totalSize,
-    environment,
   };
 
-  // Save to storage
   const downloads = await getDownloads();
   downloads.push(downloadedBook);
   await saveDownloads(downloads);
@@ -302,7 +273,6 @@ export async function downloadBook(
   return downloadedBook;
 }
 
-// Delete a downloaded book
 export async function deleteDownload(bookId: string): Promise<void> {
   const downloads = await getDownloads();
   const book = downloads.find((d) => d.id === bookId);
@@ -319,13 +289,11 @@ export async function deleteDownload(bookId: string): Promise<void> {
   }
 }
 
-// Get total storage used by downloads
 export async function getDownloadsSize(): Promise<number> {
   const downloads = await getDownloads();
   return downloads.reduce((total, book) => total + book.totalSize, 0);
 }
 
-// Format bytes to human readable
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;

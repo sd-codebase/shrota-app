@@ -1,6 +1,7 @@
 .PHONY: staging-up staging-down staging-build staging-deploy staging-logs staging-migrate \
         prod-up prod-down prod-build prod-deploy prod-logs prod-migrate \
-        local-up local-down local-build local-logs
+        local-up local-down local-build local-logs \
+        dev-up dev-down dev-build dev-logs dev-restart-be dev-restart-ui
 
 # =============================================================================
 # STAGING COMMANDS
@@ -64,3 +65,36 @@ local-build:
 
 local-logs:
 	docker compose --env-file .env.local -f docker-compose.local.yml logs -f
+
+# =============================================================================
+# DEV COMMANDS (with hot-reload)
+# =============================================================================
+dev-up:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up -d
+
+dev-down:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down
+
+dev-build:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up -d --build
+
+dev-logs:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml logs -f
+
+dev-logs-be:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml logs -f backend
+
+dev-logs-ui:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml logs -f frontend
+
+dev-restart-be:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml restart backend
+
+dev-restart-ui:
+	docker compose --env-file .env.dev -f docker-compose.dev.yml restart frontend
+
+dev-shell-be:
+	docker exec -it shrota-backend-dev /bin/bash
+
+dev-shell-db:
+	docker exec -it shrota-postgres-dev psql -U shrota -d shrota

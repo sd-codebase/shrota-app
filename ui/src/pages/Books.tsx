@@ -248,7 +248,7 @@ function Books() {
     setSelectedBook(book);
     setEditingChapter(null);
     chapterForm.resetFields();
-    chapterForm.setFieldsValue({ order: book.chapters.length });
+    chapterForm.setFieldsValue({ order: book.chapters.length + 1 });
     setFileList([]);
     setChapterImageFileList([]);
     setUploadedFileId(null);
@@ -675,7 +675,7 @@ function Books() {
                       fontSize: 12,
                       fontWeight: 600,
                     }}>
-                      {chapter.order + 1}
+                      {chapter.order}
                     </span>
                     <span style={{ fontWeight: 500 }}>{chapter.title}</span>
                     {chapter.is_published ? (

@@ -2,13 +2,13 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { AudioBook, AudioChapter, RootStackParamList } from '../types';
-import { ENVIRONMENTS } from '../config';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type BookDetailsRouteProp = RouteProp<RootStackParamList, 'BookDetails'>;
@@ -40,10 +39,9 @@ function formatDuration(seconds: number): string {
 export function BookDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BookDetailsRouteProp>();
-  const { book, environment } = route.params;
-  const envConfig = ENVIRONMENTS[environment];
+  const { book } = route.params;
 
-  const { playBook, playChapter, currentBook } = usePlayer();
+  const { playBook, currentBook } = usePlayer();
 
   const sortedChapters = [...book.chapters].sort((a, b) => a.order - b.order);
   const publishedChapters = sortedChapters.filter((c) => c.isPublished);
@@ -52,26 +50,25 @@ export function BookDetailsScreen() {
   const handlePlayBook = async () => {
     const sortedBook = { ...book, chapters: sortedChapters };
     await playBook(sortedBook);
-    navigation.navigate('Player', { book: sortedBook, environment });
+    navigation.navigate('Player', { book: sortedBook });
   };
 
   const handlePlayChapter = async (chapter: AudioChapter, index: number) => {
     if (!chapter.isPublished || !chapter.audioUrl) return;
 
-    // Create a sorted book for playback
     const sortedBook = { ...book, chapters: sortedChapters };
     const publishedSortedChapters = sortedChapters.filter((c) => c.isPublished && c.audioUrl);
     const publishedIndex = publishedSortedChapters.findIndex((c) => c.id === chapter.id);
 
     if (publishedIndex !== -1) {
       await playBook(sortedBook, publishedIndex);
-      navigation.navigate('Player', { book: sortedBook, chapterIndex: publishedIndex, environment });
+      navigation.navigate('Player', { book: sortedBook, chapterIndex: publishedIndex });
     }
   };
 
   const handleMiniPlayerPress = () => {
     if (currentBook) {
-      navigation.navigate('Player', { book: currentBook, environment });
+      navigation.navigate('Player', { book: currentBook });
     }
   };
 
@@ -126,9 +123,6 @@ export function BookDetailsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={[styles.envBadge, { backgroundColor: envConfig.color }]}>
-          <Text style={styles.envBadgeText}>{environment.toUpperCase()}</Text>
-        </View>
       </View>
 
       <ScrollView
@@ -140,7 +134,13 @@ export function BookDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.coverContainer}>
-          <Image source={{ uri: book.thumbnail }} style={styles.cover} />
+          <Image
+            source={{ uri: book.thumbnail }}
+            style={styles.cover}
+            priority="high"
+            cachePolicy="memory-disk"
+            contentFit="cover"
+          />
         </View>
 
         <View style={styles.bookInfo}>
@@ -201,16 +201,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-  },
-  envBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  envBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
   },
   scrollView: {
     flex: 1,

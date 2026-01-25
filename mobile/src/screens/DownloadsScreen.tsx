@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
-  Image,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +17,6 @@ import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { useDownload } from '../context/DownloadContext';
 import { formatBytes } from '../services/downloadService';
-import { ENVIRONMENTS } from '../config';
 import { DownloadedBook, RootStackParamList } from '../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -51,7 +50,6 @@ export function DownloadsScreen() {
     }, [])
   );
 
-  // Sort downloads by downloadedAt descending
   const sortedDownloads = [...downloads].sort((a, b) => b.downloadedAt - a.downloadedAt);
 
   const handlePlay = async (book: DownloadedBook) => {
@@ -81,46 +79,40 @@ export function DownloadsScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: DownloadedBook }) => {
-    const envConfig = item.environment ? ENVIRONMENTS[item.environment] : null;
-    return (
-      <TouchableOpacity
-        style={styles.item}
-        onPress={() => handlePlay(item)}
-        activeOpacity={0.8}
-      >
-        <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-        <View style={styles.itemInfo}>
-          <View style={styles.titleRow}>
-            <Text style={styles.itemTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            {envConfig && (
-              <View style={[styles.envBadge, { backgroundColor: envConfig.color }]}>
-                <Text style={styles.envBadgeText}>
-                  {item.environment === 'production' ? 'PROD' : 'STG'}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.itemAuthor} numberOfLines={1}>
-            {item.author}
-          </Text>
-          <View style={styles.itemMeta}>
-            <Text style={styles.itemDuration}>{formatDuration(item.duration)}</Text>
-            <Text style={styles.itemSize}>{formatBytes(item.totalSize)}</Text>
-          </View>
-          <Text style={styles.itemDate}>Downloaded {formatDate(item.downloadedAt)}</Text>
+  const renderItem = ({ item }: { item: DownloadedBook }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => handlePlay(item)}
+      activeOpacity={0.8}
+    >
+      <Image
+        source={{ uri: item.thumbnail }}
+        style={styles.thumbnail}
+        priority="high"
+        cachePolicy="memory-disk"
+        contentFit="cover"
+      />
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.itemAuthor} numberOfLines={1}>
+          {item.author}
+        </Text>
+        <View style={styles.itemMeta}>
+          <Text style={styles.itemDuration}>{formatDuration(item.duration)}</Text>
+          <Text style={styles.itemSize}>{formatBytes(item.totalSize)}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDelete(item)}
-        >
-          <Ionicons name="trash-outline" size={22} color="#ff6b6b" />
-        </TouchableOpacity>
+        <Text style={styles.itemDate}>Downloaded {formatDate(item.downloadedAt)}</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDelete(item)}
+      >
+        <Ionicons name="trash-outline" size={22} color="#ff6b6b" />
       </TouchableOpacity>
-    );
-  };
+    </TouchableOpacity>
+  );
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -223,25 +215,9 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     justifyContent: 'center',
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  envBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  envBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
     color: '#fff',
   },
   itemAuthor: {

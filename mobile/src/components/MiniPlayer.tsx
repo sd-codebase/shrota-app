@@ -2,10 +2,10 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayer } from '../context/PlayerContext';
 
@@ -35,6 +35,9 @@ export function MiniPlayer({ onPress }: MiniPlayerProps) {
         <Image
           source={{ uri: currentBook.thumbnail }}
           style={styles.thumbnail}
+          priority="high"
+          cachePolicy="memory-disk"
+          contentFit="cover"
         />
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>

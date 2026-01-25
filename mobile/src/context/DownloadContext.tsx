@@ -1,18 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Environment } from '../config';
 import { AudioBook, DownloadedBook, DownloadProgress } from '../types';
 import {
   downloadBook as downloadBookService,
   deleteDownload as deleteDownloadService,
   getDownloads,
-  isBookDownloaded,
-  getDownloadedBook,
 } from '../services/downloadService';
 
 interface DownloadContextType {
   downloads: DownloadedBook[];
   activeDownloads: Map<string, DownloadProgress>;
-  downloadBook: (book: AudioBook, environment: Environment) => Promise<void>;
+  downloadBook: (book: AudioBook) => Promise<void>;
   cancelDownload: (bookId: string) => void;
   deleteDownload: (bookId: string) => Promise<void>;
   isDownloaded: (bookId: string) => boolean;
@@ -28,7 +25,6 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
   const [downloads, setDownloads] = useState<DownloadedBook[]>([]);
   const [activeDownloads, setActiveDownloads] = useState<Map<string, DownloadProgress>>(new Map());
 
-  // Load downloads on mount
   useEffect(() => {
     refreshDownloads();
   }, []);
@@ -38,8 +34,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setDownloads(data);
   };
 
-  const downloadBook = async (book: AudioBook, environment: Environment) => {
-    // Check if already downloaded or downloading
+  const downloadBook = async (book: AudioBook) => {
     if (downloads.some(d => d.id === book.id)) {
       throw new Error('Book is already downloaded');
     }
@@ -47,7 +42,6 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
       throw new Error('Book is already downloading');
     }
 
-    // Set initial progress
     setActiveDownloads(prev => {
       const next = new Map(prev);
       next.set(book.id, {
@@ -61,7 +55,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      await downloadBookService(book, environment, (progress) => {
+      await downloadBookService(book, (progress) => {
         setActiveDownloads(prev => {
           const next = new Map(prev);
           next.set(book.id, progress);
@@ -69,17 +63,14 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
         });
       });
 
-      // Remove from active downloads
       setActiveDownloads(prev => {
         const next = new Map(prev);
         next.delete(book.id);
         return next;
       });
 
-      // Refresh downloads list
       await refreshDownloads();
     } catch (error) {
-      // Update status to error
       setActiveDownloads(prev => {
         const next = new Map(prev);
         const current = next.get(book.id);
@@ -98,8 +89,6 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
   };
 
   const cancelDownload = (bookId: string) => {
-    // Note: Actual cancellation would require more complex handling
-    // For now, just remove from active downloads
     setActiveDownloads(prev => {
       const next = new Map(prev);
       next.delete(bookId);
