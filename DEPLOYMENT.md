@@ -180,10 +180,14 @@ Paste this configuration:
 server {
     listen 80;
     server_name admin.shrota.in api.shrota.in audiolibrary.shrota.in;
-    client_max_body_size 100M;
+    client_max_body_size 500M;
 
     location / {
         proxy_pass http://127.0.0.1:8081;
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        proxy_request_buffering off;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -195,10 +199,14 @@ server {
 server {
     listen 80;
     server_name admin.staging.shrota.in api.staging.shrota.in audiolibrary.staging.shrota.in;
-    client_max_body_size 100M;
+    client_max_body_size 500M;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        proxy_request_buffering off;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
