@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import TrackPlayer, {
   usePlaybackState,
   useProgress,
@@ -8,8 +8,13 @@ import TrackPlayer, {
   useActiveTrack,
   Event,
 } from 'react-native-track-player';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AudioBook, AudioChapter, DownloadedBook } from '../types';
 import { getDownloadedBook } from '../services/downloadService';
+import { updateProgress } from '../services/userActivityApi';
+
+const AUTH_TOKEN_KEY = '@shrota_auth_token';
+const PROGRESS_SAVE_INTERVAL = 10000; // Save every 10 seconds
 
 // Available playback speeds
 export const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.5, 2] as const;
@@ -45,6 +50,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const activeTrack = useActiveTrack();
 
   const isPlaying = playbackState.state === State.Playing;
+  const lastSaveTimeRef = useRef<number>(0);
+  const totalListenedRef = useRef<number>(0);
 
   // Listen for track changes
   useEffect(() => {
@@ -58,6 +65,89 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       subscription.remove();
     };
   }, []);
+
+  // Refs to track current values for progress saving without triggering re-renders
+  const currentBookRef = useRef<AudioBook | null>(null);
+  const currentChapterIndexRef = useRef<number>(0);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentBookRef.current = currentBook;
+  }, [currentBook]);
+
+  useEffect(() => {
+    currentChapterIndexRef.current = currentChapterIndex;
+  }, [currentChapterIndex]);
+
+  // Save progress periodically while playing
+  useEffect(() => {
+    if (!currentBook || !isPlaying) return;
+
+    const saveProgressToServer = async () => {
+      try {
+        // Check if user is authenticated
+        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) return;
+
+        const book = currentBookRef.current;
+        if (!book) return;
+
+        // Get current position from TrackPlayer directly
+        const { position: currentPosition } = await TrackPlayer.getProgress();
+        const chapterIndex = currentChapterIndexRef.current;
+
+        // Calculate total listened time for this book
+        const bookDuration = book.duration || 0;
+        let totalListened = 0;
+
+        // Sum up duration of completed chapters
+        for (let i = 0; i < chapterIndex; i++) {
+          totalListened += book.chapters[i]?.duration || 0;
+        }
+        // Add current position in current chapter
+        totalListened += currentPosition;
+
+        // Calculate progress percentage
+        const progressPercentage = bookDuration > 0 ? (totalListened / bookDuration) * 100 : 0;
+
+        // Check if completed (95% or more)
+        const isCompleted = progressPercentage >= 95;
+
+        await updateProgress({
+          book_id: book.id,
+          current_chapter_index: chapterIndex,
+          current_position: currentPosition,
+          total_listened_seconds: Math.floor(totalListened),
+          progress_percentage: Math.min(progressPercentage, 100),
+          is_completed: isCompleted,
+        });
+
+        lastSaveTimeRef.current = Date.now();
+      } catch (error) {
+        // Silently fail - don't disrupt playback
+        console.log('Failed to save progress:', error);
+      }
+    };
+
+    // Save immediately when starting to play (with a small delay to let playback stabilize)
+    const initialSaveTimeout = setTimeout(() => {
+      if (Date.now() - lastSaveTimeRef.current > PROGRESS_SAVE_INTERVAL) {
+        saveProgressToServer();
+      }
+    }, 1000);
+
+    // Set up interval for periodic saves
+    const interval = setInterval(() => {
+      saveProgressToServer();
+    }, PROGRESS_SAVE_INTERVAL);
+
+    return () => {
+      clearTimeout(initialSaveTimeout);
+      clearInterval(interval);
+      // Save one last time when stopping
+      saveProgressToServer();
+    };
+  }, [currentBook?.id, isPlaying]);
 
   const playBook = async (book: AudioBook | DownloadedBook, chapterIndex: number = 0) => {
     // Check if this is a downloaded book or if we have a downloaded version

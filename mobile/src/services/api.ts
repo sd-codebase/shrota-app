@@ -6,6 +6,8 @@ import {
   Artist,
   AudioBook,
   AudioChapter,
+  SearchResult,
+  SearchBookResult,
 } from '../types';
 
 // Fetch all published books
@@ -104,5 +106,44 @@ export async function fetchAudioBooks(): Promise<{
   return {
     all: audioBooks,
     recent: recentBooks,
+  };
+}
+
+// Search books by query (title, author, artist, publication)
+export async function searchBooks(query: string): Promise<SearchResult> {
+  const response = await fetch(
+    `${API_URL}/v1/search?q=${encodeURIComponent(query)}`
+  );
+  if (!response.ok) {
+    throw new Error('Failed to search books');
+  }
+  return response.json();
+}
+
+// Transform SearchBookResult to AudioBook
+export function transformSearchResultToAudioBook(
+  book: SearchBookResult
+): AudioBook {
+  const sortedChapters = [...book.chapters].sort((a, b) => a.order - b.order);
+
+  const audioChapters: AudioChapter[] = sortedChapters.map((ch) => ({
+    id: ch.id,
+    title: ch.title,
+    description: ch.description,
+    order: ch.order,
+    audioUrl: ch.audio_url ? getAudioUrl(ch.audio_url) : '',
+    duration: ch.duration || 0,
+    isPublished: ch.is_published,
+  }));
+
+  return {
+    id: book.id,
+    title: book.title,
+    author: book.author_names.join(', ') || 'Unknown Author',
+    narrator: book.artist_names.length > 0 ? book.artist_names.join(', ') : undefined,
+    thumbnail: book.thumbnail ? getThumbnailUrl(book.thumbnail) : '',
+    chapters: audioChapters,
+    duration: book.total_duration || 0,
+    description: book.information,
   };
 }

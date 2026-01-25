@@ -13,6 +13,9 @@ from routes import (
     books_router,
     files_router,
     auth_router,
+    user_auth_router,
+    search_router,
+    user_activity_router,
 )
 
 
@@ -35,6 +38,9 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(user_auth_router)
+app.include_router(user_activity_router)
+app.include_router(search_router)
 app.include_router(languages_router)
 app.include_router(genres_router)
 app.include_router(authors_router)

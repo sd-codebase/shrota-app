@@ -15,31 +15,21 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
-import { AudioBook, AudioChapter, RootStackParamList } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { AudioBook, AudioChapter, RootStackParamList, HomeStackParamList } from '../types';
+import { formatDuration } from '../utils/formatters';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type BookDetailsRouteProp = RouteProp<RootStackParamList, 'BookDetails'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
+type BookDetailsRouteProp = RouteProp<HomeStackParamList, 'BookDetails'>;
 
 const { width } = Dimensions.get('window');
 const COVER_SIZE = width - 80;
-
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${secs}s`;
-  }
-  return `${secs}s`;
-}
 
 export function BookDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BookDetailsRouteProp>();
   const { book } = route.params;
+  const { colors, isDark } = useTheme();
 
   const { playBook, currentBook } = usePlayer();
 
@@ -78,50 +68,78 @@ export function BookDetailsScreen() {
     return (
       <TouchableOpacity
         key={chapter.id}
-        style={[styles.chapterItem, !isPlayable && styles.chapterItemDisabled]}
+        style={[
+          styles.chapterItem,
+          { backgroundColor: colors.card },
+          !isPlayable && styles.chapterItemDisabled,
+        ]}
         onPress={() => handlePlayChapter(chapter, index)}
         disabled={!isPlayable}
         activeOpacity={0.7}
       >
-        <View style={[styles.chapterNumber, isPlayable && styles.chapterNumberActive]}>
-          <Text style={[styles.chapterNumberText, isPlayable && styles.chapterNumberTextActive]}>
+        <View
+          style={[
+            styles.chapterNumber,
+            { backgroundColor: colors.backgroundSecondary },
+            isPlayable && { backgroundColor: colors.brand.orange },
+          ]}
+        >
+          <Text
+            style={[
+              styles.chapterNumberText,
+              { color: colors.textSecondary },
+              isPlayable && styles.chapterNumberTextActive,
+            ]}
+          >
             {index + 1}
           </Text>
         </View>
         <View style={styles.chapterInfo}>
-          <Text style={[styles.chapterTitle, !isPlayable && styles.chapterTitleDisabled]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.chapterTitle,
+              { color: colors.text },
+              !isPlayable && { color: colors.textSecondary },
+            ]}
+            numberOfLines={2}
+          >
             {chapter.title}
           </Text>
           <View style={styles.chapterMeta}>
             {chapter.duration > 0 && (
-              <Text style={styles.chapterDuration}>{formatDuration(chapter.duration)}</Text>
+              <Text style={[styles.chapterDuration, { color: colors.textSecondary }]}>
+                {formatDuration(chapter.duration)}
+              </Text>
             )}
             {!chapter.isPublished && (
-              <View style={styles.comingSoonBadge}>
+              <View style={[styles.comingSoonBadge, { backgroundColor: colors.brand.red }]}>
                 <Text style={styles.comingSoonText}>Coming Soon</Text>
               </View>
             )}
           </View>
         </View>
         {isPlayable ? (
-          <Ionicons name="play-circle" size={32} color="#6c5ce7" />
+          <Ionicons name="play-circle" size={32} color={colors.brand.orange} />
         ) : (
-          <Ionicons name="lock-closed" size={24} color="#444" />
+          <Ionicons name="lock-closed" size={24} color={colors.textSecondary} />
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f1a" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -136,7 +154,7 @@ export function BookDetailsScreen() {
         <View style={styles.coverContainer}>
           <Image
             source={{ uri: book.thumbnail }}
-            style={styles.cover}
+            style={[styles.cover, { backgroundColor: colors.backgroundSecondary }]}
             priority="high"
             cachePolicy="memory-disk"
             contentFit="cover"
@@ -144,39 +162,48 @@ export function BookDetailsScreen() {
         </View>
 
         <View style={styles.bookInfo}>
-          <Text style={styles.title}>{book.title}</Text>
-          <Text style={styles.author}>by {book.author}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{book.title}</Text>
+          <Text style={[styles.author, { color: colors.textSecondary }]}>by {book.author}</Text>
           {book.narrator && (
-            <Text style={styles.narrator}>Narrated by {book.narrator}</Text>
+            <Text style={[styles.narrator, { color: colors.textSecondary }]}>
+              Narrated by {book.narrator}
+            </Text>
           )}
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Ionicons name="time-outline" size={18} color="#6c5ce7" />
-              <Text style={styles.statText}>{formatDuration(book.duration)}</Text>
+              <Ionicons name="time-outline" size={18} color={colors.brand.orange} />
+              <Text style={[styles.statText, { color: colors.textSecondary }]}>
+                {formatDuration(book.duration)}
+              </Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="list-outline" size={18} color="#6c5ce7" />
-              <Text style={styles.statText}>
+              <Ionicons name="list-outline" size={18} color={colors.brand.orange} />
+              <Text style={[styles.statText, { color: colors.textSecondary }]}>
                 {publishedChapters.length} / {totalChapters} chapters
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.playButton} onPress={handlePlayBook}>
+          <TouchableOpacity
+            style={[styles.playButton, { backgroundColor: colors.brand.orange }]}
+            onPress={handlePlayBook}
+          >
             <Ionicons name="play" size={24} color="#fff" />
             <Text style={styles.playButtonText}>Play Audiobook</Text>
           </TouchableOpacity>
 
           {book.description && (
             <View style={styles.descriptionContainer}>
-              <Text style={styles.sectionTitle}>About this book</Text>
-              <Text style={styles.description}>{book.description}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>About this book</Text>
+              <Text style={[styles.description, { color: colors.textSecondary }]}>
+                {book.description}
+              </Text>
             </View>
           )}
 
           <View style={styles.chaptersContainer}>
-            <Text style={styles.sectionTitle}>Chapters</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Chapters</Text>
             {sortedChapters.map((chapter, index) => renderChapterItem(chapter, index))}
           </View>
         </View>
@@ -190,7 +217,6 @@ export function BookDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f1a',
   },
   header: {
     flexDirection: 'row',
@@ -219,7 +245,6 @@ const styles = StyleSheet.create({
     width: COVER_SIZE,
     height: COVER_SIZE,
     borderRadius: 16,
-    backgroundColor: '#2a2a3e',
   },
   bookInfo: {
     paddingHorizontal: 24,
@@ -227,18 +252,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#fff',
     textAlign: 'center',
   },
   author: {
     fontSize: 16,
-    color: '#888',
     textAlign: 'center',
     marginTop: 8,
   },
   narrator: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     marginTop: 4,
   },
@@ -255,13 +277,11 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
-    color: '#888',
   },
   playButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6c5ce7',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 30,
@@ -279,12 +299,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
     marginBottom: 12,
   },
   description: {
     fontSize: 15,
-    color: '#aaa',
     lineHeight: 24,
   },
   chaptersContainer: {
@@ -293,7 +311,6 @@ const styles = StyleSheet.create({
   chapterItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -305,18 +322,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2a2a3e',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  chapterNumberActive: {
-    backgroundColor: '#6c5ce7',
-  },
   chapterNumberText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
   },
   chapterNumberTextActive: {
     color: '#fff',
@@ -327,10 +339,6 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#fff',
-  },
-  chapterTitleDisabled: {
-    color: '#666',
   },
   chapterMeta: {
     flexDirection: 'row',
@@ -340,10 +348,8 @@ const styles = StyleSheet.create({
   },
   chapterDuration: {
     fontSize: 13,
-    color: '#666',
   },
   comingSoonBadge: {
-    backgroundColor: '#ff6b6b',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,30 +10,29 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Slider from '@react-native-community/slider';
 import { usePlayer, PLAYBACK_SPEEDS } from '../context/PlayerContext';
 import { useDownload } from '../context/DownloadContext';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
 import { formatBytes } from '../services/downloadService';
+import { formatPlaybackTime } from '../utils/formatters';
+import { getLikeStatus, likeBook, unlikeBook } from '../services/userActivityApi';
 
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 const { width } = Dimensions.get('window');
 const ARTWORK_SIZE = width - 120;
 
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return '0:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { book } = route.params;
+  const { colors, isDark } = useTheme();
+  const { isAuthenticated } = useAuth();
   const {
     currentBook,
     currentChapterIndex,
@@ -53,6 +52,14 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
   const [showChapterList, setShowChapterList] = useState(false);
   const [showSpeedPicker, setShowSpeedPicker] = useState(false);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number>(0);
+  const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  const SLEEP_TIMER_OPTIONS = [5, 10, 15, 30, 45, 60];
 
   const {
     isDownloaded,
@@ -65,6 +72,78 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const bookIsDownloaded = isDownloaded(book.id);
   const bookIsDownloading = isDownloading(book.id);
   const downloadProgress = getDownloadProgress(book.id);
+
+  // Fetch like status on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      getLikeStatus(book.id)
+        .then((status) => setIsLiked(status.is_liked))
+        .catch((err) => console.log('Failed to fetch like status:', err));
+    }
+  }, [book.id, isAuthenticated]);
+
+  // Sleep timer countdown
+  useEffect(() => {
+    if (!sleepTimerMinutes || !isPlaying) return;
+
+    sleepTimerRef.current = setInterval(() => {
+      setSleepTimerRemaining((prev) => {
+        if (prev <= 1) {
+          // Timer finished - pause playback
+          togglePlayPause();
+          setSleepTimerMinutes(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (sleepTimerRef.current) {
+        clearInterval(sleepTimerRef.current);
+      }
+    };
+  }, [sleepTimerMinutes, isPlaying]);
+
+  const handleSetSleepTimer = (minutes: number) => {
+    setSleepTimerMinutes(minutes);
+    setSleepTimerRemaining(minutes * 60);
+    setShowSleepTimer(false);
+  };
+
+  const handleCancelSleepTimer = () => {
+    setSleepTimerMinutes(null);
+    setSleepTimerRemaining(0);
+    setShowSleepTimer(false);
+  };
+
+  const formatSleepTimerRemaining = () => {
+    const mins = Math.floor(sleepTimerRemaining / 60);
+    const secs = sleepTimerRemaining % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleLikeToggle = useCallback(async () => {
+    if (!isAuthenticated) {
+      Alert.alert('Login Required', 'Please login to like books');
+      return;
+    }
+
+    setIsLikeLoading(true);
+    try {
+      if (isLiked) {
+        await unlikeBook(book.id);
+        setIsLiked(false);
+      } else {
+        await likeBook(book.id);
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error('Like toggle failed:', error);
+    } finally {
+      setIsLikeLoading(false);
+    }
+  }, [book.id, isLiked, isAuthenticated]);
 
   const handleDownload = async () => {
     if (bookIsDownloaded) {
@@ -98,25 +177,39 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const hasPrevChapter = currentBook && currentChapterIndex > 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f1a" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.headerButton}
         >
-          <Ionicons name="chevron-down" size={28} color="#fff" />
+          <Ionicons name="chevron-down" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Now Playing</Text>
+        <Text style={[styles.headerTitle, { color: colors.textSecondary }]}>Now Playing</Text>
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={handleLikeToggle}
+            style={styles.headerButton}
+            disabled={isLikeLoading}
+          >
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isLiked ? colors.brand.red : colors.text}
+            />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDownload}
             style={styles.headerButton}
             disabled={bookIsDownloading}
           >
             {bookIsDownloading ? (
-              <View style={styles.downloadProgress}>
+              <View style={[styles.downloadProgress, { backgroundColor: colors.brand.orange }]}>
                 <Text style={styles.downloadProgressText}>
                   {Math.round(downloadProgress?.progress || 0)}%
                 </Text>
@@ -125,7 +218,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
               <Ionicons
                 name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
                 size={24}
-                color={bookIsDownloaded ? '#00b894' : '#fff'}
+                color={bookIsDownloaded ? colors.brand.green : colors.text}
               />
             )}
           </TouchableOpacity>
@@ -133,7 +226,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             onPress={() => setShowChapterList(true)}
             style={styles.headerButton}
           >
-            <Ionicons name="list" size={24} color="#fff" />
+            <Ionicons name="list" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -141,7 +234,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
       <View style={styles.content}>
         <Image
           source={{ uri: book.thumbnail }}
-          style={styles.artwork}
+          style={[styles.artwork, { backgroundColor: colors.backgroundSecondary }]}
           placeholder={require('../../assets/icon.png')}
           priority="high"
           cachePolicy="memory-disk"
@@ -149,12 +242,12 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         />
 
         <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
             {book.title}
           </Text>
-          <Text style={styles.author}>{book.author}</Text>
+          <Text style={[styles.author, { color: colors.textSecondary }]}>{book.author}</Text>
           {currentChapter && (
-            <Text style={styles.chapter}>
+            <Text style={[styles.chapter, { color: colors.brand.orange }]}>
               Chapter {currentChapterIndex + 1}: {currentChapter.title}
             </Text>
           )}
@@ -166,14 +259,14 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             value={position}
             minimumValue={0}
             maximumValue={duration || 1}
-            minimumTrackTintColor="#6c5ce7"
-            maximumTrackTintColor="#2a2a3e"
-            thumbTintColor="#6c5ce7"
+            minimumTrackTintColor={colors.brand.orange}
+            maximumTrackTintColor={isDark ? '#4A4A4A' : '#D1D5DB'}
+            thumbTintColor={colors.brand.orange}
             onSlidingComplete={seekTo}
           />
           <View style={styles.timeContainer}>
-            <Text style={styles.time}>{formatTime(position)}</Text>
-            <Text style={styles.time}>{formatTime(duration)}</Text>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>{formatPlaybackTime(position)}</Text>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>{formatPlaybackTime(duration)}</Text>
           </View>
         </View>
 
@@ -183,17 +276,23 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             style={[styles.chapterButton, !hasPrevChapter && styles.disabledButton]}
             disabled={!hasPrevChapter}
           >
-            <Ionicons name="play-skip-back" size={24} color={hasPrevChapter ? "#fff" : "#444"} />
+            <Ionicons
+              name="play-skip-back"
+              size={24}
+              color={hasPrevChapter ? colors.text : colors.textSecondary}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={skipBackward} style={styles.skipButton}>
-            <Ionicons name="play-back" size={28} color="#fff" />
-            <Text style={styles.skipText}>15</Text>
+            <View style={styles.skipIconContainer}>
+              <MaterialCommunityIcons name="restore" size={44} color={colors.text} />
+              <Text style={[styles.skipNumber, { color: colors.text, marginLeft: 6 }]}>15</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={togglePlayPause}
-            style={styles.playButton}
+            style={[styles.playButton, { backgroundColor: colors.brand.orange }]}
           >
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
@@ -203,8 +302,15 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={skipForward} style={styles.skipButton}>
-            <Ionicons name="play-forward" size={28} color="#fff" />
-            <Text style={styles.skipText}>15</Text>
+            <View style={styles.skipIconContainer}>
+              <MaterialCommunityIcons
+                name="restore"
+                size={44}
+                color={colors.text}
+                style={styles.skipForwardIcon}
+              />
+              <Text style={[styles.skipNumber, { color: colors.text, marginRight: 6 }]}>15</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -212,22 +318,41 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             style={[styles.chapterButton, !hasNextChapter && styles.disabledButton]}
             disabled={!hasNextChapter}
           >
-            <Ionicons name="play-skip-forward" size={24} color={hasNextChapter ? "#fff" : "#444"} />
+            <Ionicons
+              name="play-skip-forward"
+              size={24}
+              color={hasNextChapter ? colors.text : colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
 
         {playableChaptersCount > 1 && (
-          <Text style={styles.chapterIndicator}>
+          <Text style={[styles.chapterIndicator, { color: colors.textSecondary }]}>
             Chapter {currentChapterIndex + 1} of {playableChaptersCount}
           </Text>
         )}
 
-        <TouchableOpacity
-          style={styles.speedButton}
-          onPress={() => setShowSpeedPicker(true)}
-        >
-          <Text style={styles.speedButtonText}>{playbackSpeed}x</Text>
-        </TouchableOpacity>
+        <View style={styles.bottomControls}>
+          <TouchableOpacity
+            style={[styles.bottomButton, { backgroundColor: colors.card }]}
+            onPress={() => setShowSpeedPicker(true)}
+          >
+            <Ionicons name="speedometer-outline" size={18} color={colors.text} />
+            <Text style={[styles.bottomButtonText, { color: colors.text }]}>
+              {playbackSpeed}x
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.bottomButton, { backgroundColor: colors.card }]}
+            onPress={() => setShowSleepTimer(true)}
+          >
+            <Ionicons name="moon-outline" size={18} color={sleepTimerMinutes ? colors.brand.orange : colors.text} />
+            <Text style={[styles.bottomButtonText, { color: sleepTimerMinutes ? colors.brand.orange : colors.text }]}>
+              {sleepTimerMinutes ? formatSleepTimerRemaining() : 'Sleep'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Speed Picker Modal */}
@@ -242,15 +367,16 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           activeOpacity={1}
           onPress={() => setShowSpeedPicker(false)}
         >
-          <View style={styles.speedPickerContent}>
-            <Text style={styles.speedPickerTitle}>Playback Speed</Text>
+          <View style={[styles.speedPickerContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.speedPickerTitle, { color: colors.text }]}>Playback Speed</Text>
             <View style={styles.speedOptions}>
               {PLAYBACK_SPEEDS.map((speed) => (
                 <TouchableOpacity
                   key={speed}
                   style={[
                     styles.speedOption,
-                    playbackSpeed === speed && styles.speedOptionActive,
+                    { backgroundColor: colors.backgroundSecondary },
+                    playbackSpeed === speed && { backgroundColor: colors.brand.orange },
                   ]}
                   onPress={() => {
                     setPlaybackSpeed(speed);
@@ -260,6 +386,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                   <Text
                     style={[
                       styles.speedOptionText,
+                      { color: colors.textSecondary },
                       playbackSpeed === speed && styles.speedOptionTextActive,
                     ]}
                   >
@@ -272,6 +399,62 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </TouchableOpacity>
       </Modal>
 
+      {/* Sleep Timer Modal */}
+      <Modal
+        visible={showSleepTimer}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSleepTimer(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSleepTimer(false)}
+        >
+          <View style={[styles.speedPickerContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.speedPickerTitle, { color: colors.text }]}>Sleep Timer</Text>
+            {sleepTimerMinutes && (
+              <Text style={[styles.timerActiveText, { color: colors.brand.orange }]}>
+                Timer active: {formatSleepTimerRemaining()} remaining
+              </Text>
+            )}
+            <View style={styles.speedOptions}>
+              {SLEEP_TIMER_OPTIONS.map((mins) => (
+                <TouchableOpacity
+                  key={mins}
+                  style={[
+                    styles.speedOption,
+                    { backgroundColor: colors.backgroundSecondary },
+                    sleepTimerMinutes === mins && { backgroundColor: colors.brand.orange },
+                  ]}
+                  onPress={() => handleSetSleepTimer(mins)}
+                >
+                  <Text
+                    style={[
+                      styles.speedOptionText,
+                      { color: colors.textSecondary },
+                      sleepTimerMinutes === mins && styles.speedOptionTextActive,
+                    ]}
+                  >
+                    {mins}m
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {sleepTimerMinutes && (
+              <TouchableOpacity
+                style={[styles.cancelTimerButton, { borderColor: colors.textSecondary }]}
+                onPress={handleCancelSleepTimer}
+              >
+                <Text style={[styles.cancelTimerText, { color: colors.textSecondary }]}>
+                  Cancel Timer
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Chapter List Modal */}
       <Modal
         visible={showChapterList}
@@ -280,11 +463,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         onRequestClose={() => setShowChapterList(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Chapters</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Chapters</Text>
               <TouchableOpacity onPress={() => setShowChapterList(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.chapterList}>
@@ -296,7 +479,8 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                     key={chapter.id}
                     style={[
                       styles.chapterItem,
-                      isCurrentlyPlaying && styles.activeChapter,
+                      { borderBottomColor: colors.border },
+                      isCurrentlyPlaying && { backgroundColor: `${colors.brand.orange}15` },
                       !isPlayable && styles.disabledChapter,
                     ]}
                     onPress={() => {
@@ -310,29 +494,38 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                     }}
                     disabled={!isPlayable}
                   >
-                    <Text style={[styles.chapterNumber, !isPlayable && styles.disabledText]}>
+                    <Text
+                      style={[
+                        styles.chapterNumber,
+                        { backgroundColor: colors.backgroundSecondary, color: colors.textSecondary },
+                        !isPlayable && { color: colors.textSecondary },
+                      ]}
+                    >
                       {index + 1}
                     </Text>
                     <View style={styles.chapterTitleContainer}>
                       <Text
                         style={[
                           styles.chapterTitle,
-                          isCurrentlyPlaying && styles.activeChapterText,
-                          !isPlayable && styles.disabledText,
+                          { color: colors.text },
+                          isCurrentlyPlaying && { color: colors.brand.orange, fontWeight: '600' },
+                          !isPlayable && { color: colors.textSecondary },
                         ]}
                         numberOfLines={1}
                       >
                         {chapter.title}
                       </Text>
                       {!chapter.isPublished && (
-                        <Text style={styles.comingSoonBadge}>Coming Soon</Text>
+                        <Text style={[styles.comingSoonBadge, { color: colors.brand.orangeLight }]}>
+                          Coming Soon
+                        </Text>
                       )}
                     </View>
                     {isCurrentlyPlaying && isPlayable && (
-                      <Ionicons name="volume-high" size={18} color="#6c5ce7" />
+                      <Ionicons name="volume-high" size={18} color={colors.brand.orange} />
                     )}
                     {!isPlayable && (
-                      <Ionicons name="lock-closed" size={16} color="#666" />
+                      <Ionicons name="lock-closed" size={16} color={colors.textSecondary} />
                     )}
                   </TouchableOpacity>
                 );
@@ -348,7 +541,6 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f1a',
   },
   header: {
     flexDirection: 'row',
@@ -366,7 +558,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#888',
   },
   headerRight: {
     flexDirection: 'row',
@@ -376,7 +567,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#6c5ce7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -394,7 +584,6 @@ const styles = StyleSheet.create({
     width: ARTWORK_SIZE,
     height: ARTWORK_SIZE,
     borderRadius: 20,
-    backgroundColor: '#2a2a3e',
   },
   info: {
     width: '100%',
@@ -404,17 +593,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
     textAlign: 'center',
   },
   author: {
     fontSize: 16,
-    color: '#888',
     marginTop: 6,
   },
   chapter: {
     fontSize: 14,
-    color: '#6c5ce7',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -432,7 +618,6 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: '#888',
   },
   controls: {
     flexDirection: 'row',
@@ -452,24 +637,34 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignItems: 'center',
+    justifyContent: 'center',
+    width: 52,
+    height: 52,
   },
-  skipText: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 2,
+  skipIconContainer: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipNumber: {
+    position: 'absolute',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  skipForwardIcon: {
+    transform: [{ scaleX: -1 }],
   },
   playButton: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#6c5ce7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   chapterIndicator: {
     marginTop: 20,
     fontSize: 14,
-    color: '#666',
   },
   modalOverlay: {
     flex: 1,
@@ -477,7 +672,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
@@ -488,12 +682,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a3e',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
   },
   chapterList: {
     paddingHorizontal: 20,
@@ -503,71 +695,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a3e',
     gap: 12,
-  },
-  activeChapter: {
-    backgroundColor: 'rgba(108, 92, 231, 0.1)',
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
   },
   chapterNumber: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#2a2a3e',
     textAlign: 'center',
     textAlignVertical: 'center',
     lineHeight: 28,
     fontSize: 12,
-    color: '#888',
   },
   chapterTitleContainer: {
     flex: 1,
   },
   chapterTitle: {
     fontSize: 16,
-    color: '#fff',
-  },
-  activeChapterText: {
-    color: '#6c5ce7',
-    fontWeight: '600',
   },
   disabledChapter: {
     opacity: 0.6,
   },
-  disabledText: {
-    color: '#666',
-  },
   comingSoonBadge: {
     fontSize: 11,
-    color: '#f39c12',
     fontWeight: '600',
     marginTop: 2,
   },
-  speedButton: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#2a2a3e',
+  bottomControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 16,
   },
-  speedButtonText: {
-    color: '#6c5ce7',
-    fontSize: 16,
+  bottomButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+  },
+  bottomButtonText: {
+    fontSize: 14,
     fontWeight: '600',
   },
   speedPickerContent: {
-    backgroundColor: '#1a1a2e',
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 40,
+    marginTop: 'auto',
+    marginBottom: 'auto',
     alignItems: 'center',
   },
   speedPickerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
     marginBottom: 16,
   },
   speedOptions: {
@@ -580,19 +762,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#2a2a3e',
     minWidth: 60,
     alignItems: 'center',
   },
-  speedOptionActive: {
-    backgroundColor: '#6c5ce7',
-  },
   speedOptionText: {
-    color: '#888',
     fontSize: 14,
     fontWeight: '600',
   },
   speedOptionTextActive: {
     color: '#fff',
+  },
+  timerActiveText: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  cancelTimerButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  cancelTimerText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

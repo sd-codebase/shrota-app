@@ -6,6 +6,8 @@ import TrackPlayer from 'react-native-track-player';
 import { AppNavigator, navigate } from './src/navigation';
 import { PlayerProvider, usePlayer } from './src/context/PlayerContext';
 import { DownloadProvider } from './src/context/DownloadContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { AuthProvider } from './src/context/AuthContext';
 import { setupPlayer } from './src/services/trackPlayerService';
 
 // Component to handle notification press navigation
@@ -35,7 +37,19 @@ function NotificationHandler() {
   return null;
 }
 
-export default function App() {
+// Loading screen component that uses theme
+function LoadingScreen() {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.loading, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.brand.orange} />
+    </View>
+  );
+}
+
+// Main app content wrapped with player setup
+function AppContent() {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   useEffect(() => {
@@ -47,22 +61,28 @@ export default function App() {
   }, []);
 
   if (!isPlayerReady) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#6c5ce7" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
+    <DownloadProvider>
+      <PlayerProvider>
+        <NotificationHandler />
+        <AppNavigator />
+      </PlayerProvider>
+    </DownloadProvider>
+  );
+}
+
+export default function App() {
+  return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <DownloadProvider>
-          <PlayerProvider>
-            <NotificationHandler />
-            <AppNavigator />
-          </PlayerProvider>
-        </DownloadProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -74,7 +94,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    backgroundColor: '#0f0f1a',
     justifyContent: 'center',
     alignItems: 'center',
   },
