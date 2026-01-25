@@ -86,6 +86,8 @@ function Books() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [bookForm] = Form.useForm();
   const [chapterForm] = Form.useForm();
 
@@ -249,6 +251,9 @@ function Books() {
     chapterForm.setFieldsValue({ order: book.chapters.length });
     setFileList([]);
     setChapterImageFileList([]);
+    setUploadedFileId(null);
+    setUploadProgress(null);
+    setIsUploading(false);
     setChapterModalOpen(true);
   };
 
@@ -266,6 +271,9 @@ function Books() {
         ? [{ uid: chapter.image, name: chapter.image, status: 'done', url: getChapterImageUrl(chapter.image) }]
         : []
     );
+    setUploadedFileId(chapter.file_id || null);
+    setUploadProgress(null);
+    setIsUploading(false);
     setChapterModalOpen(true);
   };
 
@@ -321,26 +329,50 @@ function Books() {
     setProcessingComplete(false);
   };
 
+  const handleStartAudioUpload = async () => {
+    if (!selectedBook || fileList.length === 0 || !fileList[0].originFileObj) return;
+
+    const order = chapterForm.getFieldValue('order') ?? 0;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const uploadResponse = await uploadChapterFile(
+        fileList[0].originFileObj,
+        selectedBook.title,
+        order,
+        (percent) => setUploadProgress(percent)
+      );
+      setUploadedFileId(uploadResponse.file_id);
+      setUploadProgress(100);
+      message.success('Audio file uploaded successfully');
+      // Update fileList to show as uploaded (remove originFileObj marker)
+      setFileList([{ uid: uploadResponse.file_id, name: fileList[0].name || 'Audio file', status: 'done' }]);
+    } catch (error) {
+      message.error('Failed to upload audio file');
+      setUploadProgress(null);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleChapterSubmit = async (values: ChapterCreate) => {
     if (!selectedBook) return;
 
     try {
-      let fileId = editingChapter?.file_id;
-      let imageFilename = editingChapter?.image;
-
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        setUploadProgress(0);
-        const uploadResponse = await uploadChapterFile(
-          fileList[0].originFileObj,
-          selectedBook.title,
-          values.order,
-          (percent) => setUploadProgress(percent)
-        );
-        fileId = uploadResponse.file_id;
-        setUploadProgress(null);
-      } else if (fileList.length === 0) {
+      // Use the already-uploaded file_id, or keep existing one, or set undefined if cleared
+      let fileId: string | undefined;
+      if (uploadedFileId) {
+        fileId = uploadedFileId;
+      } else if (fileList.length > 0 && fileList[0].uid && !fileList[0].originFileObj) {
+        // File was already uploaded before (editing existing chapter)
+        fileId = editingChapter?.file_id;
+      } else {
         fileId = undefined;
       }
+
+      let imageFilename = editingChapter?.image;
 
       // Handle chapter image upload
       if (chapterImageFileList.length > 0 && chapterImageFileList[0].originFileObj) {
@@ -368,9 +400,10 @@ function Books() {
         message.success('Chapter added');
       }
       setChapterModalOpen(false);
+      setUploadedFileId(null);
+      setUploadProgress(null);
       fetchBooks(debouncedSearch || undefined);
     } catch (error) {
-      setUploadProgress(null);
       message.error('Failed to save chapter');
     }
   };
@@ -961,16 +994,16 @@ function Books() {
       <Drawer
         title={editingChapter ? 'Edit Chapter' : 'Add Chapter'}
         open={chapterModalOpen}
-        onClose={() => !uploadProgress && setChapterModalOpen(false)}
+        onClose={() => !isUploading && setChapterModalOpen(false)}
         width={480}
-        closable={uploadProgress === null}
-        maskClosable={uploadProgress === null}
+        closable={!isUploading}
+        maskClosable={!isUploading}
         extra={
           <Space>
-            <Button onClick={() => setChapterModalOpen(false)} disabled={uploadProgress !== null}>
+            <Button onClick={() => setChapterModalOpen(false)} disabled={isUploading}>
               Cancel
             </Button>
-            <Button type="primary" onClick={() => chapterForm.submit()} disabled={uploadProgress !== null}>
+            <Button type="primary" onClick={() => chapterForm.submit()} disabled={isUploading}>
               {editingChapter ? 'Update' : 'Create'}
             </Button>
           </Space>
@@ -982,20 +1015,20 @@ function Books() {
             label="Title"
             rules={[{ required: true, message: 'Please enter title' }]}
           >
-            <Input disabled={uploadProgress !== null} />
+            <Input disabled={isUploading} />
           </Form.Item>
           <Form.Item
             name="description"
             label="Description (optional)"
           >
-            <Input.TextArea rows={2} maxLength={500} showCount disabled={uploadProgress !== null} />
+            <Input.TextArea rows={2} maxLength={500} showCount disabled={isUploading} />
           </Form.Item>
           <Form.Item
             name="order"
             label="Order"
             rules={[{ required: true, message: 'Please enter order' }]}
           >
-            <InputNumber min={0} style={{ width: '100%' }} disabled={uploadProgress !== null} />
+            <InputNumber min={0} style={{ width: '100%' }} disabled={isUploading} />
           </Form.Item>
           <Form.Item label="Chapter Image">
             <Upload
@@ -1005,7 +1038,7 @@ function Books() {
               onChange={({ fileList }) => setChapterImageFileList(fileList)}
               maxCount={1}
               accept=".jpg,.jpeg,.png,.webp"
-              disabled={uploadProgress !== null}
+              disabled={isUploading}
             >
               {chapterImageFileList.length === 0 && (
                 <div>
@@ -1016,19 +1049,49 @@ function Books() {
             </Upload>
           </Form.Item>
           <Form.Item label="Audio File">
-            <Upload
-              fileList={fileList}
-              beforeUpload={() => false}
-              onChange={({ fileList }) => setFileList(fileList)}
-              maxCount={1}
-              accept=".m4a,.aac,.wav,audio/x-m4a,audio/mp4,audio/aac,audio/wav,audio/wave"
-              disabled={uploadProgress !== null}
-            >
-              <Button icon={<UploadOutlined />} disabled={uploadProgress !== null}>Select Audio File</Button>
-            </Upload>
-            {uploadProgress !== null && (
-              <Progress percent={uploadProgress} status="active" style={{ marginTop: 8 }} />
-            )}
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Upload
+                fileList={fileList}
+                beforeUpload={() => false}
+                onChange={({ fileList: newFileList }) => {
+                  setFileList(newFileList);
+                  // Reset uploaded file id when user selects a new file
+                  if (newFileList.length > 0 && newFileList[0].originFileObj) {
+                    setUploadedFileId(null);
+                    setUploadProgress(null);
+                  } else if (newFileList.length === 0) {
+                    setUploadedFileId(null);
+                    setUploadProgress(null);
+                  }
+                }}
+                maxCount={1}
+                accept=".m4a,.aac,.wav,audio/x-m4a,audio/mp4,audio/aac,audio/wav,audio/wave"
+                disabled={isUploading}
+                showUploadList={{
+                  showRemoveIcon: !isUploading,
+                }}
+              >
+                <Button icon={<UploadOutlined />} disabled={isUploading}>Select Audio File</Button>
+              </Upload>
+              {/* Show Start Upload button when file selected but not uploaded */}
+              {fileList.length > 0 && fileList[0].originFileObj && !uploadedFileId && !isUploading && (
+                <Button
+                  type="primary"
+                  icon={<UploadOutlined />}
+                  onClick={handleStartAudioUpload}
+                >
+                  Start Upload
+                </Button>
+              )}
+              {/* Show progress during upload */}
+              {isUploading && uploadProgress !== null && (
+                <Progress percent={uploadProgress} status="active" />
+              )}
+              {/* Show success when upload complete */}
+              {uploadedFileId && !isUploading && (
+                <Tag color="green" icon={<SoundOutlined />}>Audio uploaded successfully</Tag>
+              )}
+            </Space>
           </Form.Item>
         </Form>
       </Drawer>

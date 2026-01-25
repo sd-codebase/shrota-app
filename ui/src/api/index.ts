@@ -225,6 +225,7 @@ export const uploadChapterFile = (
     formData.append('chapter_order', chapterOrder.toString());
 
     const xhr = new XMLHttpRequest();
+    xhr.timeout = 600000; // 10 minutes for large files
 
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && onProgress) {
@@ -248,6 +249,14 @@ export const uploadChapterFile = (
 
     xhr.addEventListener('error', () => {
       reject(new Error('File upload failed'));
+    });
+
+    xhr.addEventListener('timeout', () => {
+      reject(new Error('Upload timed out. Please check your connection and try again.'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload was cancelled.'));
     });
 
     xhr.open('POST', `${API_URL}/files/upload/chapter`);
