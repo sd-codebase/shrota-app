@@ -57,7 +57,7 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled"
+            detail="Account is deleted, contact support for help."
         )
 
     return user
@@ -151,7 +151,7 @@ async def send_otp(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled"
+            detail="Account is deleted, contact support for help."
         )
 
     # Generate and store OTP

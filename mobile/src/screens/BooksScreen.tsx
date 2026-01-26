@@ -52,7 +52,7 @@ interface BecauseYouListenedSection {
 export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
   const currentBook = useCurrentBook();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -304,11 +304,15 @@ export function BooksScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Shrota</Text>
         </View>
         <TouchableOpacity
-          style={[styles.settingsButton, { backgroundColor: colors.card }]}
-          onPress={handleOpenPreferences}
+          style={[styles.themeButton, { backgroundColor: colors.card }]}
+          onPress={toggleTheme}
           activeOpacity={0.7}
         >
-          <Ionicons name="options-outline" size={22} color={colors.text} />
+          <Ionicons
+            name={isDark ? 'sunny-outline' : 'moon-outline'}
+            size={22}
+            color={colors.text}
+          />
         </TouchableOpacity>
       </View>
 
@@ -476,7 +480,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
   },
-  settingsButton: {
+  themeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,

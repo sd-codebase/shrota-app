@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { RootStackParamList, ProfileStackParamList, Genre, Language } from '../types';
 import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { fetchGenres, fetchLanguages } from '../services/api';
+import { deactivateAccount } from '../services/authApi';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -31,7 +32,7 @@ export function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { currentBook } = usePlayer();
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
 
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -102,6 +103,32 @@ export function ProfileScreen() {
               index: 0,
               routes: [{ name: 'Login' }],
             });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? You will not be able to login again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deactivateAccount(token!);
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
           },
         },
       ]
@@ -311,6 +338,17 @@ export function ProfileScreen() {
             Logout
           </Text>
         </TouchableOpacity>
+
+        {/* Delete Account Button */}
+        <TouchableOpacity
+          style={[styles.deleteAccountButton, { backgroundColor: colors.brand.red }]}
+          onPress={handleDeleteAccount}
+        >
+          <Ionicons name="trash-outline" size={24} color="#fff" />
+          <Text style={styles.deleteAccountText}>
+            Delete My Account
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <MiniPlayer onPress={handleMiniPlayerPress} />
@@ -455,5 +493,19 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+  },
+  deleteAccountText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

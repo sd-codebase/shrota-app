@@ -103,3 +103,20 @@ export async function getCurrentUser(token: string): Promise<User> {
 
   return response.json();
 }
+
+/**
+ * Deactivate the current user's account
+ */
+export async function deactivateAccount(token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/v1/users/me/deactivate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+}
