@@ -11,7 +11,10 @@ import TrackPlayer, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AudioBook, AudioChapter, DownloadedBook } from '../types';
 import { getDownloadedBook } from '../services/downloadService';
-import { updateProgress } from '../services/userActivityApi';
+import { updateProgress, getBookProgress } from '../services/userActivityApi';
+import { usePlayerStore } from '../stores/playerStore';
+import { saveChapterProgress, getChapterProgress } from '../services/chapterProgressService';
+import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 
 const AUTH_TOKEN_KEY = '@shrota_auth_token';
 const PROGRESS_SAVE_INTERVAL = 10000; // Save every 10 seconds
@@ -53,22 +56,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastSaveTimeRef = useRef<number>(0);
   const totalListenedRef = useRef<number>(0);
 
-  // Listen for track changes
-  useEffect(() => {
-    const subscription = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
-      if (event.index !== undefined && event.index !== null) {
-        setCurrentChapterIndex(event.index);
-      }
-    });
+  // Get Zustand store actions
+  const {
+    setCurrentBook: setStoreCurrentBook,
+    setCurrentChapterIndex: setStoreChapterIndex,
+    setIsPlaying: setStoreIsPlaying,
+    setPosition: setStorePosition,
+    setDuration: setStoreDuration,
+    setPlaybackSpeed: setStorePlaybackSpeed,
+  } = usePlayerStore();
 
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+  // Sync state to Zustand store
+  useEffect(() => {
+    setStoreCurrentBook(currentBook);
+  }, [currentBook]);
+
+  useEffect(() => {
+    setStoreChapterIndex(currentChapterIndex);
+  }, [currentChapterIndex]);
+
+  useEffect(() => {
+    setStoreIsPlaying(isPlaying);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    setStorePosition(position);
+  }, [position]);
+
+  useEffect(() => {
+    setStoreDuration(duration);
+  }, [duration]);
+
+  useEffect(() => {
+    setStorePlaybackSpeed(playbackSpeed);
+  }, [playbackSpeed]);
 
   // Refs to track current values for progress saving without triggering re-renders
   const currentBookRef = useRef<AudioBook | null>(null);
   const currentChapterIndexRef = useRef<number>(0);
+  const lastPositionRef = useRef<number>(0);
+  const lastDurationRef = useRef<number>(0);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -79,48 +106,102 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     currentChapterIndexRef.current = currentChapterIndex;
   }, [currentChapterIndex]);
 
+  // Update position ref when position changes
+  useEffect(() => {
+    lastPositionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    lastDurationRef.current = duration;
+  }, [duration]);
+
+  // Save chapter progress helper function
+  const saveCurrentChapterProgress = async () => {
+    const book = currentBookRef.current;
+    if (!book) return;
+
+    const chapterIndex = currentChapterIndexRef.current;
+    const currentPosition = lastPositionRef.current;
+    const currentDuration = lastDurationRef.current;
+
+    if (currentPosition > 0) {
+      // Save chapter progress locally
+      await saveChapterProgress(book.id, chapterIndex, currentPosition, currentDuration);
+    }
+  };
+
+  // Listen for track changes - save previous chapter progress before switching
+  useEffect(() => {
+    const subscription = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
+      if (event.index !== undefined && event.index !== null) {
+        // Save progress of the previous chapter before switching
+        await saveCurrentChapterProgress();
+
+        // Update to new chapter
+        setCurrentChapterIndex(event.index);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Save progress when playback pauses or stops
+  const wasPlayingRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (wasPlayingRef.current && !isPlaying) {
+      // Playback just paused/stopped - save progress immediately
+      saveCurrentChapterProgress();
+    }
+    wasPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   // Save progress periodically while playing
   useEffect(() => {
     if (!currentBook || !isPlaying) return;
 
-    const saveProgressToServer = async () => {
+    const saveProgress = async () => {
       try {
-        // Check if user is authenticated
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-        if (!token) return;
-
         const book = currentBookRef.current;
         if (!book) return;
 
         // Get current position from TrackPlayer directly
-        const { position: currentPosition } = await TrackPlayer.getProgress();
+        const { position: currentPosition, duration: currentDuration } = await TrackPlayer.getProgress();
         const chapterIndex = currentChapterIndexRef.current;
 
-        // Calculate total listened time for this book
-        const bookDuration = book.duration || 0;
-        let totalListened = 0;
+        // Save chapter progress locally (always, even if not authenticated)
+        await saveChapterProgress(book.id, chapterIndex, currentPosition, currentDuration);
 
-        // Sum up duration of completed chapters
-        for (let i = 0; i < chapterIndex; i++) {
-          totalListened += book.chapters[i]?.duration || 0;
+        // Save to server if authenticated
+        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+          // Calculate total listened time for this book
+          const bookDuration = book.duration || 0;
+          let totalListened = 0;
+
+          // Sum up duration of completed chapters
+          for (let i = 0; i < chapterIndex; i++) {
+            totalListened += book.chapters[i]?.duration || 0;
+          }
+          // Add current position in current chapter
+          totalListened += currentPosition;
+
+          // Calculate progress percentage
+          const progressPercentage = bookDuration > 0 ? (totalListened / bookDuration) * 100 : 0;
+
+          // Check if completed (95% or more)
+          const isCompleted = progressPercentage >= 95;
+
+          await updateProgress({
+            book_id: book.id,
+            current_chapter_index: chapterIndex,
+            current_position: currentPosition,
+            total_listened_seconds: Math.floor(totalListened),
+            progress_percentage: Math.min(progressPercentage, 100),
+            is_completed: isCompleted,
+          });
         }
-        // Add current position in current chapter
-        totalListened += currentPosition;
-
-        // Calculate progress percentage
-        const progressPercentage = bookDuration > 0 ? (totalListened / bookDuration) * 100 : 0;
-
-        // Check if completed (95% or more)
-        const isCompleted = progressPercentage >= 95;
-
-        await updateProgress({
-          book_id: book.id,
-          current_chapter_index: chapterIndex,
-          current_position: currentPosition,
-          total_listened_seconds: Math.floor(totalListened),
-          progress_percentage: Math.min(progressPercentage, 100),
-          is_completed: isCompleted,
-        });
 
         lastSaveTimeRef.current = Date.now();
       } catch (error) {
@@ -132,26 +213,54 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // Save immediately when starting to play (with a small delay to let playback stabilize)
     const initialSaveTimeout = setTimeout(() => {
       if (Date.now() - lastSaveTimeRef.current > PROGRESS_SAVE_INTERVAL) {
-        saveProgressToServer();
+        saveProgress();
       }
     }, 1000);
 
     // Set up interval for periodic saves
     const interval = setInterval(() => {
-      saveProgressToServer();
+      saveProgress();
     }, PROGRESS_SAVE_INTERVAL);
 
     return () => {
       clearTimeout(initialSaveTimeout);
       clearInterval(interval);
       // Save one last time when stopping
-      saveProgressToServer();
+      saveProgress();
     };
   }, [currentBook?.id, isPlaying]);
 
-  const playBook = async (book: AudioBook | DownloadedBook, chapterIndex: number = 0) => {
+  const playBook = async (book: AudioBook | DownloadedBook, chapterIndex?: number) => {
     // Check if this is a downloaded book or if we have a downloaded version
     const downloadedBook = await getDownloadedBook(book.id);
+
+    // Determine the target chapter index and seek position
+    let targetChapterIndex = chapterIndex ?? 0;
+    let seekPosition = 0;
+
+    if (chapterIndex !== undefined) {
+      // Playing a specific chapter (from chapter card) - get progress from LOCAL STORAGE only
+      try {
+        const localProgress = await getChapterProgress(book.id, chapterIndex);
+        if (localProgress && localProgress.position > 0) {
+          seekPosition = localProgress.position;
+        }
+      } catch (error) {
+        console.log('Could not fetch local chapter progress:', error);
+      }
+    } else {
+      // Playing the book (Play/Resume button) - get progress from SERVER DB only
+      try {
+        const serverProgress = await getBookProgress(book.id);
+        if (serverProgress && !serverProgress.is_completed) {
+          targetChapterIndex = serverProgress.current_chapter_index;
+          seekPosition = serverProgress.current_position;
+        }
+      } catch (error) {
+        // Silently fail - user might not be authenticated
+        console.log('Could not fetch server progress:', error);
+      }
+    }
 
     let tracks: Track[];
     let chaptersToUse: AudioChapter[];
@@ -168,6 +277,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         isPublished: ch.isPublished,
       }));
 
+      // Note: Android requires non-empty artwork URL
       tracks = downloadedBook.chapters.map((chapter) => ({
         id: `${book.id}-${chapter.id}`,
         url: chapter.localAudioUrl,
@@ -175,7 +285,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         title: chapter.title,
         artist: book.author,
         album: book.title,
-        artwork: downloadedBook.thumbnail,
+        artwork: downloadedBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
       }));
     } else {
       // Use remote streaming URLs
@@ -192,6 +302,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       // Create tracks for playable chapters only
       // Use TrackType.HLS for HLS streams (.m3u8 playlists)
+      // Note: Android requires non-empty artwork URL
       tracks = playableChapters.map((chapter) => ({
         id: `${book.id}-${chapter.id}`,
         url: chapter.audioUrl,
@@ -199,7 +310,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         title: chapter.title,
         artist: book.author,
         album: book.title,
-        artwork: book.thumbnail,
+        artwork: book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
       }));
     }
 
@@ -212,7 +323,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     await TrackPlayer.add(tracks);
 
     // Find the track index for the requested chapter
-    const requestedChapter = book.chapters[chapterIndex];
+    const requestedChapter = book.chapters[targetChapterIndex];
     const trackIndex = chaptersToUse.findIndex(ch => ch.id === requestedChapter?.id);
     const startIndex = trackIndex >= 0 ? trackIndex : 0;
 
@@ -222,6 +333,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
 
     await TrackPlayer.play();
+
+    // Seek to saved position if available
+    if (seekPosition > 0) {
+      // Small delay to let playback start before seeking
+      setTimeout(async () => {
+        try {
+          await TrackPlayer.seekTo(seekPosition);
+        } catch (error) {
+          console.log('Could not seek to saved position:', error);
+        }
+      }, 500);
+    }
+
     // Store book with chapters to use for consistent navigation
     setCurrentBook({ ...book, chapters: chaptersToUse });
     setCurrentChapterIndex(startIndex);

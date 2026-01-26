@@ -9,3 +9,4 @@ from routes.auth import router as auth_router
 from routes.user_auth import router as user_auth_router
 from routes.search import router as search_router
 from routes.user_activity import router as user_activity_router
+from routes.content_promotion import router as content_promotion_router

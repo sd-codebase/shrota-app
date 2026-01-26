@@ -23,6 +23,7 @@ import { RootStackParamList } from '../types';
 import { formatBytes } from '../services/downloadService';
 import { formatPlaybackTime } from '../utils/formatters';
 import { getLikeStatus, likeBook, unlikeBook } from '../services/userActivityApi';
+import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -233,7 +234,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
       <View style={styles.content}>
         <Image
-          source={{ uri: book.thumbnail }}
+          source={{ uri: book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
           style={[styles.artwork, { backgroundColor: colors.backgroundSecondary }]}
           placeholder={require('../../assets/icon.png')}
           priority="high"

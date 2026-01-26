@@ -8,6 +8,7 @@ from models.book import Book, Chapter, book_authors, book_artists, book_genres
 from models.admin import Admin
 from models.user import User
 from models.user_activity import UserBookProgress, UserLikedBook
+from models.content_promotion import NewRelease, FeaturedBook, PromotedBook
 
 __all__ = [
     "Base",
@@ -27,4 +28,7 @@ __all__ = [
     "User",
     "UserBookProgress",
     "UserLikedBook",
+    "NewRelease",
+    "FeaturedBook",
+    "PromotedBook",
 ]

@@ -60,7 +60,7 @@ class Chapter(Base, SoftDeleteMixin):
     book_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     file_id: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     audio_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

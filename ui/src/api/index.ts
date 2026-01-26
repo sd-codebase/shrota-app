@@ -23,6 +23,13 @@ import type {
   LoginRequest,
   LoginResponse,
   Admin,
+  NewRelease,
+  NewReleaseCreate,
+  FeaturedBook,
+  FeaturedBookCreate,
+  PromotedBook,
+  PromotedBookCreate,
+  ReorderItem,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -409,4 +416,85 @@ export const getCurrentAdmin = (token: string) =>
     headers: {
       'Authorization': `Bearer ${token}`,
     },
+  });
+
+// Content Promotion - New Releases
+export const getNewReleases = () => request<NewRelease[]>('/content/new-releases');
+
+export const getNewReleasesByLanguage = (languageId: string) =>
+  request<NewRelease[]>(`/content/new-releases/language/${languageId}`);
+
+export const createNewRelease = (data: NewReleaseCreate) =>
+  request<NewRelease>('/content/new-releases', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateNewRelease = (id: string, data: Partial<NewReleaseCreate>) =>
+  request<NewRelease>(`/content/new-releases/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deleteNewRelease = (id: string) =>
+  request<void>(`/content/new-releases/${id}`, { method: 'DELETE' });
+
+export const reorderNewReleases = (items: ReorderItem[]) =>
+  request<NewRelease[]>('/content/new-releases/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  });
+
+// Content Promotion - Featured Books
+export const getFeaturedBooks = () => request<FeaturedBook[]>('/content/featured');
+
+export const getFeaturedBooksByLanguage = (languageId: string) =>
+  request<FeaturedBook[]>(`/content/featured/language/${languageId}`);
+
+export const createFeaturedBook = (data: FeaturedBookCreate) =>
+  request<FeaturedBook>('/content/featured', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateFeaturedBook = (id: string, data: Partial<FeaturedBookCreate>) =>
+  request<FeaturedBook>(`/content/featured/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deleteFeaturedBook = (id: string) =>
+  request<void>(`/content/featured/${id}`, { method: 'DELETE' });
+
+export const reorderFeaturedBooks = (items: ReorderItem[]) =>
+  request<FeaturedBook[]>('/content/featured/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  });
+
+// Content Promotion - Promoted Books
+export const getPromotedBooks = () => request<PromotedBook[]>('/content/promoted');
+
+export const getPromotedBooksByGenre = (genreId: string) =>
+  request<PromotedBook[]>(`/content/promoted/genre/${genreId}`);
+
+export const createPromotedBook = (data: PromotedBookCreate) =>
+  request<PromotedBook>('/content/promoted', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updatePromotedBook = (id: string, data: Partial<PromotedBookCreate>) =>
+  request<PromotedBook>(`/content/promoted/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deletePromotedBook = (id: string) =>
+  request<void>(`/content/promoted/${id}`, { method: 'DELETE' });
+
+export const reorderPromotedBooks = (items: ReorderItem[]) =>
+  request<PromotedBook[]>('/content/promoted/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
   });

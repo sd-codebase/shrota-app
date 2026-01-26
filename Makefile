@@ -1,7 +1,8 @@
 .PHONY: staging-up staging-down staging-build staging-deploy staging-logs staging-migrate \
         prod-up prod-down prod-build prod-deploy prod-logs prod-migrate \
         local-up local-down local-build local-logs \
-        dev-up dev-down dev-build dev-logs dev-restart-be dev-restart-ui
+        dev-up dev-down dev-build dev-logs dev-restart-be dev-restart-ui \
+        dev-seed dev-seed-verify
 
 # =============================================================================
 # STAGING COMMANDS
@@ -98,3 +99,16 @@ dev-shell-be:
 
 dev-shell-db:
 	docker exec -it shrota-postgres-dev psql -U shrota -d shrota
+
+dev-seed:
+	docker exec shrota-backend-dev python scripts/seed_data.py
+
+dev-seed-verify:
+	docker exec shrota-postgres-dev psql -U shrota -d shrota -c " \
+		SELECT 'languages' as table_name, count(*) as count FROM languages \
+		UNION ALL SELECT 'genres', count(*) FROM genres \
+		UNION ALL SELECT 'authors', count(*) FROM authors \
+		UNION ALL SELECT 'artists', count(*) FROM artists \
+		UNION ALL SELECT 'publications', count(*) FROM publications \
+		UNION ALL SELECT 'books', count(*) FROM books \
+		UNION ALL SELECT 'chapters', count(*) FROM chapters;"

@@ -83,6 +83,8 @@ export interface AudioBook {
   chapters: AudioChapter[];
   duration: number;
   description: string;
+  genreNames?: string[];
+  languageName?: string;
 }
 
 export interface AudioChapter {

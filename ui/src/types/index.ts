@@ -199,3 +199,94 @@ export interface LoginResponse {
   expires_in: number;
   admin: Admin;
 }
+
+// Content Promotion types
+export interface BookSummary {
+  id: string;
+  title: string;
+}
+
+export interface LanguageSummary {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface GenreSummary {
+  id: string;
+  name: string;
+}
+
+export interface NewRelease {
+  id: string;
+  book_id: string;
+  language_id: string;
+  book: BookSummary;
+  language: LanguageSummary;
+  display_order: number;
+  is_active: boolean;
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewReleaseCreate {
+  book_id: string;
+  language_id: string;
+  display_order?: number;
+  is_active?: boolean;
+  starts_at?: string;
+  expires_at?: string;
+}
+
+export interface FeaturedBook {
+  id: string;
+  book_id: string;
+  language_id: string;
+  book: BookSummary;
+  language: LanguageSummary;
+  display_order: number;
+  is_active: boolean;
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeaturedBookCreate {
+  book_id: string;
+  language_id: string;
+  display_order?: number;
+  is_active?: boolean;
+  starts_at?: string;
+  expires_at?: string;
+}
+
+export interface PromotedBook {
+  id: string;
+  book_id: string;
+  genre_id: string;
+  book: BookSummary;
+  genre: GenreSummary;
+  display_order: number;
+  is_active: boolean;
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromotedBookCreate {
+  book_id: string;
+  genre_id: string;
+  display_order?: number;
+  is_active?: boolean;
+  starts_at?: string;
+  expires_at?: string;
+}
+
+export interface ReorderItem {
+  id: string;
+  display_order: number;
+}

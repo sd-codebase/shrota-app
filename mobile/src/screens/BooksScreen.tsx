@@ -16,11 +16,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
-import { usePlayer } from '../context/PlayerContext';
+import { PreferencesModal } from '../components/PreferencesModal';
 import { useTheme } from '../context/ThemeContext';
 import { fetchAudioBooks } from '../services/api';
+import { hasUserPreferences, getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { AudioBook, RootStackParamList, HomeStackParamList } from '../types';
 import { formatDuration } from '../utils/formatters';
+import { useCurrentBook } from '../stores/playerStore';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeStackParamList>,
@@ -29,12 +31,15 @@ type NavigationProp = CompositeNavigationProp<
 
 export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { currentBook } = usePlayer();
+  const currentBook = useCurrentBook();
   const { colors, isDark } = useTheme();
   const [books, setBooks] = useState<AudioBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [isEditingPreferences, setIsEditingPreferences] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   const loadData = async () => {
     try {
@@ -53,6 +58,36 @@ export function BooksScreen() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Check if user has set preferences and load them
+  useEffect(() => {
+    const checkPreferences = async () => {
+      const hasPrefs = await hasUserPreferences();
+      if (!hasPrefs) {
+        setIsEditingPreferences(false);
+        setShowPreferencesModal(true);
+      } else {
+        const prefs = await getUserPreferences();
+        setPreferences(prefs);
+      }
+    };
+    checkPreferences();
+  }, []);
+
+  const handlePreferencesComplete = async () => {
+    setShowPreferencesModal(false);
+    setIsEditingPreferences(false);
+    // Reload preferences
+    const prefs = await getUserPreferences();
+    setPreferences(prefs);
+    // Optionally reload data with new preferences
+    loadData();
+  };
+
+  const handleOpenPreferences = () => {
+    setIsEditingPreferences(true);
+    setShowPreferencesModal(true);
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -143,6 +178,13 @@ export function BooksScreen() {
           <Ionicons name="headset" size={28} color={colors.brand.orange} />
           <Text style={[styles.headerTitle, { color: colors.text }]}>Shrota</Text>
         </View>
+        <TouchableOpacity
+          style={[styles.settingsButton, { backgroundColor: colors.card }]}
+          onPress={handleOpenPreferences}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="options-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {error ? (
@@ -173,6 +215,18 @@ export function BooksScreen() {
       )}
 
       <MiniPlayer onPress={handleMiniPlayerPress} />
+
+      <PreferencesModal
+        visible={showPreferencesModal}
+        onComplete={handlePreferencesComplete}
+        onClose={() => {
+          setShowPreferencesModal(false);
+          setIsEditingPreferences(false);
+        }}
+        initialGenreIds={preferences?.genreIds || []}
+        initialLanguageIds={preferences?.languageIds || []}
+        isEditing={isEditingPreferences}
+      />
     </SafeAreaView>
   );
 }
@@ -206,6 +260,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     paddingHorizontal: 16,

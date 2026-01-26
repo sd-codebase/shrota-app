@@ -9,14 +9,19 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayer } from '../context/PlayerContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePlayerStore } from '../stores/playerStore';
+import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 
 interface MiniPlayerProps {
   onPress: () => void;
 }
 
 export function MiniPlayer({ onPress }: MiniPlayerProps) {
-  const { currentBook, currentChapterIndex, isPlaying, togglePlayPause, progress } = usePlayer();
+  const { togglePlayPause } = usePlayer();
   const { colors } = useTheme();
+
+  // Use Zustand store for real-time state
+  const { currentBook, currentChapterIndex, isPlaying, progress } = usePlayerStore();
 
   if (!currentBook) {
     return null;
@@ -46,7 +51,7 @@ export function MiniPlayer({ onPress }: MiniPlayerProps) {
       </View>
       <View style={styles.content}>
         <Image
-          source={{ uri: currentBook.thumbnail }}
+          source={{ uri: currentBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
           style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
           priority="high"
           cachePolicy="memory-disk"

@@ -71,3 +71,14 @@
 .no-audio {
   color: #999;
 }
+
+/* Fix z-index issue with Ant Design Table empty state and drawer */
+.ant-table-wrapper,
+.ant-table,
+.ant-table-container,
+.ant-table-content,
+.ant-table-placeholder,
+.ant-empty {
+  position: relative;
+  z-index: 0 !important;
+}

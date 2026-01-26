@@ -37,3 +37,16 @@ from schemas.book import (
     ChapterUpdate,
     ChapterResponse,
 )
+from schemas.content_promotion import (
+    NewReleaseCreate,
+    NewReleaseUpdate,
+    NewReleaseResponse,
+    FeaturedBookCreate,
+    FeaturedBookUpdate,
+    FeaturedBookResponse,
+    PromotedBookCreate,
+    PromotedBookUpdate,
+    PromotedBookResponse,
+    ReorderRequest,
+    ReorderItem,
+)

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { AudioBook } from '../types';
+import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.4;
@@ -27,7 +28,7 @@ export function AudioBookCard({ book, onPress }: AudioBookCardProps) {
       activeOpacity={0.8}
     >
       <Image
-        source={{ uri: book.thumbnail }}
+        source={{ uri: book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
         style={styles.thumbnail}
         priority="high"
         cachePolicy="memory-disk"

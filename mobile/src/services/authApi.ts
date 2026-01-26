@@ -10,6 +10,20 @@ import {
 
 const AUTH_BASE_URL = `${API_URL}/v1/auth`;
 
+async function parseErrorResponse(response: Response): Promise<string> {
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      const error = await response.json();
+      return error.detail || error.message || `Request failed (${response.status})`;
+    } catch {
+      return `Request failed (${response.status})`;
+    }
+  }
+  const text = await response.text();
+  return text || `Request failed (${response.status})`;
+}
+
 /**
  * Register a new user
  */
@@ -23,8 +37,8 @@ export async function registerUser(payload: RegisterPayload): Promise<User> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Registration failed');
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -43,8 +57,8 @@ export async function sendOTP(payload: SendOTPPayload): Promise<SendOTPResponse>
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to send OTP');
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -63,8 +77,8 @@ export async function verifyOTP(payload: VerifyOTPPayload): Promise<AuthTokenRes
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'OTP verification failed');
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -83,8 +97,8 @@ export async function getCurrentUser(token: string): Promise<User> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get user info');
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
   }
 
   return response.json();

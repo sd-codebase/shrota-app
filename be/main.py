@@ -16,6 +16,7 @@ from routes import (
     user_auth_router,
     search_router,
     user_activity_router,
+    content_promotion_router,
 )
 
 
@@ -48,6 +49,7 @@ app.include_router(artists_router)
 app.include_router(publications_router)
 app.include_router(books_router)
 app.include_router(files_router)
+app.include_router(content_promotion_router)
 
 
 @app.get("/")

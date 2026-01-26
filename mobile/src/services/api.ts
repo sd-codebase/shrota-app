@@ -4,6 +4,7 @@ import {
   Author,
   Genre,
   Artist,
+  Language,
   AudioBook,
   AudioChapter,
   SearchResult,
@@ -37,6 +38,15 @@ export async function fetchGenres(): Promise<Genre[]> {
   return response.json();
 }
 
+// Fetch all languages
+export async function fetchLanguages(): Promise<Language[]> {
+  const response = await fetch(`${API_URL}/languages`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch languages');
+  }
+  return response.json();
+}
+
 // Fetch all artists (narrators)
 export async function fetchArtists(): Promise<Artist[]> {
   const response = await fetch(`${API_URL}/artists`);
@@ -51,6 +61,8 @@ export function transformBookToAudioBook(
   book: Book,
   authors: Author[],
   artists: Artist[],
+  genres?: Genre[],
+  languages?: Language[],
 ): AudioBook {
   const authorNames = (book.author_ids || [])
     .map((id) => authors.find((a) => a.id === id)?.name)
@@ -74,6 +86,18 @@ export function transformBookToAudioBook(
     isPublished: ch.is_published,
   }));
 
+  // Get genre names
+  const genreNames = genres
+    ? (book.genre_ids || [])
+        .map((id) => genres.find((g) => g.id === id)?.name)
+        .filter(Boolean) as string[]
+    : undefined;
+
+  // Get language name
+  const languageName = languages && book.language_id
+    ? languages.find((l) => l.id === book.language_id)?.name
+    : undefined;
+
   return {
     id: book.id,
     title: book.title,
@@ -83,6 +107,8 @@ export function transformBookToAudioBook(
     chapters: audioChapters,
     duration: book.total_duration || 0,
     description: book.information,
+    genreNames,
+    languageName,
   };
 }
 
@@ -91,15 +117,17 @@ export async function fetchAudioBooks(): Promise<{
   all: AudioBook[];
   recent: AudioBook[];
 }> {
-  const [books, authors, artists] = await Promise.all([
+  const [books, authors, artists, genres, languages] = await Promise.all([
     fetchBooks(),
     fetchAuthors(),
     fetchArtists(),
+    fetchGenres(),
+    fetchLanguages(),
   ]);
 
   const audioBooks = books
     .filter((book) => book.chapters.some((ch) => ch.is_published && ch.audio_url))
-    .map((book) => transformBookToAudioBook(book, authors, artists));
+    .map((book) => transformBookToAudioBook(book, authors, artists, genres, languages));
 
   const recentBooks = audioBooks.slice(0, 10);
 

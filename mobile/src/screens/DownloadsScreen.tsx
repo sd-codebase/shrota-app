@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes } from '../services/downloadService';
 import { getThumbnailUrl } from '../config';
+import { useCurrentBook, useIsPlaying, usePlayerStore } from '../stores/playerStore';
 import {
   getContinueListening,
   getCompletedBooks,
@@ -48,16 +49,20 @@ const TABS: Tab[] = [
   { key: 'continue', label: 'Continue', icon: 'play-circle-outline', iconFocused: 'play-circle' },
   { key: 'downloaded', label: 'Downloaded', icon: 'download-outline', iconFocused: 'download' },
   { key: 'listened', label: 'Listened', icon: 'checkmark-circle-outline', iconFocused: 'checkmark-circle' },
-  { key: 'liked', label: 'Liked', icon: 'heart-outline', iconFocused: 'heart' },
+  { key: 'liked', label: 'Favourites', icon: 'heart-outline', iconFocused: 'heart' },
 ];
 
 export function DownloadsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { playBook, currentBook } = usePlayer();
+  const { playBook, togglePlayPause } = usePlayer();
   const { downloads, refreshDownloads, deleteDownload } = useDownload();
   const { colors, isDark } = useTheme();
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('continue');
+
+  // Use Zustand store for current playing state
+  const currentBook = useCurrentBook();
+  const isPlaying = useIsPlaying();
 
   // Data states
   const [continueBooks, setContinueBooks] = useState<BookProgress[]>([]);
@@ -159,51 +164,132 @@ export function DownloadsScreen() {
     }
   };
 
-  const renderDownloadedItem = ({ item }: { item: DownloadedBook }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.card }]}
-      onPress={() => handlePlayDownloaded(item)}
-      activeOpacity={0.8}
-    >
-      <Image
-        source={{ uri: item.thumbnail }}
-        style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
-        priority="high"
-        cachePolicy="memory-disk"
-        contentFit="cover"
-      />
-      <View style={styles.itemInfo}>
-        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.author}
-        </Text>
-        <View style={styles.itemMeta}>
-          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
-            {formatDuration(item.duration)}
-          </Text>
-          <Text style={[styles.itemSize, { color: colors.textSecondary }]}>
-            {formatBytes(item.totalSize)}
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDelete(item)}
-      >
-        <Ionicons name="trash-outline" size={22} color={colors.brand.red} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
+  const renderDownloadedItem = ({ item }: { item: DownloadedBook }) => {
+    const isThisBookPlaying = currentBook?.id === item.id && isPlaying;
 
-  const renderProgressItem = ({ item }: { item: BookProgress }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.card }]}
-      onPress={() => handlePlayProgress(item)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.thumbnailContainer}>
+    const handlePress = async () => {
+      if (isThisBookPlaying) {
+        await togglePlayPause();
+      } else {
+        await handlePlayDownloaded(item);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.item, { backgroundColor: colors.card }]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
+        <Image
+          source={{ uri: item.thumbnail }}
+          style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
+          priority="high"
+          cachePolicy="memory-disk"
+          contentFit="cover"
+        />
+        <View style={styles.itemInfo}>
+          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
+            {item.author}
+          </Text>
+          <View style={styles.itemMeta}>
+            <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
+              {formatDuration(item.duration)}
+            </Text>
+            <Text style={[styles.itemSize, { color: colors.textSecondary }]}>
+              {formatBytes(item.totalSize)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.itemActions}>
+          <Ionicons
+            name={isThisBookPlaying ? 'pause-circle' : 'play-circle'}
+            size={32}
+            color={colors.brand.orange}
+          />
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item)}
+          >
+            <Ionicons name="trash-outline" size={22} color={colors.brand.red} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderProgressItem = ({ item }: { item: BookProgress }) => {
+    const isThisBookPlaying = currentBook?.id === item.book_id && isPlaying;
+
+    const handlePress = () => {
+      if (isThisBookPlaying) {
+        togglePlayPause();
+      } else {
+        handlePlayProgress(item);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.item, { backgroundColor: colors.card }]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
+        <View style={styles.thumbnailContainer}>
+          <Image
+            source={{ uri: getThumbnailUrl(item.book_thumbnail || '') }}
+            style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
+            priority="high"
+            cachePolicy="memory-disk"
+            contentFit="cover"
+          />
+          {/* Progress overlay */}
+          <View style={[styles.progressOverlay, { backgroundColor: colors.backgroundSecondary }]}>
+            <View
+              style={[
+                styles.progressFill,
+                { backgroundColor: colors.brand.orange, width: `${item.progress_percentage}%` },
+              ]}
+            />
+          </View>
+        </View>
+        <View style={styles.itemInfo}>
+          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
+            {item.book_title}
+          </Text>
+          <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
+            {item.book_author_names?.join(', ') || 'Unknown Author'}
+          </Text>
+          <View style={styles.itemMeta}>
+            <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
+              Ch. {item.current_chapter_index + 1}
+            </Text>
+            <Text style={[styles.itemSize, { color: colors.brand.orange }]}>
+              {Math.round(item.progress_percentage)}%
+            </Text>
+          </View>
+        </View>
+        <Ionicons
+          name={isThisBookPlaying ? 'pause-circle' : 'play-circle'}
+          size={32}
+          color={colors.brand.orange}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderLikedItem = ({ item }: { item: LikedBook }) => {
+    const isThisBookPlaying = currentBook?.id === item.book_id && isPlaying;
+
+    return (
+      <TouchableOpacity
+        style={[styles.item, { backgroundColor: colors.card }]}
+        onPress={() => handlePlayLiked(item)}
+        activeOpacity={0.8}
+      >
         <Image
           source={{ uri: getThumbnailUrl(item.book_thumbnail || '') }}
           style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
@@ -211,65 +297,28 @@ export function DownloadsScreen() {
           cachePolicy="memory-disk"
           contentFit="cover"
         />
-        {/* Progress overlay */}
-        <View style={[styles.progressOverlay, { backgroundColor: colors.backgroundSecondary }]}>
-          <View
-            style={[
-              styles.progressFill,
-              { backgroundColor: colors.brand.orange, width: `${item.progress_percentage}%` },
-            ]}
-          />
-        </View>
-      </View>
-      <View style={styles.itemInfo}>
-        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.book_title}
-        </Text>
-        <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.book_author_names?.join(', ') || 'Unknown Author'}
-        </Text>
-        <View style={styles.itemMeta}>
-          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
-            Ch. {item.current_chapter_index + 1}
+        <View style={styles.itemInfo}>
+          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
+            {item.book_title}
           </Text>
-          <Text style={[styles.itemSize, { color: colors.brand.orange }]}>
-            {Math.round(item.progress_percentage)}%
+          <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
+            {item.book_author_names?.join(', ') || 'Unknown Author'}
           </Text>
+          <View style={styles.itemMeta}>
+            <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
+              {formatDuration(item.book_duration || 0)}
+            </Text>
+          </View>
         </View>
-      </View>
-      <Ionicons name="play-circle" size={32} color={colors.brand.orange} />
-    </TouchableOpacity>
-  );
-
-  const renderLikedItem = ({ item }: { item: LikedBook }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.card }]}
-      onPress={() => handlePlayLiked(item)}
-      activeOpacity={0.8}
-    >
-      <Image
-        source={{ uri: getThumbnailUrl(item.book_thumbnail || '') }}
-        style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
-        priority="high"
-        cachePolicy="memory-disk"
-        contentFit="cover"
-      />
-      <View style={styles.itemInfo}>
-        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.book_title}
-        </Text>
-        <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.book_author_names?.join(', ') || 'Unknown Author'}
-        </Text>
-        <View style={styles.itemMeta}>
-          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
-            {formatDuration(item.book_duration || 0)}
-          </Text>
+        <View style={styles.itemActions}>
+          {isThisBookPlaying && (
+            <Ionicons name="pause-circle" size={28} color={colors.brand.orange} style={{ marginRight: 8 }} />
+          )}
+          <Ionicons name="heart" size={24} color={colors.brand.red} />
         </View>
-      </View>
-      <Ionicons name="heart" size={24} color={colors.brand.red} />
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = (icon: string, title: string, description: string) => (
     <View style={styles.emptyContainer}>
@@ -382,8 +431,8 @@ export function DownloadsScreen() {
             ListEmptyComponent={() =>
               renderEmptyState(
                 'heart-outline',
-                'Liked',
-                'Tap the heart icon on any audiobook to save it here.'
+                'No Favourites',
+                'Tap the heart icon on any audiobook to add it to your favourites.'
               )
             }
             showsVerticalScrollIndicator={false}
@@ -555,6 +604,10 @@ const styles = StyleSheet.create({
   },
   itemSize: {
     fontSize: 12,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   deleteButton: {
     justifyContent: 'center',

@@ -332,7 +332,7 @@ function Books() {
   const handleStartAudioUpload = async () => {
     if (!selectedBook || fileList.length === 0 || !fileList[0].originFileObj) return;
 
-    const order = chapterForm.getFieldValue('order') ?? 0;
+    const order = chapterForm.getFieldValue('order') ?? 1;
 
     setIsUploading(true);
     setUploadProgress(0);

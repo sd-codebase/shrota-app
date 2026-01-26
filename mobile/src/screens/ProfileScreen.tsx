@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,17 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
+import { PreferencesModal } from '../components/PreferencesModal';
 import { usePlayer } from '../context/PlayerContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { RootStackParamList, ProfileStackParamList } from '../types';
+import { RootStackParamList, ProfileStackParamList, Genre, Language } from '../types';
+import { getUserPreferences, UserPreferences } from '../services/preferencesService';
+import { fetchGenres, fetchLanguages } from '../services/api';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -29,6 +32,54 @@ export function ProfileScreen() {
   const { currentBook } = usePlayer();
   const { colors, isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [preferencesInitialStep, setPreferencesInitialStep] = useState<'genres' | 'languages'>('genres');
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      const [prefs, genresData, languagesData] = await Promise.all([
+        getUserPreferences(),
+        fetchGenres(),
+        fetchLanguages(),
+      ]);
+      setPreferences(prefs);
+      setGenres(genresData);
+      setLanguages(languagesData);
+    } catch (error) {
+      console.log('Failed to load preferences:', error);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPreferences();
+    }, [loadPreferences])
+  );
+
+  const getLanguageNames = (languageIds: string[]) => {
+    if (!languageIds || languageIds.length === 0) return 'Not set';
+    return languageIds
+      .map(id => languages.find(l => l.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  const getGenreNames = (genreIds: string[]) => {
+    if (!genreIds || genreIds.length === 0) return 'Not set';
+    return genreIds
+      .map(id => genres.find(g => g.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  const handlePreferencesComplete = () => {
+    setShowPreferencesModal(false);
+    loadPreferences();
+  };
 
   const handleMiniPlayerPress = () => {
     if (currentBook) {
@@ -133,6 +184,71 @@ export function ProfileScreen() {
           </View>
         </View>
 
+        {/* Preferences Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          PREFERENCES
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={styles.preferenceRow}
+            onPress={() => {
+              setPreferencesInitialStep('languages');
+              setShowPreferencesModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <View style={{ width: 20, height: 20, position: 'relative' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.brand.orange, position: 'absolute', top: -1, left: 0 }}>अ</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.brand.orange, position: 'absolute', bottom: -1, right: 0 }}>A</Text>
+                </View>
+              </View>
+              <View style={styles.preferenceInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  Languages
+                </Text>
+                <Text
+                  style={[styles.settingDescription, { color: colors.textSecondary }]}
+                  numberOfLines={2}
+                >
+                  {preferences ? getLanguageNames(preferences.languageIds) : 'Not set'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.preferenceRow}
+            onPress={() => {
+              setPreferencesInitialStep('genres');
+              setShowPreferencesModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="library-outline" size={20} color={colors.brand.blue} />
+              </View>
+              <View style={styles.preferenceInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  Favorite Genres
+                </Text>
+                <Text
+                  style={[styles.settingDescription, { color: colors.textSecondary }]}
+                  numberOfLines={2}
+                >
+                  {preferences ? getGenreNames(preferences.genreIds) : 'Not set'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           APPEARANCE
@@ -198,6 +314,16 @@ export function ProfileScreen() {
       </ScrollView>
 
       <MiniPlayer onPress={handleMiniPlayerPress} />
+
+      <PreferencesModal
+        visible={showPreferencesModal}
+        onComplete={handlePreferencesComplete}
+        onClose={() => setShowPreferencesModal(false)}
+        initialGenreIds={preferences?.genreIds || []}
+        initialLanguageIds={preferences?.languageIds || []}
+        isEditing={true}
+        initialStep={preferencesInitialStep}
+      />
     </SafeAreaView>
   );
 }
@@ -287,6 +413,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   settingIcon: {
     width: 40,
@@ -302,6 +429,19 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 13,
     marginTop: 2,
+  },
+  preferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  preferenceInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
   },
   logoutButton: {
     flexDirection: 'row',

@@ -19,6 +19,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { useTheme } from '../context/ThemeContext';
 import { searchBooks, transformSearchResultToAudioBook } from '../services/api';
 import { getThumbnailUrl } from '../config';
+import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 import {
   AudioBook,
   RootStackParamList,
@@ -147,7 +148,7 @@ export function SearchScreen() {
       activeOpacity={0.8}
     >
       <Image
-        source={{ uri: getThumbnailUrl(book.thumbnail || '') }}
+        source={{ uri: book.thumbnail ? getThumbnailUrl(book.thumbnail) : DEFAULT_AUDIOBOOK_ARTWORK }}
         style={[styles.bookThumbnail, { backgroundColor: colors.backgroundSecondary }]}
         contentFit="cover"
       />
