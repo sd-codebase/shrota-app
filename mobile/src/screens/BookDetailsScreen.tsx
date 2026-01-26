@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   StatusBar,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { DefaultBookCover } from '../components/DefaultBookCover';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,10 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { useTheme } from '../context/ThemeContext';
-import { AudioBook, AudioChapter, RootStackParamList, HomeStackParamList, BookProgress } from '../types';
+import { AudioBook, AudioChapter, RootStackParamList, HomeStackParamList, BookProgress, Genre, Language, Publication } from '../types';
 import { formatDuration } from '../utils/formatters';
 import { getBookProgress } from '../services/userActivityApi';
 import { getBookChapterProgress, ChapterProgress } from '../services/chapterProgressService';
+import { fetchGenres, fetchLanguages, fetchPublications, fetchBookById } from '../services/api';
 import { useIsBookPlaying, useCurrentBook, useCurrentChapterIndex, useIsPlaying, usePlaybackProgress } from '../stores/playerStore';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 
@@ -32,12 +35,24 @@ const COVER_SIZE = width * 0.55;
 export function BookDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BookDetailsRouteProp>();
-  const { book } = route.params;
+  const { book: initialBook } = route.params;
   const { colors, isDark } = useTheme();
 
   const { playBook, togglePlayPause } = usePlayer();
   const [savedProgress, setSavedProgress] = useState<BookProgress | null>(null);
   const [chapterProgressMap, setChapterProgressMap] = useState<Map<number, ChapterProgress>>(new Map());
+
+  // Full book data (fetched if initial book has no chapters)
+  const [fullBook, setFullBook] = useState<AudioBook | null>(null);
+  const [loadingBook, setLoadingBook] = useState(false);
+
+  // Use fullBook if available, otherwise use initialBook
+  const book = fullBook || initialBook;
+
+  // Lookup tables for metadata enrichment
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
 
   // Use Zustand store for current playing state
   const currentBook = useCurrentBook();
@@ -50,8 +65,69 @@ export function BookDetailsScreen() {
   const publishedChapters = sortedChapters.filter((c) => c.isPublished);
   const totalChapters = sortedChapters.length;
 
+  // Fetch full book data if initial book has no chapters
+  useEffect(() => {
+    const fetchFullBook = async () => {
+      if (initialBook.chapters.length === 0) {
+        setLoadingBook(true);
+        try {
+          const bookData = await fetchBookById(initialBook.id);
+          setFullBook(bookData);
+        } catch (error) {
+          console.error('Failed to fetch full book data:', error);
+        } finally {
+          setLoadingBook(false);
+        }
+      }
+    };
+    fetchFullBook();
+  }, [initialBook.id, initialBook.chapters.length]);
+
   // Check if book has progress for "Resume" button
   const hasProgress = savedProgress !== null && !savedProgress.is_completed && savedProgress.progress_percentage > 0;
+
+  // Enrich book with resolved names from lookup tables
+  const enrichedBook = useMemo(() => {
+    const result = { ...book };
+
+    // Resolve genre names if not already present
+    if (!result.genreNames?.length && result.genre_ids?.length && genres.length > 0) {
+      result.genreNames = result.genre_ids
+        .map(id => genres.find(g => g.id === id)?.name)
+        .filter(Boolean) as string[];
+    }
+
+    // Resolve language name if not already present
+    if (!result.languageName && result.language_id && languages.length > 0) {
+      result.languageName = languages.find(l => l.id === result.language_id)?.name;
+    }
+
+    // Resolve publisher name if not already present
+    if (!result.publisher_name && result.publisher_id && publications.length > 0) {
+      result.publisher_name = publications.find(p => p.id === result.publisher_id)?.name;
+    }
+
+    return result;
+  }, [book, genres, languages, publications]);
+
+  // Fetch lookup tables for metadata enrichment
+  useEffect(() => {
+    const loadLookupTables = async () => {
+      try {
+        const [genresData, languagesData, publicationsData] = await Promise.all([
+          fetchGenres().catch(() => []),
+          fetchLanguages().catch(() => []),
+          fetchPublications().catch(() => []),
+        ]);
+        setGenres(genresData);
+        setLanguages(languagesData);
+        setPublications(publicationsData);
+      } catch (error) {
+        console.log('Could not fetch lookup tables:', error);
+      }
+    };
+    loadLookupTables();
+  }, []);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -143,6 +219,10 @@ export function BookDetailsScreen() {
 
     const hasChapterProgress = chapterProgressPercent > 0;
 
+    // Use chapter thumbnail, or fall back to book thumbnail
+    const chapterThumbnail = chapter.thumbnail || book.thumbnail;
+    const hasThumbnail = chapterThumbnail && chapterThumbnail.length > 0;
+
     return (
       <TouchableOpacity
         key={chapter.id}
@@ -155,23 +235,15 @@ export function BookDetailsScreen() {
         disabled={!isPlayable}
         activeOpacity={0.7}
       >
-        <View
-          style={[
-            styles.chapterNumber,
-            { backgroundColor: colors.backgroundSecondary },
-            isPlayable && { backgroundColor: colors.brand.orange },
-          ]}
-        >
-          <Text
-            style={[
-              styles.chapterNumberText,
-              { color: colors.textSecondary },
-              isPlayable && styles.chapterNumberTextActive,
-            ]}
-          >
-            {index + 1}
-          </Text>
-        </View>
+        {hasThumbnail ? (
+          <Image
+            source={{ uri: chapterThumbnail }}
+            style={[styles.chapterThumbnail, { backgroundColor: colors.backgroundSecondary }]}
+            contentFit="cover"
+          />
+        ) : (
+          <DefaultBookCover title={book.title} style={styles.chapterThumbnail} />
+        )}
         <View style={styles.chapterInfo}>
           <Text
             style={[
@@ -181,7 +253,7 @@ export function BookDetailsScreen() {
             ]}
             numberOfLines={2}
           >
-            {chapter.title}
+            {chapter.order}. {chapter.title}
           </Text>
           <View style={styles.chapterMeta}>
             {chapter.duration > 0 && (
@@ -225,6 +297,27 @@ export function BookDetailsScreen() {
     );
   };
 
+  // Show loading indicator while fetching full book data
+  if (loadingBook) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.background}
+        />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.brand.orange} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading book details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar
@@ -262,43 +355,126 @@ export function BookDetailsScreen() {
         <View style={styles.bookInfo}>
           <Text style={[styles.title, { color: colors.text }]}>{book.title}</Text>
 
-          {/* Genre and Language chips */}
-          {(book.genreNames?.length || book.languageName) && (
+          {/* Authors row - icon + chips */}
+          <View style={styles.metadataRow}>
+            <Ionicons name="create-outline" size={18} color={colors.brand.orange} />
             <View style={styles.chipsContainer}>
-              {book.languageName && (
-                <View style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}>
-                  <View style={{ width: 16, height: 16, position: 'relative' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.brand.orange, position: 'absolute', top: -2, left: 0 }}>अ</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.brand.orange, position: 'absolute', bottom: -2, right: 0 }}>A</Text>
-                  </View>
+              {enrichedBook.author.split(', ').map((authorName, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}
+                  onPress={() => {
+                    if (enrichedBook.author_ids?.[index]) {
+                      navigation.navigate('AuthorDetails', {
+                        authorId: enrichedBook.author_ids[index],
+                        authorName: authorName.trim(),
+                      });
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                    {book.languageName}
+                    {authorName.trim()}
                   </Text>
-                </View>
-              )}
-              {book.genreNames?.map((genre, index) => (
-                <View key={index} style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}>
-                  <Ionicons name="library-outline" size={14} color={colors.brand.blue} />
-                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                    {genre}
-                  </Text>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
-          )}
-
-          <View style={styles.authorRow}>
-            <Ionicons name="create-outline" size={18} color={colors.brand.orange} />
-            <Text style={[styles.author, { color: colors.textSecondary }]}>{book.author}</Text>
           </View>
-          {book.narrator && (
-            <View style={styles.narratorRow}>
+
+          {/* Artists row - icon + chips */}
+          {enrichedBook.narrator && (
+            <View style={styles.metadataRow}>
               <Ionicons name="mic-outline" size={18} color={colors.brand.orange} />
-              <Text style={[styles.narrator, { color: colors.textSecondary }]}>{book.narrator}</Text>
+              <View style={styles.chipsContainer}>
+                {enrichedBook.narrator.split(', ').map((narratorName, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}
+                    onPress={() => {
+                      if (enrichedBook.artist_ids?.[index]) {
+                        navigation.navigate('ArtistDetails', {
+                          artistId: enrichedBook.artist_ids[index],
+                          artistName: narratorName.trim(),
+                        });
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                      {narratorName.trim()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
 
+          {/* Publication row - icon + chip */}
+          {enrichedBook.publisher_name && (
+            <View style={styles.metadataRow}>
+              <Ionicons name="business-outline" size={18} color={colors.brand.orange} />
+              <View style={styles.chipsContainer}>
+                <TouchableOpacity
+                  style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}
+                  onPress={() => {
+                    if (enrichedBook.publisher_id) {
+                      navigation.navigate('PublicationDetails', {
+                        publicationId: enrichedBook.publisher_id,
+                        publicationName: enrichedBook.publisher_name!,
+                      });
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                    {enrichedBook.publisher_name}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Genres row - icon + chips */}
+          {enrichedBook.genreNames && enrichedBook.genreNames.length > 0 && (
+            <View style={styles.metadataRow}>
+              <Ionicons name="library-outline" size={18} color={colors.brand.orange} />
+              <View style={styles.chipsContainer}>
+                {enrichedBook.genreNames.map((genre, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}
+                    onPress={() => {
+                      if (enrichedBook.genre_ids?.[index]) {
+                        navigation.navigate('GenreDetails', {
+                          genreId: enrichedBook.genre_ids[index],
+                          genreName: genre,
+                        });
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                      {genre}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Language, Duration, Chapters row */}
           <View style={styles.statsRow}>
+            {enrichedBook.languageName && (
+              <View style={styles.statItem}>
+                <View style={{ width: 16, height: 16, position: 'relative' }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.brand.orange, position: 'absolute', top: -2, left: 0 }}>अ</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.brand.orange, position: 'absolute', bottom: -2, right: 0 }}>A</Text>
+                </View>
+                <Text style={[styles.statText, { color: colors.textSecondary }]}>
+                  {enrichedBook.languageName}
+                </Text>
+              </View>
+            )}
             <View style={styles.statItem}>
               <Ionicons name="time-outline" size={18} color={colors.brand.orange} />
               <Text style={[styles.statText, { color: colors.textSecondary }]}>
@@ -358,6 +534,15 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
   scrollView: {
     flex: 1,
   },
@@ -384,12 +569,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
   },
   chip: {
     flexDirection: 'row',
@@ -403,31 +594,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    gap: 6,
-  },
-  author: {
-    fontSize: 16,
-  },
-  narratorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    gap: 6,
-  },
-  narrator: {
-    fontSize: 14,
-  },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
-    marginTop: 16,
+    gap: 20,
+    marginTop: 12,
   },
   statItem: {
     flexDirection: 'row',
@@ -477,20 +648,11 @@ const styles = StyleSheet.create({
   chapterItemDisabled: {
     opacity: 0.6,
   },
-  chapterNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+  chapterThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
     marginRight: 12,
-  },
-  chapterNumberText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  chapterNumberTextActive: {
-    color: '#fff',
   },
   chapterInfo: {
     flex: 1,

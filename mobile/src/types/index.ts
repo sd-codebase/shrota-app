@@ -48,6 +48,7 @@ export interface Chapter {
   duration?: number;
   file_size?: number;
   is_published: boolean;
+  thumbnail?: string;
 }
 
 export interface Book {
@@ -85,6 +86,13 @@ export interface AudioBook {
   description: string;
   genreNames?: string[];
   languageName?: string;
+  // IDs for navigation to entity detail screens
+  genre_ids?: string[];
+  author_ids?: string[];
+  artist_ids?: string[];
+  publisher_id?: string;
+  publisher_name?: string;
+  language_id?: string;
 }
 
 export interface AudioChapter {
@@ -95,6 +103,7 @@ export interface AudioChapter {
   audioUrl: string;
   duration: number;
   isPublished: boolean;
+  thumbnail?: string;
 }
 
 export interface DownloadedChapter {
@@ -299,22 +308,106 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+// Section types for home screen carousels
+export type SectionType = 'new-releases' | 'featured' | 'continue-listening' | 'genre' | 'because-you-listened';
+
 // Nested stack param lists (each tab has its own stack)
 export type HomeStackParamList = {
   HomeMain: undefined;
   BookDetails: { book: AudioBook };
+  SectionList: {
+    sectionType: SectionType;
+    title: string;
+    languageId?: string;
+    genreId?: string;
+    sourceBookId?: string;
+  };
+  Explore: {
+    authorId?: string;
+    artistId?: string;
+    publisherId?: string;
+    genreId?: string;
+    title?: string;
+  } | undefined;
+  AuthorDetails: { authorId: string; authorName: string };
+  ArtistDetails: { artistId: string; artistName: string };
+  PublicationDetails: { publicationId: string; publicationName: string };
+  GenreDetails: { genreId: string; genreName: string };
 };
 
 export type BookshelfStackParamList = {
   BookshelfMain: undefined;
   BookDetails: { book: AudioBook };
+  Explore: {
+    authorId?: string;
+    artistId?: string;
+    publisherId?: string;
+    genreId?: string;
+    title?: string;
+  } | undefined;
+  AuthorDetails: { authorId: string; authorName: string };
+  ArtistDetails: { artistId: string; artistName: string };
+  PublicationDetails: { publicationId: string; publicationName: string };
+  GenreDetails: { genreId: string; genreName: string };
 };
 
 export type SearchStackParamList = {
   SearchMain: undefined;
   BookDetails: { book: AudioBook };
+  Explore: {
+    authorId?: string;
+    artistId?: string;
+    publisherId?: string;
+    genreId?: string;
+    title?: string;
+  } | undefined;
+  AuthorDetails: { authorId: string; authorName: string };
+  ArtistDetails: { artistId: string; artistName: string };
+  PublicationDetails: { publicationId: string; publicationName: string };
+  GenreDetails: { genreId: string; genreName: string };
 };
 
 export type ProfileStackParamList = {
   ProfileMain: undefined;
 };
+
+// Entity detail response types
+export interface AuthorDetailResponse {
+  id: string;
+  name: string;
+  bio?: string;
+  photo?: string;
+  social_media?: SocialMedia;
+}
+
+export interface ArtistDetailResponse {
+  id: string;
+  name: string;
+  bio?: string;
+  photo?: string;
+  social_media?: SocialMedia;
+}
+
+export interface PublicationDetailResponse {
+  id: string;
+  name: string;
+  description?: string;
+  photo?: string;
+}
+
+export interface GenreDetailResponse {
+  id: string;
+  name: string;
+  description?: string;
+  thumbnail?: string;
+}
+
+// Explore feature types
+export interface ExploreFilters {
+  search?: string;
+  genreIds?: string[];
+  languageIds?: string[];
+  authorIds?: string[];
+  artistIds?: string[];
+  publisherIds?: string[];
+}

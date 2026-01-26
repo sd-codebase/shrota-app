@@ -1,39 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
   ActivityIndicator,
   RefreshControl,
+  FlatList,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
+import { Carousel } from '../components/Carousel';
 import { PreferencesModal } from '../components/PreferencesModal';
+import { ExploreCard } from '../components/ExploreCard';
+import { StandardBookCard } from '../components/cards';
 import { useTheme } from '../context/ThemeContext';
-import { fetchAudioBooks } from '../services/api';
+import {
+  fetchNewReleases,
+  fetchFeaturedBooks,
+  fetchBooksByGenre,
+  fetchGenres,
+  fetchBecauseYouListenedTo,
+} from '../services/api';
+import { getContinueListening, getCompletedBooks } from '../services/userActivityApi';
 import { hasUserPreferences, getUserPreferences, UserPreferences } from '../services/preferencesService';
-import { AudioBook, RootStackParamList, HomeStackParamList } from '../types';
-import { formatDuration } from '../utils/formatters';
+import { AudioBook, BookProgress, RootStackParamList, HomeStackParamList, Genre, SectionType } from '../types';
 import { useCurrentBook } from '../stores/playerStore';
+import { getThumbnailUrl } from '../config';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeStackParamList>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+interface GenreSection {
+  genre: Genre;
+  books: AudioBook[];
+}
+
+interface BecauseYouListenedSection {
+  completedBook: BookProgress;
+  recommendations: AudioBook[];
+}
+
 export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
   const currentBook = useCurrentBook();
   const { colors, isDark } = useTheme();
-  const [books, setBooks] = useState<AudioBook[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,34 +61,151 @@ export function BooksScreen() {
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
-  const loadData = async () => {
+  // Section data
+  const [newReleases, setNewReleases] = useState<AudioBook[]>([]);
+  const [featured, setFeatured] = useState<AudioBook[]>([]);
+  const [continueListening, setContinueListening] = useState<AudioBook[]>([]);
+  const [progressData, setProgressData] = useState<BookProgress[]>([]);
+  const [genreSections, setGenreSections] = useState<GenreSection[]>([]);
+  const [becauseYouListenedSections, setBecauseYouListenedSections] = useState<BecauseYouListenedSection[]>([]);
+
+  const loadSectionData = useCallback(async (prefs: UserPreferences | null) => {
+    if (!prefs || prefs.languageIds.length === 0) {
+      return;
+    }
+
     try {
       setError(null);
-      const data = await fetchAudioBooks();
-      setBooks(data.all);
+      const languageId = prefs.languageIds[0]; // Use primary language
+
+      // Fetch all data in parallel
+      const [newReleasesData, featuredData, allGenres] = await Promise.all([
+        fetchNewReleases(languageId).catch(() => []),
+        fetchFeaturedBooks(languageId).catch(() => []),
+        fetchGenres().catch(() => []),
+      ]);
+
+      setNewReleases(newReleasesData);
+      setFeatured(featuredData);
+
+      // Fetch continue listening and completed books (requires auth)
+      let completedBooks: BookProgress[] = [];
+      let inProgressBooks: BookProgress[] = [];
+      try {
+        const progress = await getContinueListening();
+        setProgressData(progress);
+        inProgressBooks = progress.filter((p) => !p.is_completed);
+        // Transform progress to AudioBook format for books not yet completed
+        const continueBooks = inProgressBooks
+          .slice(0, 10)
+          .map((p) => ({
+            id: p.book_id,
+            title: p.book_title || 'Unknown Book',
+            author: p.book_author_names?.join(', ') || 'Unknown Author',
+            thumbnail: p.book_thumbnail ? getThumbnailUrl(p.book_thumbnail) : '',
+            chapters: [],
+            duration: p.book_duration || 0,
+            description: '',
+          }));
+        setContinueListening(continueBooks);
+
+        // Get completed books for "Because You Listened" section
+        completedBooks = await getCompletedBooks();
+      } catch {
+        setContinueListening([]);
+        setProgressData([]);
+      }
+
+      // Fetch "Because You Listened" sections (max 3 books)
+      // Use completed books first, fallback to in-progress books if none completed
+      const sourceBooks = completedBooks.length > 0 ? completedBooks : inProgressBooks;
+
+      if (sourceBooks.length > 0) {
+        const completedIds = completedBooks.map((b) => b.book_id);
+        const inProgressIds = inProgressBooks.map((p) => p.book_id);
+        const excludeIds = [...new Set([...completedIds, ...inProgressIds])];
+
+        const sections: BecauseYouListenedSection[] = [];
+
+        for (const sourceBook of sourceBooks.slice(0, 3)) {
+          try {
+            const recommendations = await fetchBecauseYouListenedTo(
+              sourceBook.book_id,
+              excludeIds,
+              languageId,
+              10,
+              0
+            );
+
+            if (recommendations.length > 0) {
+              sections.push({
+                completedBook: sourceBook,
+                recommendations,
+              });
+            }
+          } catch {
+            // Skip failed sections
+          }
+        }
+
+        setBecauseYouListenedSections(sections);
+      } else {
+        setBecauseYouListenedSections([]);
+      }
+
+      // Fetch genre-based sections (max 3 genres)
+      const genreIds = prefs.genreIds.slice(0, 3);
+      const genreSectionsData: GenreSection[] = [];
+
+      for (const genreId of genreIds) {
+        try {
+          const genre = allGenres.find((g) => g.id === genreId);
+          if (genre) {
+            // Pass languageId to filter books by user's preferred language
+            const books = await fetchBooksByGenre(genreId, languageId, 10, 0);
+            if (books.length > 0) {
+              genreSectionsData.push({ genre, books });
+            }
+          }
+        } catch {
+          // Skip failed genre sections
+        }
+      }
+
+      setGenreSections(genreSectionsData);
     } catch (err) {
-      console.error('Failed to load audiobooks:', err);
+      console.error('Failed to load sections:', err);
+      setError('Failed to load content. Pull to refresh.');
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
+      setError(null);
+      // Load preferences first
+      const prefs = await getUserPreferences();
+      setPreferences(prefs);
+      await loadSectionData(prefs);
+    } catch (err) {
+      console.error('Failed to load data:', err);
       setError('Failed to load audiobooks. Pull to refresh.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [loadSectionData]);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  // Check if user has set preferences and load them
+  // Check if user has set preferences
   useEffect(() => {
     const checkPreferences = async () => {
       const hasPrefs = await hasUserPreferences();
       if (!hasPrefs) {
         setIsEditingPreferences(false);
         setShowPreferencesModal(true);
-      } else {
-        const prefs = await getUserPreferences();
-        setPreferences(prefs);
       }
     };
     checkPreferences();
@@ -77,11 +214,8 @@ export function BooksScreen() {
   const handlePreferencesComplete = async () => {
     setShowPreferencesModal(false);
     setIsEditingPreferences(false);
-    // Reload preferences
-    const prefs = await getUserPreferences();
-    setPreferences(prefs);
-    // Optionally reload data with new preferences
-    loadData();
+    setLoading(true);
+    await loadData();
   };
 
   const handleOpenPreferences = () => {
@@ -104,48 +238,32 @@ export function BooksScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: AudioBook }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: colors.card }]}
-      onPress={() => handleBookPress(item)}
-      activeOpacity={0.8}
-    >
-      <Image
-        source={{ uri: item.thumbnail }}
-        style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
-        priority="high"
-        cachePolicy="memory-disk"
-        contentFit="cover"
-      />
-      <View style={styles.itemInfo}>
-        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={[styles.itemAuthor, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.author}
-        </Text>
-        <View style={styles.itemMeta}>
-          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
-            {formatDuration(item.duration)}
-          </Text>
-          <Text style={[styles.itemChapters, { color: colors.textSecondary }]}>
-            {item.chapters.filter((c) => c.isPublished).length} chapters
-          </Text>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color={colors.brand.orange} />
-    </TouchableOpacity>
-  );
+  const handleSeeAll = (sectionType: SectionType, title: string, genreId?: string, sourceBookId?: string) => {
+    navigation.navigate('SectionList', {
+      sectionType,
+      title,
+      languageId: preferences?.languageIds[0],
+      genreId,
+      sourceBookId,
+    });
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="library-outline" size={64} color={colors.textSecondary} />
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        No Books Available
+        No Content Available
       </Text>
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        No audiobooks available yet.
+        No audiobooks match your preferences yet.{'\n'}Try updating your preferences.
       </Text>
+      <TouchableOpacity
+        style={[styles.updateButton, { backgroundColor: colors.brand.orange }]}
+        onPress={handleOpenPreferences}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.updateButtonText}>Update Preferences</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -159,12 +277,19 @@ export function BooksScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.brand.orange} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading audiobooks...
+            Loading content...
           </Text>
         </View>
       </SafeAreaView>
     );
   }
+
+  const hasContent =
+    newReleases.length > 0 ||
+    featured.length > 0 ||
+    continueListening.length > 0 ||
+    becauseYouListenedSections.length > 0 ||
+    genreSections.length > 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -191,17 +316,14 @@ export function BooksScreen() {
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: colors.textSecondary }]}>{error}</Text>
         </View>
+      ) : !hasContent ? (
+        renderEmpty()
       ) : (
-        <FlatList
-          data={books}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
+        <ScrollView
           contentContainerStyle={[
-            styles.listContent,
-            books.length === 0 && styles.emptyListContent,
-            currentBook && styles.listContentWithPlayer,
+            styles.scrollContent,
+            currentBook && styles.scrollContentWithPlayer,
           ]}
-          ListEmptyComponent={renderEmpty}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -211,7 +333,100 @@ export function BooksScreen() {
               colors={[colors.brand.orange]}
             />
           }
-        />
+        >
+          {/* Featured Section */}
+          <Carousel
+            title="Featured"
+            data={featured}
+            onBookPress={handleBookPress}
+            onSeeAllPress={() => handleSeeAll('featured', 'Featured')}
+            cardType="banner"
+          />
+
+          {/* Latest Releases Section */}
+          <Carousel
+            title="Latest Releases"
+            data={newReleases}
+            onBookPress={handleBookPress}
+            onSeeAllPress={() => handleSeeAll('new-releases', 'Latest Releases')}
+            cardType="large"
+          />
+
+          {/* Continue Listening Section - Only show if user has progress */}
+          {continueListening.length > 0 && (
+            <Carousel
+              title="Continue Listening"
+              data={continueListening}
+              onBookPress={handleBookPress}
+              onSeeAllPress={() => handleSeeAll('continue-listening', 'Continue Listening')}
+              cardType="compact"
+              progressData={progressData}
+            />
+          )}
+
+          {/* Explore Card */}
+          <ExploreCard onPress={() => navigation.navigate('Explore')} />
+
+          {/* Genre Sections (Favorite Categories) */}
+          {genreSections.map((section) => (
+            <Carousel
+              key={section.genre.id}
+              title={section.genre.name}
+              data={section.books}
+              onBookPress={handleBookPress}
+              onSeeAllPress={() => handleSeeAll('genre', section.genre.name, section.genre.id)}
+              cardType="standard"
+            />
+          ))}
+
+          {/* Because You Listened Section - After favorite categories */}
+          {becauseYouListenedSections.length > 0 && (
+            <View style={styles.becauseYouListenedContainer}>
+              <Text style={[styles.mainSectionTitle, { color: colors.text }]}>
+                Because You Listened
+              </Text>
+
+              {becauseYouListenedSections.map((section) => (
+                <View key={section.completedBook.book_id} style={styles.subsection}>
+                  <View style={styles.subsectionHeader}>
+                    <Text
+                      style={[styles.subsectionTitle, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      "{section.completedBook.book_title}"
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.seeAllButton}
+                      onPress={() =>
+                        handleSeeAll(
+                          'because-you-listened',
+                          section.completedBook.book_title || 'Recommendations',
+                          undefined,
+                          section.completedBook.book_id
+                        )
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.seeAllText, { color: colors.brand.orange }]}>
+                        See All
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <FlatList
+                    horizontal
+                    data={section.recommendations.slice(0, 10)}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <StandardBookCard book={item} onPress={handleBookPress} />
+                    )}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.carouselContent}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       )}
 
       <MiniPlayer onPress={handleMiniPlayerPress} />
@@ -268,51 +483,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContent: {
-    paddingHorizontal: 16,
+  scrollContent: {
     paddingBottom: 20,
   },
-  emptyListContent: {
-    flex: 1,
-  },
-  listContentWithPlayer: {
+  scrollContentWithPlayer: {
     paddingBottom: 140,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  thumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  itemInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  itemAuthor: {
-    fontSize: 14,
-    marginTop: 4,
-  },
-  itemMeta: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 12,
-  },
-  itemDuration: {
-    fontSize: 12,
-  },
-  itemChapters: {
-    fontSize: 12,
   },
   emptyContainer: {
     flex: 1,
@@ -331,6 +506,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 22,
   },
+  updateButton: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -340,5 +526,43 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  // Because You Listened section styles
+  becauseYouListenedContainer: {
+    marginBottom: 28,
+  },
+  mainSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  subsection: {
+    marginBottom: 20,
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    flex: 1,
+    marginRight: 12,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  carouselContent: {
+    paddingHorizontal: 16,
   },
 });

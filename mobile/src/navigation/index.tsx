@@ -12,10 +12,16 @@ import { RegisterScreen } from '../screens/RegisterScreen';
 import { OTPVerificationScreen } from '../screens/OTPVerificationScreen';
 import { BooksScreen } from '../screens/BooksScreen';
 import { BookDetailsScreen } from '../screens/BookDetailsScreen';
+import { SectionListScreen } from '../screens/SectionListScreen';
+import { ExploreScreen } from '../screens/ExploreScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { AuthorDetailsScreen } from '../screens/AuthorDetailsScreen';
+import { ArtistDetailsScreen } from '../screens/ArtistDetailsScreen';
+import { PublicationDetailsScreen } from '../screens/PublicationDetailsScreen';
+import { GenreDetailsScreen } from '../screens/GenreDetailsScreen';
 import { RootStackParamList, MainTabParamList } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
@@ -40,6 +46,12 @@ function HomeStackScreen() {
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={BooksScreen} />
       <HomeStack.Screen name="BookDetails" component={BookDetailsScreen} />
+      <HomeStack.Screen name="SectionList" component={SectionListScreen} />
+      <HomeStack.Screen name="Explore" component={ExploreScreen} />
+      <HomeStack.Screen name="AuthorDetails" component={AuthorDetailsScreen} />
+      <HomeStack.Screen name="ArtistDetails" component={ArtistDetailsScreen} />
+      <HomeStack.Screen name="PublicationDetails" component={PublicationDetailsScreen} />
+      <HomeStack.Screen name="GenreDetails" component={GenreDetailsScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -51,6 +63,11 @@ function BookshelfStackScreen() {
     <BookshelfStack.Navigator screenOptions={{ headerShown: false }}>
       <BookshelfStack.Screen name="BookshelfMain" component={DownloadsScreen} />
       <BookshelfStack.Screen name="BookDetails" component={BookDetailsScreen} />
+      <BookshelfStack.Screen name="Explore" component={ExploreScreen} />
+      <BookshelfStack.Screen name="AuthorDetails" component={AuthorDetailsScreen} />
+      <BookshelfStack.Screen name="ArtistDetails" component={ArtistDetailsScreen} />
+      <BookshelfStack.Screen name="PublicationDetails" component={PublicationDetailsScreen} />
+      <BookshelfStack.Screen name="GenreDetails" component={GenreDetailsScreen} />
     </BookshelfStack.Navigator>
   );
 }
@@ -62,6 +79,11 @@ function SearchStackScreen() {
     <SearchStack.Navigator screenOptions={{ headerShown: false }}>
       <SearchStack.Screen name="SearchMain" component={SearchScreen} />
       <SearchStack.Screen name="BookDetails" component={BookDetailsScreen} />
+      <SearchStack.Screen name="Explore" component={ExploreScreen} />
+      <SearchStack.Screen name="AuthorDetails" component={AuthorDetailsScreen} />
+      <SearchStack.Screen name="ArtistDetails" component={ArtistDetailsScreen} />
+      <SearchStack.Screen name="PublicationDetails" component={PublicationDetailsScreen} />
+      <SearchStack.Screen name="GenreDetails" component={GenreDetailsScreen} />
     </SearchStack.Navigator>
   );
 }

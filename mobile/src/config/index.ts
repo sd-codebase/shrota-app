@@ -15,3 +15,10 @@ export const getThumbnailUrl = (thumbnailPath: string): string => {
   if (thumbnailPath.startsWith('http')) return thumbnailPath;
   return `${API_URL}/files/thumbnail/${thumbnailPath}`;
 };
+
+// Helper to get full API URL for chapter images
+export const getChapterImageUrl = (imagePath: string): string => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${API_URL}/files/chapter-image/${imagePath}`;
+};
