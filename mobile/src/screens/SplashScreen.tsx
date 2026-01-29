@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet, StatusBar } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
@@ -56,7 +56,13 @@ export function SplashScreen() {
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Ionicons name="headset" size={80} color={colors.brand.orange} />
+          <View style={styles.logoWrapper}>
+            <Image
+              source={require('../../assets/shrota-logo.png')}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          </View>
           <Text style={[styles.title, { color: colors.text }]}>Shrota</Text>
           <Text style={[styles.tagline, { color: colors.textSecondary }]}>
             Listen to stories that inspire
@@ -81,6 +87,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
+  },
+  logoWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  logo: {
+    width: 80,
+    height: 80,
   },
   title: {
     fontSize: 48,
