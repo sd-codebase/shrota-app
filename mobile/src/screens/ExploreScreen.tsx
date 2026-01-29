@@ -18,6 +18,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import {
   fetchExploreBooks,
   fetchGenres,
@@ -57,6 +58,7 @@ export function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ExploreRouteProp>();
   const { colors, isDark } = useTheme();
+  const { token } = useAuth();
 
   // Get initial filters from route params
   const routeParams = route.params;
@@ -144,7 +146,7 @@ export function ExploreScreen() {
       if (!append) {
         setLoading(true);
       }
-      const data = await fetchExploreBooks(currentFilters, PAGE_SIZE, currentOffset);
+      const data = await fetchExploreBooks(currentFilters, PAGE_SIZE, currentOffset, token || undefined);
 
       if (append) {
         setBooks(prev => [...prev, ...data]);
@@ -159,7 +161,7 @@ export function ExploreScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [token]);
 
   // Debounced search effect
   useEffect(() => {

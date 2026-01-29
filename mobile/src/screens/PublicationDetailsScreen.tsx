@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { BookListItem } from '../components/cards/BookListItem';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useCurrentBook } from '../stores/playerStore';
 import {
   AudioBook,
@@ -38,6 +39,7 @@ export function PublicationDetailsScreen() {
   const route = useRoute<PublicationDetailsRouteProp>();
   const { publicationId, publicationName } = route.params;
   const { colors, isDark } = useTheme();
+  const { token } = useAuth();
   const currentBook = useCurrentBook();
 
   const [publication, setPublication] = useState<PublicationDetailResponse | null>(null);
@@ -53,7 +55,7 @@ export function PublicationDetailsScreen() {
       setLoading(true);
       const [publicationData, booksData] = await Promise.all([
         fetchPublicationById(publicationId),
-        fetchBooksByPublisher(publicationId, 5, 0),
+        fetchBooksByPublisher(publicationId, 5, 0, token || undefined),
       ]);
       setPublication(publicationData);
       setBooks(booksData);

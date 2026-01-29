@@ -22,7 +22,7 @@ from schemas.content_promotion import (
     ReorderRequest,
 )
 from utils.age import is_adult as user_is_adult
-from routes.user_auth import get_optional_current_user
+from routes.user_auth import get_current_user
 
 router = APIRouter(prefix="/content", tags=["Content Promotion"])
 
@@ -633,7 +633,7 @@ def book_to_mobile_response(book: Book, authors: list, artists: list) -> dict:
 async def get_new_releases_mobile(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get active new releases for a specific language with full book details.
@@ -739,7 +739,7 @@ async def get_new_releases_mobile(
 async def get_featured_books_mobile(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get active featured books for a specific language with full book details.
@@ -847,7 +847,7 @@ async def get_books_by_genre_mobile(
     limit: int = 10,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get published books for a specific genre with full book details.
@@ -974,7 +974,7 @@ async def get_because_you_listened(
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get book recommendations based on a completed book's genres.
@@ -1109,7 +1109,7 @@ async def explore_books(
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Explore all published books with optional filters.
@@ -1228,7 +1228,7 @@ async def explore_books(
 async def get_book_mobile(
     book_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get a single book by ID with full details for mobile app.

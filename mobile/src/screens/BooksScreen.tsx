@@ -23,6 +23,7 @@ import { ExploreCard } from '../components/ExploreCard';
 import { StandardBookCard } from '../components/cards';
 import { LogoLoader } from '../components/LogoLoader';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import {
   fetchNewReleases,
   fetchFeaturedBooks,
@@ -55,6 +56,7 @@ export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
   const currentBook = useCurrentBook();
   const { colors, isDark, toggleTheme } = useTheme();
+  const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -82,8 +84,8 @@ export function BooksScreen() {
 
       // Fetch all data in parallel
       const [newReleasesData, featuredData, allGenres] = await Promise.all([
-        fetchNewReleases(languageId).catch(() => []),
-        fetchFeaturedBooks(languageId).catch(() => []),
+        fetchNewReleases(languageId, token || undefined).catch(() => []),
+        fetchFeaturedBooks(languageId, token || undefined).catch(() => []),
         fetchGenres().catch(() => []),
       ]);
 
@@ -136,7 +138,8 @@ export function BooksScreen() {
               excludeIds,
               languageId,
               10,
-              0
+              0,
+              token || undefined
             );
 
             if (recommendations.length > 0) {
@@ -164,7 +167,7 @@ export function BooksScreen() {
           const genre = allGenres.find((g) => g.id === genreId);
           if (genre) {
             // Pass languageId to filter books by user's preferred language
-            const books = await fetchBooksByGenre(genreId, languageId, 10, 0);
+            const books = await fetchBooksByGenre(genreId, languageId, 10, 0, token || undefined);
             if (books.length > 0) {
               genreSectionsData.push({ genre, books });
             }
@@ -179,7 +182,7 @@ export function BooksScreen() {
       console.error('Failed to load sections:', err);
       setError('Failed to load content. Pull to refresh.');
     }
-  }, []);
+  }, [token]);
 
   const loadData = useCallback(async () => {
     try {

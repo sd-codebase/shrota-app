@@ -17,6 +17,17 @@ import {
   GenreDetailResponse,
 } from '../types';
 
+// Helper to create authenticated fetch headers
+function getAuthHeaders(token?: string): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Fetch all published books
 export async function fetchBooks(): Promise<Book[]> {
   const response = await fetch(`${API_URL}/books/published`);
@@ -267,9 +278,10 @@ export function transformMobileBookToAudioBook(book: MobileBookResponse): AudioB
 }
 
 // Fetch new releases for a language (uses mobile endpoint with full book details)
-export async function fetchNewReleases(languageId: string): Promise<AudioBook[]> {
+export async function fetchNewReleases(languageId: string, token?: string): Promise<AudioBook[]> {
   const response = await fetch(
-    `${API_URL}/content/mobile/new-releases/language/${languageId}`
+    `${API_URL}/content/mobile/new-releases/language/${languageId}`,
+    { headers: getAuthHeaders(token) }
   );
   if (!response.ok) {
     throw new Error('Failed to fetch new releases');
@@ -281,9 +293,10 @@ export async function fetchNewReleases(languageId: string): Promise<AudioBook[]>
 }
 
 // Fetch featured books for a language (uses mobile endpoint with full book details)
-export async function fetchFeaturedBooks(languageId: string): Promise<AudioBook[]> {
+export async function fetchFeaturedBooks(languageId: string, token?: string): Promise<AudioBook[]> {
   const response = await fetch(
-    `${API_URL}/content/mobile/featured/language/${languageId}`
+    `${API_URL}/content/mobile/featured/language/${languageId}`,
+    { headers: getAuthHeaders(token) }
   );
   if (!response.ok) {
     throw new Error('Failed to fetch featured books');
@@ -299,14 +312,15 @@ export async function fetchBooksByGenre(
   genreId: string,
   languageId?: string,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
   let url = `${API_URL}/content/mobile/genre/${genreId}?limit=${limit}&offset=${offset}`;
   if (languageId) {
     url += `&language_id=${languageId}`;
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: getAuthHeaders(token) });
   if (!response.ok) {
     throw new Error('Failed to fetch books by genre');
   }
@@ -320,7 +334,8 @@ export async function fetchBooksByGenre(
 export async function fetchExploreBooks(
   filters: ExploreFilters,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
   const params = new URLSearchParams();
   params.append('limit', limit.toString());
@@ -346,7 +361,9 @@ export async function fetchExploreBooks(
     params.append('publisher_ids', filters.publisherIds.join(','));
   }
 
-  const response = await fetch(`${API_URL}/content/mobile/explore?${params.toString()}`);
+  const response = await fetch(`${API_URL}/content/mobile/explore?${params.toString()}`, {
+    headers: getAuthHeaders(token),
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch explore books');
   }
@@ -362,7 +379,8 @@ export async function fetchBecauseYouListenedTo(
   excludeBookIds: string[],
   languageId?: string,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
   const params = new URLSearchParams();
   params.append('limit', limit.toString());
@@ -376,7 +394,8 @@ export async function fetchBecauseYouListenedTo(
   }
 
   const response = await fetch(
-    `${API_URL}/content/mobile/because-you-listened/${bookId}?${params.toString()}`
+    `${API_URL}/content/mobile/because-you-listened/${bookId}?${params.toString()}`,
+    { headers: getAuthHeaders(token) }
   );
   if (!response.ok) {
     throw new Error('Failed to fetch recommendations');
@@ -388,8 +407,10 @@ export async function fetchBecauseYouListenedTo(
 }
 
 // Fetch a single book by ID with full details
-export async function fetchBookById(bookId: string): Promise<AudioBook> {
-  const response = await fetch(`${API_URL}/content/mobile/book/${bookId}`);
+export async function fetchBookById(bookId: string, token?: string): Promise<AudioBook> {
+  const response = await fetch(`${API_URL}/content/mobile/book/${bookId}`, {
+    headers: getAuthHeaders(token),
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch book');
   }
@@ -437,25 +458,28 @@ export async function fetchGenreById(genreId: string): Promise<GenreDetailRespon
 export async function fetchBooksByAuthor(
   authorId: string,
   limit: number = 5,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
-  return fetchExploreBooks({ authorIds: [authorId] }, limit, offset);
+  return fetchExploreBooks({ authorIds: [authorId] }, limit, offset, token);
 }
 
 // Fetch books by artist (wrapper using explore API)
 export async function fetchBooksByArtist(
   artistId: string,
   limit: number = 5,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
-  return fetchExploreBooks({ artistIds: [artistId] }, limit, offset);
+  return fetchExploreBooks({ artistIds: [artistId] }, limit, offset, token);
 }
 
 // Fetch books by publisher (wrapper using explore API)
 export async function fetchBooksByPublisher(
   publisherId: string,
   limit: number = 5,
-  offset: number = 0
+  offset: number = 0,
+  token?: string
 ): Promise<AudioBook[]> {
-  return fetchExploreBooks({ publisherIds: [publisherId] }, limit, offset);
+  return fetchExploreBooks({ publisherIds: [publisherId] }, limit, offset, token);
 }
