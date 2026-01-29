@@ -5,6 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from database import get_db
 from models import Book, Author, Artist, Publication
+from models.user import User
+from utils.age import is_adult as user_is_adult
+from routes.user_auth import get_optional_current_user
 
 
 router = APIRouter(prefix="/v1/search", tags=["Search"])
@@ -94,13 +97,18 @@ def publication_to_response(publication: Publication) -> dict:
 async def search_all(
     q: str = Query(..., min_length=3, description="Search query (minimum 3 characters)"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
     Search across books, authors (writers), artists (narrators), and publications.
 
     Returns up to 5 results per category with partial (ILIKE) matching.
     Only returns published, non-deleted items.
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
+
     search_pattern = f"%{q}%"
 
     # Search books by title
@@ -116,9 +124,13 @@ async def search_all(
         .where(Book.is_published == True)
         .where(Book.is_deleted == False)
         .where(Book.title.ilike(search_pattern))
-        .order_by(Book.updated_at.desc())
-        .limit(MAX_RESULTS_PER_CATEGORY)
     )
+
+    # Filter out adult content for non-adult users
+    if not is_adult:
+        books_query = books_query.where(Book.is_adult == False)
+
+    books_query = books_query.order_by(Book.updated_at.desc()).limit(MAX_RESULTS_PER_CATEGORY)
     books_result = await db.execute(books_query)
     books = books_result.scalars().all()
 

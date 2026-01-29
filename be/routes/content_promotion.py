@@ -7,6 +7,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.orm import joinedload
 from database import get_db
 from models import NewRelease, FeaturedBook, PromotedBook, Book, Language, Genre
+from models.user import User
 from schemas.content_promotion import (
     NewReleaseCreate,
     NewReleaseUpdate,
@@ -19,6 +20,8 @@ from schemas.content_promotion import (
     PromotedBookResponse,
     ReorderRequest,
 )
+from utils.age import is_adult as user_is_adult
+from routes.user_auth import get_optional_current_user
 
 router = APIRouter(prefix="/content", tags=["Content Promotion"])
 
@@ -626,15 +629,23 @@ def book_to_mobile_response(book: Book, authors: list, artists: list) -> dict:
 
 
 @router.get("/mobile/new-releases/language/{language_id}")
-async def get_new_releases_mobile(language_id: str, db: AsyncSession = Depends(get_db)):
+async def get_new_releases_mobile(
+    language_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     """
     Get active new releases for a specific language with full book details.
     Returns published books only, ordered by display_order.
     Falls back to latest published books in the language if no promotions exist.
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     try:
         uuid_id = UUID(language_id)
@@ -664,6 +675,9 @@ async def get_new_releases_mobile(language_id: str, db: AsyncSession = Depends(g
     if entries:
         books = []
         for entry in entries:
+            # Filter adult content for non-adult users
+            if not is_adult and entry.book.is_adult:
+                continue
             if entry.book.is_published and not entry.book.is_deleted:
                 # Get book's author and artist IDs
                 book_author_ids = await db.execute(
@@ -685,7 +699,7 @@ async def get_new_releases_mobile(language_id: str, db: AsyncSession = Depends(g
         return books
 
     # Fallback: Get latest published books in this language
-    fallback_result = await db.execute(
+    fallback_query = (
         select(Book)
         .options(selectinload(Book.chapters))
         .where(
@@ -693,9 +707,12 @@ async def get_new_releases_mobile(language_id: str, db: AsyncSession = Depends(g
             Book.is_published == True,
             Book.is_deleted == False,
         )
-        .order_by(Book.created_at.desc())
-        .limit(10)
     )
+    # Filter adult content for non-adult users
+    if not is_adult:
+        fallback_query = fallback_query.where(Book.is_adult == False)
+    fallback_query = fallback_query.order_by(Book.created_at.desc()).limit(10)
+    fallback_result = await db.execute(fallback_query)
     fallback_books = fallback_result.scalars().all()
 
     books = []
@@ -721,15 +738,23 @@ async def get_new_releases_mobile(language_id: str, db: AsyncSession = Depends(g
 
 
 @router.get("/mobile/featured/language/{language_id}")
-async def get_featured_books_mobile(language_id: str, db: AsyncSession = Depends(get_db)):
+async def get_featured_books_mobile(
+    language_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     """
     Get active featured books for a specific language with full book details.
     Returns published books only, ordered by display_order.
     Falls back to popular books in the language if no promotions exist.
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     try:
         uuid_id = UUID(language_id)
@@ -759,6 +784,9 @@ async def get_featured_books_mobile(language_id: str, db: AsyncSession = Depends
     if entries:
         books = []
         for entry in entries:
+            # Filter adult content for non-adult users
+            if not is_adult and entry.book.is_adult:
+                continue
             if entry.book.is_published and not entry.book.is_deleted:
                 book_author_ids = await db.execute(
                     select(book_authors.c.author_id).where(book_authors.c.book_id == entry.book.id)
@@ -779,7 +807,7 @@ async def get_featured_books_mobile(language_id: str, db: AsyncSession = Depends
         return books
 
     # Fallback: Get published books in this language (random selection)
-    fallback_result = await db.execute(
+    fallback_query = (
         select(Book)
         .options(selectinload(Book.chapters))
         .where(
@@ -787,9 +815,12 @@ async def get_featured_books_mobile(language_id: str, db: AsyncSession = Depends
             Book.is_published == True,
             Book.is_deleted == False,
         )
-        .order_by(Book.updated_at.desc())
-        .limit(10)
     )
+    # Filter adult content for non-adult users
+    if not is_adult:
+        fallback_query = fallback_query.where(Book.is_adult == False)
+    fallback_query = fallback_query.order_by(Book.updated_at.desc()).limit(10)
+    fallback_result = await db.execute(fallback_query)
     fallback_books = fallback_result.scalars().all()
 
     books = []
@@ -820,16 +851,21 @@ async def get_books_by_genre_mobile(
     language_id: str = None,
     limit: int = 10,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
     Get published books for a specific genre with full book details.
     Optionally filter by language. Returns books ordered by creation date.
     First tries promoted books, then falls back to regular books.
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     try:
         genre_uuid = UUID(genre_id)
@@ -868,6 +904,9 @@ async def get_books_by_genre_mobile(
         # Filter by language if specified
         if language_uuid and entry.book.language_id != language_uuid:
             continue
+        # Filter adult content for non-adult users
+        if not is_adult and entry.book.is_adult:
+            continue
         if entry.book.is_published and not entry.book.is_deleted:
             book_author_ids = await db.execute(
                 select(book_authors.c.author_id).where(book_authors.c.book_id == entry.book.id)
@@ -900,6 +939,10 @@ async def get_books_by_genre_mobile(
             Book.is_deleted == False,
         )
     )
+
+    # Filter adult content for non-adult users
+    if not is_adult:
+        query = query.where(Book.is_adult == False)
 
     if language_uuid:
         query = query.where(Book.language_id == language_uuid)
@@ -939,15 +982,20 @@ async def get_because_you_listened(
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
     Get book recommendations based on a completed book's genres.
     Returns books that share the same genres as the specified book,
     sorted by created_at DESC (latest first).
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     # Validate book_id
     try:
@@ -1022,6 +1070,10 @@ async def get_because_you_listened(
         )
     )
 
+    # Filter adult content for non-adult users
+    if not is_adult:
+        query = query.where(Book.is_adult == False)
+
     if language_uuid:
         query = query.where(Book.language_id == language_uuid)
 
@@ -1069,15 +1121,20 @@ async def explore_books(
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
     Explore all published books with optional filters.
     Supports multiple IDs per filter (comma-separated).
     Returns books sorted by created_at DESC (latest first).
+    Adult content is filtered for users under 18 or unauthenticated users.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     # Helper to parse comma-separated UUIDs
     def parse_uuids(ids_str: str) -> list[UUID]:
@@ -1100,6 +1157,10 @@ async def explore_books(
             Book.is_deleted == False,
         )
     )
+
+    # Filter adult content for non-adult users
+    if not is_adult:
+        query = query.where(Book.is_adult == False)
 
     # Apply search filter
     if search:
@@ -1179,14 +1240,22 @@ async def explore_books(
 
 
 @router.get("/mobile/book/{book_id}")
-async def get_book_mobile(book_id: str, db: AsyncSession = Depends(get_db)):
+async def get_book_mobile(
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     """
     Get a single book by ID with full details for mobile app.
     Returns the same format as other mobile endpoints.
+    Adult content is restricted to users 18 years or older.
     """
     from sqlalchemy.orm import selectinload
     from models import Author, Artist
     from models.book import book_authors, book_artists, book_genres
+
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
 
     try:
         book_uuid = UUID(book_id)
@@ -1207,6 +1276,13 @@ async def get_book_mobile(book_id: str, db: AsyncSession = Depends(get_db)):
 
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    # Check if adult content restriction applies
+    if book.is_adult and not is_adult:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This content is restricted to users 18 years or older"
+        )
 
     # Get all authors and artists for mapping
     authors_result = await db.execute(select(Author))

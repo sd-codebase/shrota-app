@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -30,8 +31,8 @@ export function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Detect if input is email or WhatsApp number
-  const isEmail = identifier.includes('@');
-  const otpType = isEmail ? 'email' : 'whatsapp';
+  const isWhatsApp = /^\d+$/.test(identifier.trim());
+  const otpType = isWhatsApp ? 'whatsapp' : 'email';
 
   const handleSendOTP = async () => {
     if (!identifier.trim()) {
@@ -70,7 +71,11 @@ export function LoginScreen() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Ionicons name="headset" size={64} color={colors.brand.orange} />
+            <Image
+              source={require('../../assets/shrota-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={[styles.title, { color: colors.text }]}>Welcome to Shrota</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               Sign in with your email or WhatsApp number
@@ -85,7 +90,7 @@ export function LoginScreen() {
               ]}
             >
               <Ionicons
-                name={isEmail ? 'mail-outline' : 'logo-whatsapp'}
+                name={isWhatsApp ? 'logo-whatsapp' : 'mail-outline'}
                 size={24}
                 color={colors.textSecondary}
                 style={styles.inputIcon}
@@ -101,6 +106,10 @@ export function LoginScreen() {
                 keyboardType="email-address"
               />
             </View>
+
+            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+              For WhatsApp, enter 10-digit Indian number without country code
+            </Text>
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.brand.orange }]}
@@ -147,6 +156,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fff',
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
@@ -176,6 +191,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
+  },
+  hintText: {
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     height: 56,

@@ -15,11 +15,13 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { Carousel } from '../components/Carousel';
 import { PreferencesModal } from '../components/PreferencesModal';
 import { ExploreCard } from '../components/ExploreCard';
 import { StandardBookCard } from '../components/cards';
+import { LogoLoader } from '../components/LogoLoader';
 import { useTheme } from '../context/ThemeContext';
 import {
   fetchNewReleases,
@@ -274,12 +276,7 @@ export function BooksScreen() {
           barStyle={isDark ? 'light-content' : 'dark-content'}
           backgroundColor={colors.background}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brand.orange} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading content...
-          </Text>
-        </View>
+        <LogoLoader size={100} />
       </SafeAreaView>
     );
   }
@@ -300,7 +297,11 @@ export function BooksScreen() {
 
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="headset" size={28} color={colors.brand.orange} />
+          <Image
+            source={require('../../assets/shrota-logo.png')}
+            style={styles.headerLogo}
+            contentFit="contain"
+          />
           <Text style={[styles.headerTitle, { color: colors.text }]}>Shrota</Text>
         </View>
         <TouchableOpacity
@@ -475,6 +476,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#fff',
+    borderRadius: 16,
   },
   headerTitle: {
     fontSize: 28,

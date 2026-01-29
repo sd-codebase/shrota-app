@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -23,6 +24,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type OTPRouteProp = RouteProp<RootStackParamList, 'OTPVerification'>;
 
 const OTP_LENGTH = 6;
+const AUTO_SUBMIT_DELAY = 3000; // 3 seconds
 
 export function OTPVerificationScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -36,8 +38,18 @@ export function OTPVerificationScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const autoSubmitTimer = useRef<NodeJS.Timeout | null>(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Focus first input on mount
+  useEffect(() => {
+    setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 100);
+  }, []);
 
   // Countdown timer for resend OTP
   useEffect(() => {
@@ -46,6 +58,43 @@ export function OTPVerificationScreen() {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  // Check if OTP is complete
+  const isOtpComplete = otp.every((d) => d !== '');
+
+  // Auto-submit when OTP is complete
+  useEffect(() => {
+    if (isOtpComplete && !isLoading) {
+      setIsAutoSubmitting(true);
+      progressAnim.setValue(0);
+
+      // Start progress animation
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: AUTO_SUBMIT_DELAY,
+        useNativeDriver: false,
+      }).start();
+
+      // Set timer for auto-submit
+      autoSubmitTimer.current = setTimeout(() => {
+        handleVerify();
+      }, AUTO_SUBMIT_DELAY);
+    } else {
+      // Cancel auto-submit if OTP changes
+      if (autoSubmitTimer.current) {
+        clearTimeout(autoSubmitTimer.current);
+        autoSubmitTimer.current = null;
+      }
+      setIsAutoSubmitting(false);
+      progressAnim.setValue(0);
+    }
+
+    return () => {
+      if (autoSubmitTimer.current) {
+        clearTimeout(autoSubmitTimer.current);
+      }
+    };
+  }, [otp, isOtpComplete]);
 
   const handleOtpChange = (value: string, index: number) => {
     if (value.length > 1) {
@@ -86,6 +135,13 @@ export function OTPVerificationScreen() {
       return;
     }
 
+    // Cancel auto-submit timer if manually verifying
+    if (autoSubmitTimer.current) {
+      clearTimeout(autoSubmitTimer.current);
+      autoSubmitTimer.current = null;
+    }
+    setIsAutoSubmitting(false);
+
     setIsLoading(true);
     try {
       await login({
@@ -124,6 +180,11 @@ export function OTPVerificationScreen() {
   const maskedIdentifier = otp_type === 'email'
     ? identifier.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : identifier.replace(/(.{4})(.*)(.{2})/, '$1****$3');
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -184,17 +245,35 @@ export function OTPVerificationScreen() {
             ))}
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.brand.orange }]}
-            onPress={handleVerify}
-            disabled={isLoading || otp.some((d) => !d)}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Verify & Continue</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonWrapper}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.brand.orange }]}
+              onPress={handleVerify}
+              disabled={isLoading || !isOtpComplete}
+            >
+              {/* Progress bar overlay for auto-submit */}
+              {isAutoSubmitting && (
+                <Animated.View
+                  style={[
+                    styles.progressBar,
+                    {
+                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      width: progressWidth,
+                    },
+                  ]}
+                />
+              )}
+              <View style={styles.buttonContent}>
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {isAutoSubmitting ? 'Verifying...' : 'Verify & Continue'}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.resendContainer}>
             <Text style={[styles.resendText, { color: colors.textSecondary }]}>
@@ -276,11 +355,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  buttonWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   button: {
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  progressBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+  },
+  buttonContent: {
+    zIndex: 1,
   },
   buttonText: {
     color: '#fff',

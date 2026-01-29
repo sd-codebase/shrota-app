@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 from config import UPLOAD_DIR, AUDIO_LIBRARY_DIR
 from models import Book, Chapter, Genre, Author, Artist, Language, Publication
+from models.user import User
 from models.book import book_authors, book_artists, book_genres
 from schemas.book import (
     BookCreate,
@@ -21,6 +22,8 @@ from schemas.book import (
     ChapterResponse,
 )
 from utils.hls_converter import convert_to_hls, HLSConversionError
+from utils.age import is_adult as user_is_adult
+from routes.user_auth import get_optional_current_user
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
@@ -128,9 +131,15 @@ async def get_books(
 
 
 @router.get("/published", response_model=list[BookResponse])
-async def get_published_books(db: AsyncSession = Depends(get_db)):
+async def get_published_books(
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     """Get only published non-deleted books, sorted by updated_at DESC (for mobile app)."""
-    result = await db.execute(
+    # Check if user is adult (18+)
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
+
+    query = (
         select(Book)
         .options(
             selectinload(Book.authors),
@@ -140,14 +149,24 @@ async def get_published_books(db: AsyncSession = Depends(get_db)):
         )
         .where(Book.is_published == True)
         .where(Book.is_deleted == False)
-        .order_by(Book.updated_at.desc())
     )
+
+    # Filter out adult content for non-adult users
+    if not is_adult:
+        query = query.where(Book.is_adult == False)
+
+    query = query.order_by(Book.updated_at.desc())
+    result = await db.execute(query)
     books = result.scalars().all()
     return [book_to_response(book) for book in books]
 
 
 @router.get("/{book_id}", response_model=BookResponse)
-async def get_book(book_id: str, db: AsyncSession = Depends(get_db)):
+async def get_book(
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     try:
         uuid_id = UUID(book_id)
     except ValueError:
@@ -156,6 +175,16 @@ async def get_book(book_id: str, db: AsyncSession = Depends(get_db)):
     book = await get_book_with_relations(db, uuid_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    # Check if adult content restriction applies
+    if book.is_adult:
+        is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
+        if not is_adult:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This content is restricted to users 18 years or older"
+            )
+
     return book_to_response(book)
 
 

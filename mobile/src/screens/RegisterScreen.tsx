@@ -94,9 +94,9 @@ export function RegisterScreen() {
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasContact = email.trim() || whatsappNumber.trim();
-  const otpType = email.trim() ? 'email' : 'whatsapp';
-  const identifier = email.trim() || whatsappNumber.trim();
+  const hasAllContacts = email.trim() && whatsappNumber.trim();
+  const otpType = 'email'; // Always verify email first
+  const identifier = email.trim();
 
   const handleDateChange = (text: string) => {
     const formatted = formatDateInput(text);
@@ -114,8 +114,18 @@ export function RegisterScreen() {
       return;
     }
 
-    if (!hasContact) {
-      Alert.alert('Error', 'Please enter email or WhatsApp number');
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+
+    if (!whatsappNumber.trim()) {
+      Alert.alert('Error', 'Please enter your WhatsApp number');
+      return;
+    }
+
+    if (whatsappNumber.trim().length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
 
@@ -212,7 +222,7 @@ export function RegisterScreen() {
             </View>
 
             {/* Email Input */}
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email *</Text>
             <View
               style={[
                 styles.inputContainer,
@@ -237,7 +247,7 @@ export function RegisterScreen() {
             </View>
 
             {/* WhatsApp Input */}
-            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number</Text>
+            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
             <View
               style={[
                 styles.inputContainer,
@@ -252,13 +262,17 @@ export function RegisterScreen() {
               />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="+91 98765 43210"
+                placeholder="9876543210"
                 placeholderTextColor={colors.placeholder}
                 value={whatsappNumber}
                 onChangeText={setWhatsappNumber}
                 keyboardType="phone-pad"
+                maxLength={10}
               />
             </View>
+            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+              Enter 10-digit Indian number without country code
+            </Text>
 
             {/* Birth Date Input */}
             <Text style={[styles.label, { color: colors.text }]}>Birth Date (Optional)</Text>
@@ -288,17 +302,13 @@ export function RegisterScreen() {
               <Text style={[styles.errorText, { color: colors.brand.red }]}>{dateError}</Text>
             )}
 
-            <Text style={[styles.note, { color: colors.textSecondary }]}>
-              * At least one of email or WhatsApp number is required
-            </Text>
-
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: hasContact ? colors.brand.orange : colors.border },
+                { backgroundColor: hasAllContacts ? colors.brand.orange : colors.border },
               ]}
               onPress={handleRegister}
-              disabled={isLoading || !hasContact}
+              disabled={isLoading || !hasAllContacts}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -383,9 +393,11 @@ const styles = StyleSheet.create({
     marginTop: -12,
     marginBottom: 16,
   },
-  note: {
+  hintText: {
     fontSize: 12,
-    marginBottom: 24,
+    marginTop: -12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     height: 56,

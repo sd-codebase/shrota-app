@@ -140,11 +140,10 @@ export function ProfileScreen() {
     // Parse YYYY-MM-DD format manually to avoid timezone issues
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dd = String(day).padStart(2, '0');
+    const mmm = months[month - 1];
+    return `${dd} ${mmm} ${year}`;
   };
 
   return (

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -59,6 +60,47 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deleted, contact support for help."
         )
+
+    return user
+
+
+async def get_optional_current_user(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """
+    FastAPI dependency to optionally get the current authenticated user.
+    Returns User if valid auth token present, None otherwise.
+    Does NOT raise exception for missing or invalid auth.
+    """
+    if not authorization:
+        return None
+
+    # Extract token from "Bearer <token>" format
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+
+    token = parts[1]
+    payload = decode_access_token(token)
+
+    if payload is None:
+        return None
+
+    # Check if this is a user token (not admin)
+    token_type = payload.get("type")
+    if token_type != "user":
+        return None
+
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        return None
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        return None
 
     return user
 
