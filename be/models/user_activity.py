@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, ForeignKey, Float, UniqueConstraint
+from sqlalchemy import String, Integer, Boolean, ForeignKey, Float, UniqueConstraint, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
-from models.base import Base, TimestampMixin
+from models.base import Base, TimestampMixin, utc_now
 
 
 class UserBookProgress(Base, TimestampMixin):
@@ -25,7 +25,7 @@ class UserBookProgress(Base, TimestampMixin):
 
     # Status
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    last_played_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
+    last_played_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
     user = relationship("User", backref="book_progress")
@@ -43,7 +43,7 @@ class UserLikedBook(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     book_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
-    liked_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
+    liked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
     user = relationship("User", backref="liked_books")
