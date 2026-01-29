@@ -133,7 +133,9 @@ export function RegisterScreen() {
         name: name.trim(),
         email: email.trim() || undefined,
         whatsapp_number: whatsappNumber.trim() || undefined,
-        birth_date: dateResult.date ? dateResult.date.toISOString().split('T')[0] : undefined,
+        birth_date: dateResult.date
+          ? `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`
+          : undefined,
       });
 
       // Send OTP

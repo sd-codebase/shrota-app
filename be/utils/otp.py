@@ -1,7 +1,9 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Tuple
+
+from services.email_service import send_otp_email
 
 # In-memory OTP storage: {identifier: (otp, expiry_time)}
 _otp_store: dict[str, Tuple[str, datetime]] = {}
@@ -16,16 +18,16 @@ def generate_otp() -> str:
     return ''.join(random.choices(string.digits, k=OTP_LENGTH))
 
 
-def store_otp(identifier: str, otp_type: str) -> str:
+async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     """
-    Generate and store an OTP for the given identifier.
+    Generate, store, and send an OTP for the given identifier.
 
     Args:
         identifier: Email or WhatsApp number
         otp_type: Type of OTP ('email' or 'whatsapp')
 
     Returns:
-        The generated OTP
+        Tuple of (success: bool, message: str)
     """
     otp = generate_otp()
     expiry = datetime.utcnow() + timedelta(minutes=OTP_EXPIRY_MINUTES)
@@ -34,14 +36,24 @@ def store_otp(identifier: str, otp_type: str) -> str:
     key = f"{otp_type}:{identifier}"
     _otp_store[key] = (otp, expiry)
 
-    # Log OTP to console (simulated sending)
+    # Log OTP to console for debugging
     otp_type_display = "EMAIL" if otp_type == "email" else "WHATSAPP"
     print(f"\n{'='*50}")
     print(f"[OTP] {otp_type_display} OTP for {identifier}: {otp}")
     print(f"[OTP] Expires at: {expiry.isoformat()}")
     print(f"{'='*50}\n")
 
-    return otp
+    # Send OTP via appropriate channel
+    if otp_type == "email":
+        success = await send_otp_email(identifier, otp)
+        if not success:
+            # Remove stored OTP if sending failed
+            del _otp_store[key]
+            return False, "Failed to send OTP email. Please try again."
+        return True, "OTP sent to email"
+    else:
+        # WhatsApp not implemented yet
+        return True, "OTP sent to WhatsApp (simulated)"
 
 
 def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:

@@ -155,10 +155,16 @@ async def send_otp(
         )
 
     # Generate and store OTP
-    store_otp(identifier, payload.otp_type)
+    success, message = await store_otp(identifier, payload.otp_type)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
 
     return SendOTPResponse(
-        message=f"OTP sent to {payload.otp_type}",
+        message=message,
         expires_in=get_otp_expiry_seconds()
     )
 

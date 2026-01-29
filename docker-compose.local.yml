@@ -20,6 +20,14 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       AUDIO_LIBRARY_DIR: /app/audio-library/shrota-audio-library
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      NOTIFICATION_MODE: ${NOTIFICATION_MODE:-development}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@shrota.in}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Shrota Audiobooks}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
     ports:
       - "8000:8000"
     volumes:

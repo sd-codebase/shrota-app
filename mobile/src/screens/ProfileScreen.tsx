@@ -137,7 +137,10 @@ export function ProfileScreen() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-IN', {
+    // Parse YYYY-MM-DD format manually to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
