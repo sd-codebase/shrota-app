@@ -1,7 +1,7 @@
 import os
 import re
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Query, Depends
@@ -85,7 +85,7 @@ async def recalculate_book_duration(db: AsyncSession, book_id: UUID):
     book = await db.get(Book, book_id)
     if book:
         book.total_duration = total_duration
-        book.updated_at = datetime.utcnow()
+        book.updated_at = datetime.now(timezone.utc)
         await db.commit()
 
 
@@ -376,7 +376,7 @@ async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends
     for key, value in update_data.items():
         setattr(existing, key, value)
 
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
 
@@ -398,7 +398,7 @@ async def delete_book(book_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Book not found")
 
     existing.is_deleted = True
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return None
 
@@ -426,7 +426,7 @@ async def add_chapter(book_id: str, chapter: ChapterCreate, db: AsyncSession = D
     )
 
     db.add(new_chapter)
-    book.updated_at = datetime.utcnow()
+    book.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(new_chapter)
 
@@ -482,7 +482,7 @@ async def update_chapter(
     for key, value in update_data.items():
         setattr(existing_chapter, key, value)
 
-    book.updated_at = datetime.utcnow()
+    book.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(existing_chapter)
 
@@ -507,7 +507,7 @@ async def delete_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depen
         raise HTTPException(status_code=404, detail="Chapter not found")
 
     chapter.is_deleted = True
-    book.updated_at = datetime.utcnow()
+    book.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
     # Recalculate book duration after soft deleting chapter
@@ -571,7 +571,7 @@ async def process_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depe
         chapter.audio_url = audio_url
         chapter.duration = result["duration"]
         chapter.file_size = result["file_size"]
-        book.updated_at = datetime.utcnow()
+        book.updated_at = datetime.now(timezone.utc)
 
         await db.commit()
 

@@ -101,6 +101,7 @@ export interface ChapterCreate {
   order: number;
   file_id?: string;
   image?: string;
+  is_published?: boolean;
 }
 
 export interface Book {

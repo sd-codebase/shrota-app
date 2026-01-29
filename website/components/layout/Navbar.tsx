@@ -65,9 +65,9 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* CTA Button */}
+          {/* CTA Button - TODO: Update href when app is published */}
           <div className="hidden md:block">
-            <Button href="#" size="sm">
+            <Button href="/#download" size="sm">
               Download App
             </Button>
           </div>
@@ -125,7 +125,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                <Button href="#" size="md" className="mt-2">
+                <Button href="/#download" size="md" className="mt-2">
                   Download App
                 </Button>
               </div>

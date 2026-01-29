@@ -9,6 +9,40 @@ from config import UPLOAD_DIR
 
 router = APIRouter(prefix="/files", tags=["Files"])
 
+# File size limits (in bytes)
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_AUDIO_SIZE = 500 * 1024 * 1024  # 500 MB
+
+
+def validate_path_traversal(filename: str) -> None:
+    """Validate filename to prevent path traversal attacks."""
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename cannot be empty")
+    if ".." in filename or filename.startswith("/") or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    # Ensure the filename doesn't contain null bytes or other dangerous characters
+    if "\x00" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+
+def validate_resolved_path(file_path: str, allowed_dir: str) -> None:
+    """Validate that resolved path is within allowed directory."""
+    resolved = os.path.realpath(file_path)
+    allowed_resolved = os.path.realpath(allowed_dir)
+    if not resolved.startswith(allowed_resolved + os.sep) and resolved != allowed_resolved:
+        raise HTTPException(status_code=400, detail="Invalid file path")
+
+
+async def validate_file_size(file: UploadFile, max_size: int, file_type: str) -> None:
+    """Validate file size by reading content."""
+    content = await file.read()
+    await file.seek(0)  # Reset file position for later use
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"{file_type} file size exceeds maximum allowed ({max_size // (1024 * 1024)} MB)"
+        )
+
 # Ensure upload directories exist
 Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR = os.path.join(UPLOAD_DIR, "thumbnails")
@@ -42,6 +76,9 @@ async def upload_chapter_file(
             detail=f"Only audio files are allowed ({', '.join(ALLOWED_AUDIO_EXTENSIONS)})"
         )
 
+    # Validate file size
+    await validate_file_size(file, MAX_AUDIO_SIZE, "Audio")
+
     # Create book folder
     safe_book_name = sanitize_filename(book_name)
     book_dir = os.path.join(UPLOAD_DIR, safe_book_name)
@@ -74,9 +111,13 @@ async def upload_chapter_file(
 
 def sanitize_filename(name: str) -> str:
     """Convert book title to a safe filename."""
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
     # Remove special characters and replace spaces with hyphens
     sanitized = re.sub(r'[^\w\s-]', '', name.lower())
     sanitized = re.sub(r'[-\s]+', '-', sanitized).strip('-')
+    if not sanitized:
+        raise HTTPException(status_code=400, detail="Name results in empty filename after sanitization")
     return sanitized
 
 
@@ -92,6 +133,9 @@ async def upload_thumbnail(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     # Create filename from book name
     safe_name = sanitize_filename(book_name)
@@ -119,7 +163,9 @@ async def upload_thumbnail(
 
 @router.get("/thumbnail/{filename}")
 async def get_thumbnail(filename: str):
+    validate_path_traversal(filename)
     file_path = os.path.join(THUMBNAILS_DIR, filename)
+    validate_resolved_path(file_path, THUMBNAILS_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Thumbnail not found")
@@ -141,6 +187,9 @@ async def upload_chapter_image(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     # Create filename from book name and chapter order
     safe_name = sanitize_filename(book_name)
@@ -171,7 +220,9 @@ async def upload_chapter_image(
 @router.get("/chapter-image/{filename}")
 async def get_chapter_image(filename: str):
     """Get a chapter image by filename."""
+    validate_path_traversal(filename)
     file_path = os.path.join(CHAPTER_IMAGES_DIR, filename)
+    validate_resolved_path(file_path, CHAPTER_IMAGES_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Chapter image not found")
@@ -192,6 +243,9 @@ async def upload_genre_thumbnail(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     # Create filename from genre name
     safe_name = sanitize_filename(genre_name)
@@ -220,7 +274,9 @@ async def upload_genre_thumbnail(
 @router.get("/genre-thumbnail/{filename}")
 async def get_genre_thumbnail(filename: str):
     """Get a genre thumbnail by filename."""
+    validate_path_traversal(filename)
     file_path = os.path.join(GENRE_THUMBNAILS_DIR, filename)
+    validate_resolved_path(file_path, GENRE_THUMBNAILS_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Genre thumbnail not found")
@@ -241,6 +297,9 @@ async def upload_author_photo(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     safe_name = sanitize_filename(author_name)
     file_name = f"{safe_name}{file_extension}"
@@ -267,7 +326,9 @@ async def upload_author_photo(
 @router.get("/author-photo/{filename}")
 async def get_author_photo(filename: str):
     """Get an author photo by filename."""
+    validate_path_traversal(filename)
     file_path = os.path.join(AUTHOR_PHOTOS_DIR, filename)
+    validate_resolved_path(file_path, AUTHOR_PHOTOS_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Author photo not found")
@@ -288,6 +349,9 @@ async def upload_artist_photo(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     safe_name = sanitize_filename(artist_name)
     file_name = f"{safe_name}{file_extension}"
@@ -314,7 +378,9 @@ async def upload_artist_photo(
 @router.get("/artist-photo/{filename}")
 async def get_artist_photo(filename: str):
     """Get an artist photo by filename."""
+    validate_path_traversal(filename)
     file_path = os.path.join(ARTIST_PHOTOS_DIR, filename)
+    validate_resolved_path(file_path, ARTIST_PHOTOS_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Artist photo not found")
@@ -335,6 +401,9 @@ async def upload_publication_photo(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
         )
+
+    # Validate file size
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
 
     safe_name = sanitize_filename(publication_name)
     file_name = f"{safe_name}{file_extension}"
@@ -361,7 +430,9 @@ async def upload_publication_photo(
 @router.get("/publication-photo/{filename}")
 async def get_publication_photo(filename: str):
     """Get a publication photo by filename."""
+    validate_path_traversal(filename)
     file_path = os.path.join(PUBLICATION_PHOTOS_DIR, filename)
+    validate_resolved_path(file_path, PUBLICATION_PHOTOS_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Publication photo not found")
@@ -371,7 +442,10 @@ async def get_publication_photo(filename: str):
 
 @router.get("/chapter/{book_name}/{filename}")
 async def get_chapter_file(book_name: str, filename: str):
+    validate_path_traversal(book_name)
+    validate_path_traversal(filename)
     file_path = os.path.join(UPLOAD_DIR, book_name, filename)
+    validate_resolved_path(file_path, UPLOAD_DIR)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")

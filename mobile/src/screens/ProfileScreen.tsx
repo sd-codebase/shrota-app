@@ -99,7 +99,7 @@ export function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            navigation.reset({
+            (navigation as any).reset({
               index: 0,
               routes: [{ name: 'Login' }],
             });
@@ -120,14 +120,19 @@ export function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deactivateAccount(token!);
+              if (!token) {
+                Alert.alert('Error', 'You must be logged in to delete your account.');
+                return;
+              }
+              await deactivateAccount(token);
               await logout();
-              navigation.reset({
+              (navigation as any).reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
               });
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            } catch (error: unknown) {
+              const message = error instanceof Error ? error.message : 'Failed to delete account. Please try again.';
+              Alert.alert('Error', message);
             }
           },
         },

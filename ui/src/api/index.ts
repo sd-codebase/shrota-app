@@ -33,12 +33,19 @@ import type {
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const TOKEN_KEY = 'shrota_admin_token';
+
+function getAuthHeader(): Record<string, string> {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
       ...options?.headers,
     },
   });
@@ -267,6 +274,10 @@ export const uploadChapterFile = (
     });
 
     xhr.open('POST', `${API_URL}/files/upload/chapter`);
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
     xhr.send(formData);
   });
 };
@@ -282,6 +293,7 @@ export const uploadThumbnail = async (file: File, bookName: string): Promise<Thu
   const response = await fetch(`${API_URL}/files/upload/thumbnail`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {
@@ -308,6 +320,7 @@ export const uploadChapterImage = async (
   const response = await fetch(`${API_URL}/files/upload/chapter-image`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {
@@ -329,6 +342,7 @@ export const uploadGenreThumbnail = async (file: File, genreName: string): Promi
   const response = await fetch(`${API_URL}/files/upload/genre-thumbnail`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {
@@ -350,6 +364,7 @@ export const uploadAuthorPhoto = async (file: File, authorName: string): Promise
   const response = await fetch(`${API_URL}/files/upload/author-photo`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {
@@ -371,6 +386,7 @@ export const uploadArtistPhoto = async (file: File, artistName: string): Promise
   const response = await fetch(`${API_URL}/files/upload/artist-photo`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {
@@ -392,6 +408,7 @@ export const uploadPublicationPhoto = async (file: File, publicationName: string
   const response = await fetch(`${API_URL}/files/upload/publication-photo`, {
     method: 'POST',
     body: formData,
+    headers: getAuthHeader(),
   });
 
   if (!response.ok) {

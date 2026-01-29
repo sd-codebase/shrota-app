@@ -16,7 +16,8 @@ export async function getDownloads(): Promise<DownloadedBook[]> {
   try {
     const data = await AsyncStorage.getItem(DOWNLOADS_KEY);
     return data ? JSON.parse(data) : [];
-  } catch {
+  } catch (error) {
+    console.error('Failed to get downloads:', error);
     return [];
   }
 }
@@ -89,7 +90,7 @@ async function downloadFile(
   }
 
   const fileInfo = await FileSystem.getInfoAsync(localPath);
-  return (fileInfo as any).size || 0;
+  return (fileInfo.exists && 'size' in fileInfo) ? fileInfo.size : 0;
 }
 
 function createLocalM3U8Content(segmentFiles: string[]): string {
@@ -174,7 +175,8 @@ export async function downloadBook(
       const thumbnailPath = bookDir + 'thumbnail.jpg';
       await downloadFile(book.thumbnail, thumbnailPath);
       localThumbnail = thumbnailPath;
-    } catch {
+    } catch (error) {
+      console.warn('Failed to download thumbnail, using remote URL:', error);
       localThumbnail = book.thumbnail;
     }
   }
@@ -280,8 +282,8 @@ export async function deleteDownload(bookId: string): Promise<void> {
   if (book) {
     try {
       await FileSystem.deleteAsync(book.localPath, { idempotent: true });
-    } catch {
-      // Directory might not exist
+    } catch (error) {
+      console.warn('Failed to delete book directory (may not exist):', error);
     }
 
     const newDownloads = downloads.filter((d) => d.id !== bookId);

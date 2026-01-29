@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -95,7 +95,7 @@ async def update_progress(
         # Update existing progress
         progress.current_chapter_index = payload.current_chapter_index
         progress.current_position = payload.current_position
-        progress.last_played_at = datetime.utcnow()
+        progress.last_played_at = datetime.now(timezone.utc)
 
         if payload.total_listened_seconds is not None:
             progress.total_listened_seconds = payload.total_listened_seconds
@@ -115,7 +115,7 @@ async def update_progress(
             total_listened_seconds=payload.total_listened_seconds or 0,
             progress_percentage=payload.progress_percentage or 0.0,
             is_completed=payload.is_completed or False,
-            last_played_at=datetime.utcnow(),
+            last_played_at=datetime.now(timezone.utc),
         )
         db.add(progress)
 
@@ -262,7 +262,7 @@ async def like_book(
     liked = UserLikedBook(
         user_id=current_user.id,
         book_id=book_uuid,
-        liked_at=datetime.utcnow(),
+        liked_at=datetime.now(timezone.utc),
     )
     db.add(liked)
     await db.commit()

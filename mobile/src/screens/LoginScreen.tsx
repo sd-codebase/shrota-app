@@ -51,8 +51,9 @@ export function LoginScreen() {
         identifier: identifier.trim().toLowerCase(),
         otp_type: otpType,
       });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to send OTP';
+      Alert.alert('Error', message);
     } finally {
       setIsLoading(false);
     }

@@ -46,7 +46,9 @@ function MiniPlayer({ audioUrl, title, onClose }: MiniPlayerProps) {
       hls.loadSource(fullUrl);
       hls.attachMedia(audio);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        audio.play().then(() => setIsPlaying(true)).catch(console.error);
+        audio.play().then(() => setIsPlaying(true)).catch((error: Error) => {
+          console.error('Failed to play audio:', error.message);
+        });
       });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
@@ -57,7 +59,9 @@ function MiniPlayer({ audioUrl, title, onClose }: MiniPlayerProps) {
       // Safari native HLS support
       audio.src = fullUrl;
       audio.addEventListener('loadedmetadata', () => {
-        audio.play().then(() => setIsPlaying(true)).catch(console.error);
+        audio.play().then(() => setIsPlaying(true)).catch((error: Error) => {
+          console.error('Failed to play audio:', error.message);
+        });
       });
     }
 
@@ -96,7 +100,9 @@ function MiniPlayer({ audioUrl, title, onClose }: MiniPlayerProps) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      audio.play().then(() => setIsPlaying(true)).catch(console.error);
+      audio.play().then(() => setIsPlaying(true)).catch((error: Error) => {
+        console.error('Failed to play audio:', error.message);
+      });
     }
   };
 

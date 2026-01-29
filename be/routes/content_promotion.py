@@ -1,13 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy import select, or_, func
+from sqlalchemy.orm import joinedload, selectinload
 from database import get_db
-from models import NewRelease, FeaturedBook, PromotedBook, Book, Language, Genre
+from models import NewRelease, FeaturedBook, PromotedBook, Book, Language, Genre, Author, Artist
 from models.user import User
+from models.book import book_authors, book_artists, book_genres
 from schemas.content_promotion import (
     NewReleaseCreate,
     NewReleaseUpdate,
@@ -203,7 +204,7 @@ async def update_new_release(entry_id: str, data: NewReleaseUpdate, db: AsyncSes
 
     for key, value in update_data.items():
         setattr(entry, key, value)
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(entry)
@@ -248,7 +249,7 @@ async def reorder_new_releases(data: ReorderRequest, db: AsyncSession = Depends(
             raise HTTPException(status_code=404, detail=f"New release entry not found: {item.id}")
 
         entry.display_order = item.display_order
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         updated_entries.append(entry)
 
     await db.commit()
@@ -367,7 +368,7 @@ async def update_featured_book(entry_id: str, data: FeaturedBookUpdate, db: Asyn
 
     for key, value in update_data.items():
         setattr(entry, key, value)
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(entry)
@@ -412,7 +413,7 @@ async def reorder_featured_books(data: ReorderRequest, db: AsyncSession = Depend
             raise HTTPException(status_code=404, detail=f"Featured book entry not found: {item.id}")
 
         entry.display_order = item.display_order
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         updated_entries.append(entry)
 
     await db.commit()
@@ -531,7 +532,7 @@ async def update_promoted_book(entry_id: str, data: PromotedBookUpdate, db: Asyn
 
     for key, value in update_data.items():
         setattr(entry, key, value)
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(entry)
@@ -576,7 +577,7 @@ async def reorder_promoted_books(data: ReorderRequest, db: AsyncSession = Depend
             raise HTTPException(status_code=404, detail=f"Promoted book entry not found: {item.id}")
 
         entry.display_order = item.display_order
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         updated_entries.append(entry)
 
     await db.commit()
@@ -640,9 +641,6 @@ async def get_new_releases_mobile(
     Falls back to latest published books in the language if no promotions exist.
     Adult content is filtered for users under 18 or unauthenticated users.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
@@ -749,9 +747,6 @@ async def get_featured_books_mobile(
     Falls back to popular books in the language if no promotions exist.
     Adult content is filtered for users under 18 or unauthenticated users.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
@@ -860,9 +855,6 @@ async def get_books_by_genre_mobile(
     First tries promoted books, then falls back to regular books.
     Adult content is filtered for users under 18 or unauthenticated users.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
@@ -990,9 +982,6 @@ async def get_because_you_listened(
     sorted by created_at DESC (latest first).
     Adult content is filtered for users under 18 or unauthenticated users.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
@@ -1044,7 +1033,6 @@ async def get_because_you_listened(
 
     # Find books that have ALL the same genres as the source book
     # First, get all books that have at least one matching genre
-    from sqlalchemy import func
 
     # Subquery to count how many of the source genres each book has
     genre_count_subq = (
@@ -1129,9 +1117,6 @@ async def explore_books(
     Returns books sorted by created_at DESC (latest first).
     Adult content is filtered for users under 18 or unauthenticated users.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
@@ -1250,9 +1235,6 @@ async def get_book_mobile(
     Returns the same format as other mobile endpoints.
     Adult content is restricted to users 18 years or older.
     """
-    from sqlalchemy.orm import selectinload
-    from models import Author, Artist
-    from models.book import book_authors, book_artists, book_genres
 
     # Check if user is adult (18+)
     is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)

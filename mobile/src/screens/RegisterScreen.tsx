@@ -159,8 +159,9 @@ export function RegisterScreen() {
         identifier: identifier.toLowerCase(),
         otp_type: otpType,
       });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Registration failed');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      Alert.alert('Error', message);
     } finally {
       setIsLoading(false);
     }

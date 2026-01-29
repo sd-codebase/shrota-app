@@ -8,10 +8,21 @@ interface AppStoreButtonsProps {
   direction?: "row" | "column";
 }
 
+// TODO: Update these URLs when apps are published to stores
+const GOOGLE_PLAY_URL = "";  // e.g., "https://play.google.com/store/apps/details?id=com.shrota.app"
+const APP_STORE_URL = "";    // e.g., "https://apps.apple.com/app/shrota/id123456789"
+
 export function AppStoreButtons({
   className,
   direction = "row",
 }: AppStoreButtonsProps) {
+  const handleComingSoon = (e: React.MouseEvent) => {
+    if (!GOOGLE_PLAY_URL && !APP_STORE_URL) {
+      e.preventDefault();
+      // Could show a toast/alert here
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -22,9 +33,11 @@ export function AppStoreButtons({
     >
       {/* Google Play Store */}
       <motion.a
-        href="#"
-        target="_blank"
-        rel="noopener noreferrer"
+        href={GOOGLE_PLAY_URL || "/"}
+        onClick={handleComingSoon}
+        target={GOOGLE_PLAY_URL ? "_blank" : undefined}
+        rel={GOOGLE_PLAY_URL ? "noopener noreferrer" : undefined}
+        aria-label={GOOGLE_PLAY_URL ? "Get it on Google Play" : "Coming soon to Google Play"}
         className="inline-flex items-center gap-3 rounded-xl bg-bg-card border border-white/10 px-5 py-3 transition-all hover:bg-bg-secondary hover:border-brand-blue/50"
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.98 }}
@@ -50,9 +63,11 @@ export function AppStoreButtons({
 
       {/* Apple App Store */}
       <motion.a
-        href="#"
-        target="_blank"
-        rel="noopener noreferrer"
+        href={APP_STORE_URL || "/"}
+        onClick={handleComingSoon}
+        target={APP_STORE_URL ? "_blank" : undefined}
+        rel={APP_STORE_URL ? "noopener noreferrer" : undefined}
+        aria-label={APP_STORE_URL ? "Download on the App Store" : "Coming soon to App Store"}
         className="inline-flex items-center gap-3 rounded-xl bg-bg-card border border-white/10 px-5 py-3 transition-all hover:bg-bg-secondary hover:border-brand-blue/50"
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.98 }}

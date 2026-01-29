@@ -1,16 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models import Publication
+from models.admin import Admin
 from schemas.publication import (
     PublicationCreate,
     PublicationUpdate,
     PublicationResponse,
     PublicationBulkCreate,
 )
+from utils.auth import get_current_admin
 
 router = APIRouter(prefix="/publications", tags=["Publications"])
 
@@ -50,7 +52,11 @@ async def get_publication(publication_id: str, db: AsyncSession = Depends(get_db
 
 
 @router.post("", response_model=PublicationResponse, status_code=status.HTTP_201_CREATED)
-async def create_publication(publication: PublicationCreate, db: AsyncSession = Depends(get_db)):
+async def create_publication(
+    publication: PublicationCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_publication = Publication(
         name=publication.name,
         description=publication.description,
@@ -63,7 +69,11 @@ async def create_publication(publication: PublicationCreate, db: AsyncSession = 
 
 
 @router.post("/bulk", response_model=list[PublicationResponse], status_code=status.HTTP_201_CREATED)
-async def bulk_create_publications(data: PublicationBulkCreate, db: AsyncSession = Depends(get_db)):
+async def bulk_create_publications(
+    data: PublicationBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_publications = [
         Publication(name=p.name, description=p.description, photo=p.photo)
         for p in data.publications
@@ -76,7 +86,12 @@ async def bulk_create_publications(data: PublicationBulkCreate, db: AsyncSession
 
 
 @router.put("/{publication_id}", response_model=PublicationResponse)
-async def update_publication(publication_id: str, publication: PublicationUpdate, db: AsyncSession = Depends(get_db)):
+async def update_publication(
+    publication_id: str,
+    publication: PublicationUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     try:
         uuid_id = UUID(publication_id)
     except ValueError:
@@ -92,7 +107,7 @@ async def update_publication(publication_id: str, publication: PublicationUpdate
 
     for key, value in update_data.items():
         setattr(existing, key, value)
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(existing)
@@ -100,7 +115,11 @@ async def update_publication(publication_id: str, publication: PublicationUpdate
 
 
 @router.delete("/{publication_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_publication(publication_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_publication(
+    publication_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     """Soft delete a publication by setting is_deleted to true."""
     try:
         uuid_id = UUID(publication_id)
@@ -112,6 +131,6 @@ async def delete_publication(publication_id: str, db: AsyncSession = Depends(get
         raise HTTPException(status_code=404, detail="Publication not found")
 
     existing.is_deleted = True
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return None

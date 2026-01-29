@@ -18,8 +18,15 @@ from config import (
 def _load_template(template_name: str) -> str:
     """Load an email template from the templates directory."""
     template_path = Path(__file__).parent.parent / "templates" / "email" / template_name
-    with open(template_path, "r") as f:
-        return f.read()
+    try:
+        with open(template_path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        print(f"[EMAIL] Template not found: {template_path}")
+        raise
+    except IOError as e:
+        print(f"[EMAIL] Error reading template {template_path}: {e}")
+        raise
 
 
 async def send_otp_email(email: str, otp: str) -> bool:

@@ -466,7 +466,7 @@ function Books() {
 
   const handleToggleChapterPublish = async (book: Book, chapter: Chapter) => {
     try {
-      await updateChapter(book.id, chapter.id, { is_published: !chapter.is_published } as any);
+      await updateChapter(book.id, chapter.id, { is_published: !chapter.is_published });
       message.success(chapter.is_published ? 'Chapter unpublished' : 'Chapter published');
       fetchBooks(debouncedSearch || undefined);
     } catch (error) {

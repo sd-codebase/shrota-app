@@ -1,16 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models import Language
+from models.admin import Admin
 from schemas.language import (
     LanguageCreate,
     LanguageUpdate,
     LanguageResponse,
     LanguageBulkCreate,
 )
+from utils.auth import get_current_admin
 
 router = APIRouter(prefix="/languages", tags=["Languages"])
 
@@ -49,7 +51,11 @@ async def get_language(language_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=LanguageResponse, status_code=status.HTTP_201_CREATED)
-async def create_language(language: LanguageCreate, db: AsyncSession = Depends(get_db)):
+async def create_language(
+    language: LanguageCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_language = Language(
         name=language.name,
         code=language.code,
@@ -61,7 +67,11 @@ async def create_language(language: LanguageCreate, db: AsyncSession = Depends(g
 
 
 @router.post("/bulk", response_model=list[LanguageResponse], status_code=status.HTTP_201_CREATED)
-async def bulk_create_languages(data: LanguageBulkCreate, db: AsyncSession = Depends(get_db)):
+async def bulk_create_languages(
+    data: LanguageBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_languages = [
         Language(name=lang.name, code=lang.code)
         for lang in data.languages
@@ -74,7 +84,12 @@ async def bulk_create_languages(data: LanguageBulkCreate, db: AsyncSession = Dep
 
 
 @router.put("/{language_id}", response_model=LanguageResponse)
-async def update_language(language_id: str, language: LanguageUpdate, db: AsyncSession = Depends(get_db)):
+async def update_language(
+    language_id: str,
+    language: LanguageUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     try:
         uuid_id = UUID(language_id)
     except ValueError:
@@ -90,7 +105,7 @@ async def update_language(language_id: str, language: LanguageUpdate, db: AsyncS
 
     for key, value in update_data.items():
         setattr(existing, key, value)
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(existing)
@@ -98,7 +113,11 @@ async def update_language(language_id: str, language: LanguageUpdate, db: AsyncS
 
 
 @router.delete("/{language_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_language(language_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_language(
+    language_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     """Soft delete a language by setting is_deleted to true."""
     try:
         uuid_id = UUID(language_id)
@@ -110,6 +129,6 @@ async def delete_language(language_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Language not found")
 
     existing.is_deleted = True
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return None

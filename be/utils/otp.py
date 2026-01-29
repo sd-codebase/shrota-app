@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 from services.email_service import send_otp_email
@@ -30,7 +30,7 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
         Tuple of (success: bool, message: str)
     """
     otp = generate_otp()
-    expiry = datetime.utcnow() + timedelta(minutes=OTP_EXPIRY_MINUTES)
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
     # Create a unique key combining identifier and type
     key = f"{otp_type}:{identifier}"
@@ -76,7 +76,7 @@ def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
     stored_otp, expiry = _otp_store[key]
 
     # Check if OTP matches and is not expired
-    if stored_otp == otp and datetime.utcnow() <= expiry:
+    if stored_otp == otp and datetime.now(timezone.utc) <= expiry:
         # Remove OTP after successful verification
         del _otp_store[key]
         return True
@@ -86,7 +86,7 @@ def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
 
 def clear_expired_otps() -> None:
     """Remove all expired OTPs from storage."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expired_keys = [
         key for key, (_, expiry) in _otp_store.items()
         if now > expiry

@@ -1,16 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models import Artist
+from models.admin import Admin
 from schemas.artist import (
     ArtistCreate,
     ArtistUpdate,
     ArtistResponse,
     ArtistBulkCreate,
 )
+from utils.auth import get_current_admin
 
 router = APIRouter(prefix="/artists", tags=["Artists"])
 
@@ -51,7 +53,11 @@ async def get_artist(artist_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=ArtistResponse, status_code=status.HTTP_201_CREATED)
-async def create_artist(artist: ArtistCreate, db: AsyncSession = Depends(get_db)):
+async def create_artist(
+    artist: ArtistCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_artist = Artist(
         name=artist.name,
         bio=artist.bio,
@@ -65,7 +71,11 @@ async def create_artist(artist: ArtistCreate, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/bulk", response_model=list[ArtistResponse], status_code=status.HTTP_201_CREATED)
-async def bulk_create_artists(data: ArtistBulkCreate, db: AsyncSession = Depends(get_db)):
+async def bulk_create_artists(
+    data: ArtistBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_artists = [
         Artist(
             name=a.name,
@@ -83,7 +93,12 @@ async def bulk_create_artists(data: ArtistBulkCreate, db: AsyncSession = Depends
 
 
 @router.put("/{artist_id}", response_model=ArtistResponse)
-async def update_artist(artist_id: str, artist: ArtistUpdate, db: AsyncSession = Depends(get_db)):
+async def update_artist(
+    artist_id: str,
+    artist: ArtistUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     try:
         uuid_id = UUID(artist_id)
     except ValueError:
@@ -102,7 +117,7 @@ async def update_artist(artist_id: str, artist: ArtistUpdate, db: AsyncSession =
             setattr(existing, key, value if isinstance(value, dict) else value)
         else:
             setattr(existing, key, value)
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(existing)
@@ -110,7 +125,11 @@ async def update_artist(artist_id: str, artist: ArtistUpdate, db: AsyncSession =
 
 
 @router.delete("/{artist_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_artist(artist_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_artist(
+    artist_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     """Soft delete an artist by setting is_deleted to true."""
     try:
         uuid_id = UUID(artist_id)
@@ -122,6 +141,6 @@ async def delete_artist(artist_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Artist not found")
 
     existing.is_deleted = True
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return None

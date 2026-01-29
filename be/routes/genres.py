@@ -1,16 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models import Genre
+from models.admin import Admin
 from schemas.genre import (
     GenreCreate,
     GenreUpdate,
     GenreResponse,
     GenreBulkCreate,
 )
+from utils.auth import get_current_admin
 
 router = APIRouter(prefix="/genres", tags=["Genres"])
 
@@ -50,7 +52,11 @@ async def get_genre(genre_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=GenreResponse, status_code=status.HTTP_201_CREATED)
-async def create_genre(genre: GenreCreate, db: AsyncSession = Depends(get_db)):
+async def create_genre(
+    genre: GenreCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_genre = Genre(
         name=genre.name,
         description=genre.description,
@@ -63,7 +69,11 @@ async def create_genre(genre: GenreCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/bulk", response_model=list[GenreResponse], status_code=status.HTTP_201_CREATED)
-async def bulk_create_genres(data: GenreBulkCreate, db: AsyncSession = Depends(get_db)):
+async def bulk_create_genres(
+    data: GenreBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     new_genres = [
         Genre(name=g.name, description=g.description, thumbnail=g.thumbnail)
         for g in data.genres
@@ -76,7 +86,12 @@ async def bulk_create_genres(data: GenreBulkCreate, db: AsyncSession = Depends(g
 
 
 @router.put("/{genre_id}", response_model=GenreResponse)
-async def update_genre(genre_id: str, genre: GenreUpdate, db: AsyncSession = Depends(get_db)):
+async def update_genre(
+    genre_id: str,
+    genre: GenreUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     try:
         uuid_id = UUID(genre_id)
     except ValueError:
@@ -92,7 +107,7 @@ async def update_genre(genre_id: str, genre: GenreUpdate, db: AsyncSession = Dep
 
     for key, value in update_data.items():
         setattr(existing, key, value)
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(existing)
@@ -100,7 +115,11 @@ async def update_genre(genre_id: str, genre: GenreUpdate, db: AsyncSession = Dep
 
 
 @router.delete("/{genre_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_genre(genre_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_genre(
+    genre_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
     """Soft delete a genre by setting is_deleted to true."""
     try:
         uuid_id = UUID(genre_id)
@@ -112,6 +131,6 @@ async def delete_genre(genre_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Genre not found")
 
     existing.is_deleted = True
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return None

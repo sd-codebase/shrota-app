@@ -154,8 +154,9 @@ export function OTPVerificationScreen() {
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Invalid OTP');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Invalid OTP';
+      Alert.alert('Error', message);
       // Clear OTP on error
       setOtp(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
@@ -170,8 +171,9 @@ export function OTPVerificationScreen() {
       await sendOTP({ identifier, otp_type });
       setCountdown(60); // 60 seconds cooldown
       Alert.alert('Success', 'OTP has been resent');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to resend OTP');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to resend OTP';
+      Alert.alert('Error', message);
     } finally {
       setIsResending(false);
     }
@@ -226,7 +228,7 @@ export function OTPVerificationScreen() {
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
+                ref={(ref) => { inputRefs.current[index] = ref; }}
                 style={[
                   styles.otpInput,
                   {
