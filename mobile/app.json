@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AudioBook",
-    "slug": "audiobook-demo",
+    "name": "Shrota",
+    "slug": "shrota",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.audiobook.demo",
+      "bundleIdentifier": "com.shrota.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -32,7 +32,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.audiobook.demo",
+      "package": "com.shrota.app",
       "permissions": [
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.WAKE_LOCK"
@@ -62,9 +62,10 @@
         }
       ]
     ],
+    "owner": "krishna.jsleet",
     "extra": {
       "eas": {
-        "projectId": "178d41e0-126a-44cc-bc7d-ecaeeae2d9ac"
+        "projectId": "c78f894d-fcd8-46bd-b6a5-33aafc44c7c9"
       }
     }
   }
