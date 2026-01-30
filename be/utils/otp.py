@@ -12,6 +12,11 @@ _otp_store: dict[str, Tuple[str, datetime]] = {}
 OTP_LENGTH = 6
 OTP_EXPIRY_MINUTES = 5
 
+# Test account for Google Play Store verification
+# TODO: Remove this bypass after app is released
+TEST_EMAIL = "myshrota73649281@gmail.com"
+TEST_OTP = "643914"
+
 
 def generate_otp() -> str:
     """Generate a random 6-digit OTP."""
@@ -29,6 +34,20 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (success: bool, message: str)
     """
+    # Test account bypass for Google Play Store verification
+    # TODO: Remove this bypass after app is released
+    if otp_type == "email" and identifier.lower() == TEST_EMAIL.lower():
+        otp = TEST_OTP
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
+        key = f"{otp_type}:{identifier}"
+        _otp_store[key] = (otp, expiry)
+        print(f"\n{'='*50}")
+        print(f"[OTP] TEST ACCOUNT - OTP for {identifier}: {otp}")
+        print(f"[OTP] Expires at: {expiry.isoformat()}")
+        print(f"[OTP] Email NOT sent (test account bypass)")
+        print(f"{'='*50}\n")
+        return True, "OTP sent to email"
+
     otp = generate_otp()
     expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
