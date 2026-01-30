@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AudioBook, DownloadedBook, DownloadProgress } from '../types';
 import {
   downloadBook as downloadBookService,
   deleteDownload as deleteDownloadService,
   getDownloads,
 } from '../services/downloadService';
+import { useAuth } from './AuthContext';
 
 interface DownloadContextType {
   downloads: DownloadedBook[];
@@ -24,10 +25,24 @@ const DownloadContext = createContext<DownloadContextType | undefined>(undefined
 export function DownloadProvider({ children }: { children: ReactNode }) {
   const [downloads, setDownloads] = useState<DownloadedBook[]>([]);
   const [activeDownloads, setActiveDownloads] = useState<Map<string, DownloadProgress>>(new Map());
+  const { user } = useAuth();
+  const previousUserIdRef = useRef<string | null>(null);
 
+  // Refresh downloads when user changes (login/logout or different user)
   useEffect(() => {
-    refreshDownloads();
-  }, []);
+    const currentUserId = user?.id || null;
+
+    // Only refresh if user actually changed
+    if (currentUserId !== previousUserIdRef.current) {
+      previousUserIdRef.current = currentUserId;
+
+      // Clear active downloads when user changes
+      setActiveDownloads(new Map());
+
+      // Refresh downloads for new user (will be empty if different user or logged out)
+      refreshDownloads();
+    }
+  }, [user?.id]);
 
   const refreshDownloads = async () => {
     const data = await getDownloads();

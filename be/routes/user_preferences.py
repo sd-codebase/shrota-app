@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, insert
 from sqlalchemy.orm import selectinload
 
 from database import get_db
@@ -97,7 +97,7 @@ async def update_preferences(
         db.add(preferences)
         await db.flush()
 
-    # Clear existing preferences
+    # Clear existing preferences from junction tables
     await db.execute(
         delete(user_preferred_languages).where(
             user_preferred_languages.c.user_id == current_user.id
@@ -109,27 +109,27 @@ async def update_preferences(
         )
     )
 
-    # Set new preferences
-    preferences.languages = list(languages)
-    preferences.genres = list(genres)
+    # Insert new preferences directly into junction tables
+    if language_uuids:
+        await db.execute(
+            insert(user_preferred_languages),
+            [{"user_id": current_user.id, "language_id": lang_id} for lang_id in language_uuids]
+        )
+
+    if genre_uuids:
+        await db.execute(
+            insert(user_preferred_genres),
+            [{"user_id": current_user.id, "genre_id": genre_id} for genre_id in genre_uuids]
+        )
+
+    # Update timestamp
     preferences.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
 
-    # Refresh to get updated relationships
-    await db.refresh(preferences)
-    result = await db.execute(
-        select(UserPreferences)
-        .options(
-            selectinload(UserPreferences.languages),
-            selectinload(UserPreferences.genres)
-        )
-        .where(UserPreferences.id == preferences.id)
-    )
-    preferences = result.scalar_one()
-
+    # Return response with the IDs we just inserted
     return PreferencesResponse(
-        language_ids=[str(lang.id) for lang in preferences.languages],
-        genre_ids=[str(genre.id) for genre in preferences.genres],
+        language_ids=[str(lang_id) for lang_id in language_uuids],
+        genre_ids=[str(genre_id) for genre_id in genre_uuids],
         updated_at=preferences.updated_at
     )

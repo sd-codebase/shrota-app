@@ -2,8 +2,37 @@ import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AudioBook, AudioChapter, DownloadedBook, DownloadedChapter, DownloadProgress } from '../types';
 
-const DOWNLOADS_KEY = 'audiobook_downloads';
+const DOWNLOADS_KEY_PREFIX = '@shrota_downloads_';
+const AUTH_USER_KEY = '@shrota_auth_user';
 const DOWNLOADS_DIR = (FileSystem.documentDirectory || '') + 'audiobooks/';
+
+/**
+ * Get the current user ID from AsyncStorage
+ */
+async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const userJson = await AsyncStorage.getItem(AUTH_USER_KEY);
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      return user.id || null;
+    }
+    return null;
+  } catch (error) {
+    console.log('Failed to get current user:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the storage key for the current user's downloads
+ */
+async function getDownloadsKey(): Promise<string | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return null;
+  }
+  return `${DOWNLOADS_KEY_PREFIX}${userId}`;
+}
 
 export async function ensureDownloadDir(): Promise<void> {
   const dirInfo = await FileSystem.getInfoAsync(DOWNLOADS_DIR);
@@ -14,7 +43,11 @@ export async function ensureDownloadDir(): Promise<void> {
 
 export async function getDownloads(): Promise<DownloadedBook[]> {
   try {
-    const data = await AsyncStorage.getItem(DOWNLOADS_KEY);
+    const key = await getDownloadsKey();
+    if (!key) {
+      return [];
+    }
+    const data = await AsyncStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     console.error('Failed to get downloads:', error);
@@ -23,7 +56,38 @@ export async function getDownloads(): Promise<DownloadedBook[]> {
 }
 
 export async function saveDownloads(downloads: DownloadedBook[]): Promise<void> {
-  await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+  const key = await getDownloadsKey();
+  if (!key) {
+    console.log('No user logged in, cannot save downloads');
+    return;
+  }
+  await AsyncStorage.setItem(key, JSON.stringify(downloads));
+}
+
+/**
+ * Clear all downloads for the current user (files and metadata)
+ */
+export async function clearAllDownloads(): Promise<void> {
+  try {
+    const downloads = await getDownloads();
+
+    // Delete all downloaded files
+    for (const book of downloads) {
+      try {
+        await FileSystem.deleteAsync(book.localPath, { idempotent: true });
+      } catch (error) {
+        console.warn('Failed to delete book directory:', error);
+      }
+    }
+
+    // Clear the downloads metadata
+    const key = await getDownloadsKey();
+    if (key) {
+      await AsyncStorage.removeItem(key);
+    }
+  } catch (error) {
+    console.error('Failed to clear downloads:', error);
+  }
 }
 
 export async function isBookDownloaded(bookId: string): Promise<boolean> {
