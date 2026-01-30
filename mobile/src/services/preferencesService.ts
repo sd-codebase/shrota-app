@@ -1,65 +1,75 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './apiClient';
 
-const PREFERENCES_KEY_PREFIX = '@shrota_preferences_';
-const AUTH_USER_KEY = '@shrota_auth_user';
+const PREFERENCES_CACHE_KEY = '@shrota_preferences_cache';
 
 export interface UserPreferences {
-  genreIds: string[]; // Multiple genres (configurable limit)
-  languageIds: string[]; // Multiple languages (configurable limit)
-  // Legacy support
-  languageId?: string;
+  genreIds: string[];
+  languageIds: string[];
   updatedAt: number;
 }
 
+interface BackendPreferencesResponse {
+  language_ids: string[];
+  genre_ids: string[];
+  updated_at: string;
+}
+
 /**
- * Get the current user ID from AsyncStorage
+ * Get user preferences from backend, with local cache fallback.
  */
-async function getCurrentUserId(): Promise<string | null> {
+export async function getUserPreferences(): Promise<UserPreferences | null> {
   try {
-    const userJson = await AsyncStorage.getItem(AUTH_USER_KEY);
-    if (userJson) {
-      const user = JSON.parse(userJson);
-      return user.id || null;
-    }
-    return null;
+    // Try to fetch from backend
+    const response = await apiClient.get<BackendPreferencesResponse>('/v1/preferences');
+
+    const preferences: UserPreferences = {
+      genreIds: response.genre_ids,
+      languageIds: response.language_ids,
+      updatedAt: new Date(response.updated_at).getTime(),
+    };
+
+    // Cache locally for offline access
+    await AsyncStorage.setItem(PREFERENCES_CACHE_KEY, JSON.stringify(preferences));
+
+    return preferences;
   } catch (error) {
-    console.log('Failed to get current user:', error);
+    // If API fails (e.g., offline), try to use cached preferences
+    try {
+      const cached = await AsyncStorage.getItem(PREFERENCES_CACHE_KEY);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // Ignore cache read errors
+    }
+
+    console.log('Failed to get preferences:', error);
     return null;
   }
 }
 
 /**
- * Get the storage key for the current user's preferences
- */
-async function getStorageKey(): Promise<string | null> {
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    return null;
-  }
-  return `${PREFERENCES_KEY_PREFIX}${userId}`;
-}
-
-/**
- * Save user preferences
+ * Save user preferences to backend.
  */
 export async function saveUserPreferences(
   genreIds: string[],
   languageIds: string[]
 ): Promise<void> {
   try {
-    const storageKey = await getStorageKey();
-    if (!storageKey) {
-      console.log('No user logged in, cannot save preferences');
-      return;
-    }
+    // Save to backend
+    const response = await apiClient.put<BackendPreferencesResponse>('/v1/preferences', {
+      language_ids: languageIds,
+      genre_ids: genreIds,
+    });
 
+    // Update local cache
     const preferences: UserPreferences = {
-      genreIds,
-      languageIds,
-      updatedAt: Date.now(),
+      genreIds: response.genre_ids,
+      languageIds: response.language_ids,
+      updatedAt: new Date(response.updated_at).getTime(),
     };
-
-    await AsyncStorage.setItem(storageKey, JSON.stringify(preferences));
+    await AsyncStorage.setItem(PREFERENCES_CACHE_KEY, JSON.stringify(preferences));
   } catch (error) {
     console.log('Failed to save preferences:', error);
     throw error;
@@ -67,37 +77,7 @@ export async function saveUserPreferences(
 }
 
 /**
- * Get user preferences
- */
-export async function getUserPreferences(): Promise<UserPreferences | null> {
-  try {
-    const storageKey = await getStorageKey();
-    if (!storageKey) {
-      return null;
-    }
-
-    const data = await AsyncStorage.getItem(storageKey);
-    if (data) {
-      const preferences = JSON.parse(data);
-      // Migrate from old format (languageId) to new format (languageIds)
-      if (!preferences.languageIds && preferences.languageId) {
-        preferences.languageIds = [preferences.languageId];
-      }
-      // Ensure languageIds is always an array
-      if (!preferences.languageIds) {
-        preferences.languageIds = [];
-      }
-      return preferences;
-    }
-    return null;
-  } catch (error) {
-    console.log('Failed to get preferences:', error);
-    return null;
-  }
-}
-
-/**
- * Check if user has set their preferences
+ * Check if user has set their preferences.
  */
 export async function hasUserPreferences(): Promise<boolean> {
   const preferences = await getUserPreferences();
@@ -107,15 +87,13 @@ export async function hasUserPreferences(): Promise<boolean> {
 }
 
 /**
- * Clear user preferences (useful for logout)
+ * Clear local preferences cache (useful for logout).
+ * Note: This only clears the local cache, not the backend data.
  */
 export async function clearUserPreferences(): Promise<void> {
   try {
-    const storageKey = await getStorageKey();
-    if (storageKey) {
-      await AsyncStorage.removeItem(storageKey);
-    }
+    await AsyncStorage.removeItem(PREFERENCES_CACHE_KEY);
   } catch (error) {
-    console.log('Failed to clear preferences:', error);
+    console.log('Failed to clear preferences cache:', error);
   }
 }

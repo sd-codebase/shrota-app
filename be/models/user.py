@@ -1,10 +1,14 @@
 import uuid
 from datetime import date
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Boolean, Date, Index
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from models.user_preferences import UserPreferences
 
 
 class User(Base, TimestampMixin):
@@ -23,6 +27,9 @@ class User(Base, TimestampMixin):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_whatsapp_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Relationships
+    preferences: Mapped["UserPreferences"] = relationship("UserPreferences", back_populates="user", uselist=False)
 
     # Add check constraint to ensure at least one contact method is provided
     __table_args__ = (

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  ActivityIndicator,
   RefreshControl,
   FlatList,
 } from 'react-native';
@@ -23,7 +22,6 @@ import { ExploreCard } from '../components/ExploreCard';
 import { StandardBookCard } from '../components/cards';
 import { LogoLoader } from '../components/LogoLoader';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import {
   fetchNewReleases,
   fetchFeaturedBooks,
@@ -56,7 +54,6 @@ export function BooksScreen() {
   const navigation = useNavigation<NavigationProp>();
   const currentBook = useCurrentBook();
   const { colors, isDark, toggleTheme } = useTheme();
-  const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,50 +72,20 @@ export function BooksScreen() {
 
   const loadSectionData = useCallback(async (prefs: UserPreferences | null) => {
     if (!prefs || prefs.languageIds.length === 0) {
-      console.log('[DEBUG] No preferences or language selected');
       return;
     }
 
     try {
       setError(null);
-      const languageIds = prefs.languageIds; // Use all selected languages
 
-      console.log('[DEBUG] Auth token:', token ? 'EXISTS' : 'MISSING');
-      console.log('[DEBUG] Language IDs:', languageIds);
-      console.log('[DEBUG] Genre IDs:', prefs.genreIds);
-
-      // Fetch genres first
+      // Fetch genres for section headers
       const allGenres = await fetchGenres().catch(() => []);
 
-      // Fetch new releases and featured for ALL selected languages
-      const newReleasesPromises = languageIds.map((langId) =>
-        fetchNewReleases(langId, token || undefined).catch((err) => {
-          console.log('[DEBUG] fetchNewReleases error for', langId, ':', err.message);
-          return [];
-        })
-      );
-      const featuredPromises = languageIds.map((langId) =>
-        fetchFeaturedBooks(langId, token || undefined).catch((err) => {
-          console.log('[DEBUG] fetchFeaturedBooks error for', langId, ':', err.message);
-          return [];
-        })
-      );
-
-      const [newReleasesResults, featuredResults] = await Promise.all([
-        Promise.all(newReleasesPromises),
-        Promise.all(featuredPromises),
+      // Fetch new releases and featured (backend uses user preferences)
+      const [newReleasesData, featuredData] = await Promise.all([
+        fetchNewReleases().catch(() => []),
+        fetchFeaturedBooks().catch(() => []),
       ]);
-
-      // Merge and deduplicate results
-      const newReleasesData = newReleasesResults.flat().filter(
-        (book, index, self) => self.findIndex((b) => b.id === book.id) === index
-      );
-      const featuredData = featuredResults.flat().filter(
-        (book, index, self) => self.findIndex((b) => b.id === book.id) === index
-      );
-
-      console.log('[DEBUG] New releases count:', newReleasesData.length);
-      console.log('[DEBUG] Featured count:', featuredData.length);
 
       setNewReleases(newReleasesData);
       setFeatured(featuredData);
@@ -167,10 +134,8 @@ export function BooksScreen() {
             const recommendations = await fetchBecauseYouListenedTo(
               sourceBook.book_id,
               excludeIds,
-              languageIds[0], // Use primary language for recommendations
               10,
-              0,
-              token || undefined
+              0
             );
 
             if (recommendations.length > 0) {
@@ -189,7 +154,7 @@ export function BooksScreen() {
         setBecauseYouListenedSections([]);
       }
 
-      // Fetch genre-based sections (max 3 genres)
+      // Fetch genre-based sections (max 3 genres from user preferences)
       const genreIds = prefs.genreIds.slice(0, 3);
       const genreSectionsData: GenreSection[] = [];
 
@@ -197,8 +162,7 @@ export function BooksScreen() {
         try {
           const genre = allGenres.find((g) => g.id === genreId);
           if (genre) {
-            // Pass first languageId to filter books by user's preferred language
-            const books = await fetchBooksByGenre(genreId, languageIds[0], 10, 0, token || undefined);
+            const books = await fetchBooksByGenre(genreId, 10, 0);
             if (books.length > 0) {
               genreSectionsData.push({ genre, books });
             }
@@ -213,7 +177,7 @@ export function BooksScreen() {
       console.error('Failed to load sections:', err);
       setError('Failed to load content. Pull to refresh.');
     }
-  }, [token]);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {

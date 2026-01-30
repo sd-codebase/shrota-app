@@ -18,6 +18,8 @@ from routes import (
     search_router,
     user_activity_router,
     content_promotion_router,
+    user_preferences_router,
+    mobile_router,
 )
 
 
@@ -52,6 +54,8 @@ app.include_router(publications_router)
 app.include_router(books_router)
 app.include_router(files_router)
 app.include_router(content_promotion_router)
+app.include_router(user_preferences_router)
+app.include_router(mobile_router)
 
 
 @app.get("/")

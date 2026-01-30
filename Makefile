@@ -32,7 +32,23 @@ staging-migrate:
 		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
 		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
-		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
+		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
+		CREATE TABLE IF NOT EXISTS user_preferences ( \
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
+			user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE, \
+			created_at TIMESTAMPTZ DEFAULT NOW(), \
+			updated_at TIMESTAMPTZ DEFAULT NOW() \
+		); \
+		CREATE TABLE IF NOT EXISTS user_preferred_languages ( \
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
+			language_id UUID REFERENCES languages(id) ON DELETE CASCADE, \
+			PRIMARY KEY (user_id, language_id) \
+		); \
+		CREATE TABLE IF NOT EXISTS user_preferred_genres ( \
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
+			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
+			PRIMARY KEY (user_id, genre_id) \
+		);"
 
 # =============================================================================
 # PRODUCTION COMMANDS
@@ -62,7 +78,23 @@ prod-migrate:
 		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
 		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
-		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
+		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
+		CREATE TABLE IF NOT EXISTS user_preferences ( \
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
+			user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE, \
+			created_at TIMESTAMPTZ DEFAULT NOW(), \
+			updated_at TIMESTAMPTZ DEFAULT NOW() \
+		); \
+		CREATE TABLE IF NOT EXISTS user_preferred_languages ( \
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
+			language_id UUID REFERENCES languages(id) ON DELETE CASCADE, \
+			PRIMARY KEY (user_id, language_id) \
+		); \
+		CREATE TABLE IF NOT EXISTS user_preferred_genres ( \
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
+			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
+			PRIMARY KEY (user_id, genre_id) \
+		);"
 
 # =============================================================================
 # LOCAL COMMANDS

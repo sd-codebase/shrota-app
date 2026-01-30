@@ -15,7 +15,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { DefaultBookCover } from '../components/DefaultBookCover';
 import {
@@ -44,7 +43,6 @@ export function SectionListScreen() {
   const route = useRoute<SectionListRouteProp>();
   const { sectionType, title, languageId, genreId, sourceBookId } = route.params;
   const { colors, isDark } = useTheme();
-  const { token } = useAuth();
   const currentBook = useCurrentBook();
 
   const [books, setBooks] = useState<AudioBook[]>([]);
@@ -67,15 +65,13 @@ export function SectionListScreen() {
 
       switch (sectionType) {
         case 'new-releases':
-          if (languageId) {
-            newBooks = await fetchNewReleases(languageId, token || undefined);
-          }
+          // Backend uses user preferences for language filtering
+          newBooks = await fetchNewReleases();
           setHasMore(false); // API returns all at once
           break;
         case 'featured':
-          if (languageId) {
-            newBooks = await fetchFeaturedBooks(languageId, token || undefined);
-          }
+          // Backend uses user preferences for language filtering
+          newBooks = await fetchFeaturedBooks();
           setHasMore(false); // API returns all at once
           break;
         case 'continue-listening':
@@ -97,7 +93,8 @@ export function SectionListScreen() {
           break;
         case 'genre':
           if (genreId) {
-            newBooks = await fetchBooksByGenre(genreId, languageId, PAGE_SIZE, currentOffset, token || undefined);
+            // Backend uses user preferences for language filtering
+            newBooks = await fetchBooksByGenre(genreId, PAGE_SIZE, currentOffset);
             setHasMore(newBooks.length === PAGE_SIZE);
           }
           break;
@@ -111,13 +108,12 @@ export function SectionListScreen() {
               ...inProgress.filter((p) => !p.is_completed).map((p) => p.book_id),
             ];
 
+            // Backend uses user preferences for language filtering
             newBooks = await fetchBecauseYouListenedTo(
               sourceBookId,
               excludeIds,
-              languageId,
               PAGE_SIZE,
-              currentOffset,
-              token || undefined
+              currentOffset
             );
             setHasMore(newBooks.length === PAGE_SIZE);
           }
@@ -137,7 +133,7 @@ export function SectionListScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [sectionType, languageId, genreId, sourceBookId, offset, token]);
+  }, [sectionType, languageId, genreId, sourceBookId, offset]);
 
   useEffect(() => {
     loadData();

@@ -12,6 +12,8 @@ import {
   verifyOTP,
   getCurrentUser,
 } from '../services/authApi';
+import { apiClient } from '../services/apiClient';
+import { clearUserPreferences } from '../services/preferencesService';
 
 const AUTH_TOKEN_KEY = '@shrota_auth_token';
 const AUTH_USER_KEY = '@shrota_auth_user';
@@ -110,6 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await Promise.all([
         AsyncStorage.removeItem(AUTH_TOKEN_KEY),
         AsyncStorage.removeItem(AUTH_USER_KEY),
+        clearUserPreferences(),
       ]);
     } catch (error) {
       console.error('Failed to clear auth data:', error);
@@ -117,6 +120,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setToken(null);
     setUser(null);
+  }, []);
+
+  // Register apiClient logout callback for 401 handling
+  useEffect(() => {
+    apiClient.setAuthLogoutCallback(() => {
+      setToken(null);
+      setUser(null);
+    });
   }, []);
 
   const value: AuthContextType = {

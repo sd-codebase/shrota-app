@@ -18,7 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { AudioBook, AudioChapter, RootStackParamList, HomeStackParamList, BookProgress, Genre, Language, Publication } from '../types';
 import { formatDuration } from '../utils/formatters';
 import { getBookProgress } from '../services/userActivityApi';
@@ -38,7 +37,6 @@ export function BookDetailsScreen() {
   const route = useRoute<BookDetailsRouteProp>();
   const { book: initialBook } = route.params;
   const { colors, isDark } = useTheme();
-  const { token } = useAuth();
 
   const { playBook, togglePlayPause } = usePlayer();
   const [savedProgress, setSavedProgress] = useState<BookProgress | null>(null);
@@ -73,7 +71,7 @@ export function BookDetailsScreen() {
       if (initialBook.chapters.length === 0) {
         setLoadingBook(true);
         try {
-          const bookData = await fetchBookById(initialBook.id, token || undefined);
+          const bookData = await fetchBookById(initialBook.id);
           setFullBook(bookData);
         } catch (error) {
           console.error('Failed to fetch full book data:', error);

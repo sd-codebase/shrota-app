@@ -9,6 +9,7 @@ from models.admin import Admin
 from models.user import User
 from models.user_activity import UserBookProgress, UserLikedBook
 from models.content_promotion import NewRelease, FeaturedBook, PromotedBook
+from models.user_preferences import UserPreferences, user_preferred_languages, user_preferred_genres
 
 __all__ = [
     "Base",
@@ -31,4 +32,7 @@ __all__ = [
     "NewRelease",
     "FeaturedBook",
     "PromotedBook",
+    "UserPreferences",
+    "user_preferred_languages",
+    "user_preferred_genres",
 ]
