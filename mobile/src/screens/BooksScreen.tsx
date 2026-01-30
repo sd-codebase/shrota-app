@@ -75,19 +75,50 @@ export function BooksScreen() {
 
   const loadSectionData = useCallback(async (prefs: UserPreferences | null) => {
     if (!prefs || prefs.languageIds.length === 0) {
+      console.log('[DEBUG] No preferences or language selected');
       return;
     }
 
     try {
       setError(null);
-      const languageId = prefs.languageIds[0]; // Use primary language
+      const languageIds = prefs.languageIds; // Use all selected languages
 
-      // Fetch all data in parallel
-      const [newReleasesData, featuredData, allGenres] = await Promise.all([
-        fetchNewReleases(languageId, token || undefined).catch(() => []),
-        fetchFeaturedBooks(languageId, token || undefined).catch(() => []),
-        fetchGenres().catch(() => []),
+      console.log('[DEBUG] Auth token:', token ? 'EXISTS' : 'MISSING');
+      console.log('[DEBUG] Language IDs:', languageIds);
+      console.log('[DEBUG] Genre IDs:', prefs.genreIds);
+
+      // Fetch genres first
+      const allGenres = await fetchGenres().catch(() => []);
+
+      // Fetch new releases and featured for ALL selected languages
+      const newReleasesPromises = languageIds.map((langId) =>
+        fetchNewReleases(langId, token || undefined).catch((err) => {
+          console.log('[DEBUG] fetchNewReleases error for', langId, ':', err.message);
+          return [];
+        })
+      );
+      const featuredPromises = languageIds.map((langId) =>
+        fetchFeaturedBooks(langId, token || undefined).catch((err) => {
+          console.log('[DEBUG] fetchFeaturedBooks error for', langId, ':', err.message);
+          return [];
+        })
+      );
+
+      const [newReleasesResults, featuredResults] = await Promise.all([
+        Promise.all(newReleasesPromises),
+        Promise.all(featuredPromises),
       ]);
+
+      // Merge and deduplicate results
+      const newReleasesData = newReleasesResults.flat().filter(
+        (book, index, self) => self.findIndex((b) => b.id === book.id) === index
+      );
+      const featuredData = featuredResults.flat().filter(
+        (book, index, self) => self.findIndex((b) => b.id === book.id) === index
+      );
+
+      console.log('[DEBUG] New releases count:', newReleasesData.length);
+      console.log('[DEBUG] Featured count:', featuredData.length);
 
       setNewReleases(newReleasesData);
       setFeatured(featuredData);
@@ -136,7 +167,7 @@ export function BooksScreen() {
             const recommendations = await fetchBecauseYouListenedTo(
               sourceBook.book_id,
               excludeIds,
-              languageId,
+              languageIds[0], // Use primary language for recommendations
               10,
               0,
               token || undefined
@@ -166,8 +197,8 @@ export function BooksScreen() {
         try {
           const genre = allGenres.find((g) => g.id === genreId);
           if (genre) {
-            // Pass languageId to filter books by user's preferred language
-            const books = await fetchBooksByGenre(genreId, languageId, 10, 0, token || undefined);
+            // Pass first languageId to filter books by user's preferred language
+            const books = await fetchBooksByGenre(genreId, languageIds[0], 10, 0, token || undefined);
             if (books.length > 0) {
               genreSectionsData.push({ genre, books });
             }
