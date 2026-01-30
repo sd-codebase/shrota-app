@@ -26,7 +26,13 @@ staging-logs:
 	docker compose --env-file .env.staging -f docker-compose.staging.yml logs -f
 
 staging-migrate:
-	docker exec -it shrota-postgres-staging psql -U shrota -d shrota_staging -c "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
+	docker exec -it shrota-postgres-staging psql -U shrota -d shrota_staging -c "\
+		ALTER TABLE authors ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
+		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
+		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
 
 # =============================================================================
 # PRODUCTION COMMANDS
@@ -50,7 +56,13 @@ prod-logs:
 	docker compose --env-file .env.production -f docker-compose.prod.yml logs -f
 
 prod-migrate:
-	docker exec -it shrota-postgres psql -U shrota -d shrota -c "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
+	docker exec -it shrota-postgres psql -U shrota -d shrota -c "\
+		ALTER TABLE authors ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
+		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
+		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
+		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL;"
 
 # =============================================================================
 # LOCAL COMMANDS
