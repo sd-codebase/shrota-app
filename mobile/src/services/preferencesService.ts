@@ -24,9 +24,9 @@ export async function getUserPreferences(): Promise<UserPreferences | null> {
     const response = await apiClient.get<BackendPreferencesResponse>('/v1/preferences');
 
     const preferences: UserPreferences = {
-      genreIds: response.genre_ids,
-      languageIds: response.language_ids,
-      updatedAt: new Date(response.updated_at).getTime(),
+      genreIds: response.genre_ids ?? [],
+      languageIds: response.language_ids ?? [],
+      updatedAt: response.updated_at ? new Date(response.updated_at).getTime() : Date.now(),
     };
 
     // Cache locally for offline access
@@ -44,7 +44,6 @@ export async function getUserPreferences(): Promise<UserPreferences | null> {
       // Ignore cache read errors
     }
 
-    console.log('Failed to get preferences:', error);
     return null;
   }
 }
@@ -65,13 +64,12 @@ export async function saveUserPreferences(
 
     // Update local cache
     const preferences: UserPreferences = {
-      genreIds: response.genre_ids,
-      languageIds: response.language_ids,
-      updatedAt: new Date(response.updated_at).getTime(),
+      genreIds: response.genre_ids ?? [],
+      languageIds: response.language_ids ?? [],
+      updatedAt: response.updated_at ? new Date(response.updated_at).getTime() : Date.now(),
     };
     await AsyncStorage.setItem(PREFERENCES_CACHE_KEY, JSON.stringify(preferences));
   } catch (error) {
-    console.log('Failed to save preferences:', error);
     throw error;
   }
 }
@@ -93,7 +91,7 @@ export async function hasUserPreferences(): Promise<boolean> {
 export async function clearUserPreferences(): Promise<void> {
   try {
     await AsyncStorage.removeItem(PREFERENCES_CACHE_KEY);
-  } catch (error) {
-    console.log('Failed to clear preferences cache:', error);
+  } catch {
+    // Ignore clear errors
   }
 }

@@ -62,8 +62,8 @@ export function PreferencesModal({
       ]);
       setGenres(genresData);
       setLanguages(languagesData);
-    } catch (error) {
-      console.log('Failed to load preferences data:', error);
+    } catch {
+      // Ignore load errors
     } finally {
       setLoading(false);
     }
@@ -113,14 +113,16 @@ export function PreferencesModal({
   };
 
   const handleSave = async () => {
-    if (selectedGenres.length === 0 || selectedLanguages.length === 0) return;
+    if (selectedGenres.length === 0 || selectedLanguages.length === 0) {
+      return;
+    }
 
     try {
       setSaving(true);
       await saveUserPreferences(selectedGenres, selectedLanguages);
       onComplete();
-    } catch (error) {
-      console.log('Failed to save preferences:', error);
+    } catch {
+      // Ignore save errors
     } finally {
       setSaving(false);
     }

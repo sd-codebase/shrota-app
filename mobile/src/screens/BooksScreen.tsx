@@ -30,7 +30,7 @@ import {
   fetchBecauseYouListenedTo,
 } from '../services/api';
 import { getContinueListening, getCompletedBooks } from '../services/userActivityApi';
-import { hasUserPreferences, getUserPreferences, UserPreferences } from '../services/preferencesService';
+import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { AudioBook, BookProgress, RootStackParamList, HomeStackParamList, Genre, SectionType } from '../types';
 import { useCurrentBook } from '../stores/playerStore';
 import { getThumbnailUrl } from '../config';
@@ -61,6 +61,7 @@ export function BooksScreen() {
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [preferencesChecked, setPreferencesChecked] = useState(false);
 
   // Section data
   const [newReleases, setNewReleases] = useState<AudioBook[]>([]);
@@ -195,20 +196,33 @@ export function BooksScreen() {
     }
   }, [loadSectionData]);
 
+  // Check preferences FIRST, then load data only if preferences exist
   useEffect(() => {
-    loadData();
-  }, []);
+    const initializeScreen = async () => {
+      const prefs = await getUserPreferences();
+      const hasPrefs = prefs !== null &&
+                       prefs.genreIds.length > 0 &&
+                       prefs.languageIds.length > 0;
+      setPreferencesChecked(true);
 
-  // Check if user has set preferences
-  useEffect(() => {
-    const checkPreferences = async () => {
-      const hasPrefs = await hasUserPreferences();
       if (!hasPrefs) {
         setIsEditingPreferences(false);
         setShowPreferencesModal(true);
+        setLoading(false); // Stop loading so modal is visible
+      } else {
+        // Reuse the preferences we already fetched
+        setPreferences(prefs);
+        try {
+          setError(null);
+          await loadSectionData(prefs);
+        } catch {
+          setError('Failed to load audiobooks. Pull to refresh.');
+        } finally {
+          setLoading(false);
+        }
       }
     };
-    checkPreferences();
+    initializeScreen();
   }, []);
 
   const handlePreferencesComplete = async () => {

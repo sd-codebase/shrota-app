@@ -37,11 +37,13 @@ export function ProfileScreen() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [preferencesInitialStep, setPreferencesInitialStep] = useState<'genres' | 'languages'>('genres');
 
   const loadPreferences = useCallback(async () => {
     try {
+      setLoadingPreferences(true);
       const [prefs, genresData, languagesData] = await Promise.all([
         getUserPreferences(),
         fetchGenres(),
@@ -50,8 +52,10 @@ export function ProfileScreen() {
       setPreferences(prefs);
       setGenres(genresData);
       setLanguages(languagesData);
-    } catch (error) {
-      console.log('Failed to load preferences:', error);
+    } catch {
+      // Ignore load errors
+    } finally {
+      setLoadingPreferences(false);
     }
   }, []);
 
@@ -63,18 +67,20 @@ export function ProfileScreen() {
 
   const getLanguageNames = (languageIds: string[]) => {
     if (!languageIds || languageIds.length === 0) return 'Not set';
-    return languageIds
+    const names = languageIds
       .map(id => languages.find(l => l.id === id)?.name)
       .filter(Boolean)
       .join(', ');
+    return names || 'Not set';
   };
 
   const getGenreNames = (genreIds: string[]) => {
     if (!genreIds || genreIds.length === 0) return 'Not set';
-    return genreIds
+    const names = genreIds
       .map(id => genres.find(g => g.id === id)?.name)
       .filter(Boolean)
       .join(', ');
+    return names || 'Not set';
   };
 
   const handlePreferencesComplete = () => {
@@ -246,7 +252,7 @@ export function ProfileScreen() {
                   style={[styles.settingDescription, { color: colors.textSecondary }]}
                   numberOfLines={2}
                 >
-                  {preferences ? getLanguageNames(preferences.languageIds) : 'Not set'}
+                  {loadingPreferences ? 'Loading...' : (preferences ? getLanguageNames(preferences.languageIds) : 'Not set')}
                 </Text>
               </View>
             </View>
@@ -275,7 +281,7 @@ export function ProfileScreen() {
                   style={[styles.settingDescription, { color: colors.textSecondary }]}
                   numberOfLines={2}
                 >
-                  {preferences ? getGenreNames(preferences.genreIds) : 'Not set'}
+                  {loadingPreferences ? 'Loading...' : (preferences ? getGenreNames(preferences.genreIds) : 'Not set')}
                 </Text>
               </View>
             </View>
