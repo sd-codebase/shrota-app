@@ -509,7 +509,7 @@ async def get_because_you_listened(
             Book.is_published == True,
             Book.is_deleted == False,
             Book.id.notin_(exclude_uuids),
-            genre_count_subq.c.genre_count == len(source_genre_ids),
+            genre_count_subq.c.genre_count >= 1,  # At least one matching genre
         )
     )
 
@@ -519,21 +519,15 @@ async def get_because_you_listened(
     if language_ids:
         query = query.where(Book.language_id.in_(language_ids))
 
-    query = query.order_by(Book.created_at.desc()).offset(offset).limit(limit)
+    query = query.order_by(
+        genre_count_subq.c.genre_count.desc(),  # Most matching genres first
+        Book.created_at.desc()                   # Then by newest
+    ).offset(offset).limit(limit)
 
     result = await db.execute(query)
     books = result.unique().scalars().all()
 
-    # Filter to exact genre match
-    response_books = []
-    source_genre_set = set(source_genre_ids)
-
-    for book in books:
-        book_genre_ids = {g.id for g in book.genres}
-        if book_genre_ids == source_genre_set:
-            response_books.append(book_to_response(book))
-
-    return response_books
+    return [book_to_response(book) for book in books]
 
 
 @router.get("/home")
