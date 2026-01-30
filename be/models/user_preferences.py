@@ -41,5 +41,17 @@ class UserPreferences(Base, TimestampMixin):
 
     # Relationships
     user = relationship("User", back_populates="preferences")
-    languages = relationship("Language", secondary=user_preferred_languages)
-    genres = relationship("Genre", secondary=user_preferred_genres)
+
+    # Junction tables use user_id, so we need explicit join conditions
+    languages = relationship(
+        "Language",
+        secondary=user_preferred_languages,
+        primaryjoin="UserPreferences.user_id == user_preferred_languages.c.user_id",
+        secondaryjoin="user_preferred_languages.c.language_id == Language.id",
+    )
+    genres = relationship(
+        "Genre",
+        secondary=user_preferred_genres,
+        primaryjoin="UserPreferences.user_id == user_preferred_genres.c.user_id",
+        secondaryjoin="user_preferred_genres.c.genre_id == Genre.id",
+    )
