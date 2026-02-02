@@ -16,6 +16,7 @@ export interface Genre {
   id: string;
   name: string;
   description?: string;
+  is_adult?: boolean;
 }
 
 export interface Author {

@@ -60,7 +60,9 @@ export function PreferencesModal({
         fetchGenres(),
         fetchLanguages(),
       ]);
-      setGenres(genresData);
+      // Client-side safety filter: exclude adult genres
+      const safeGenres = genresData.filter(g => !g.is_adult);
+      setGenres(safeGenres);
       setLanguages(languagesData);
     } catch {
       // Ignore load errors

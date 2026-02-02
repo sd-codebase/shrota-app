@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from database import get_db
 from models import Genre
 from models.admin import Admin
+from models.user import User
 from schemas.genre import (
     GenreCreate,
     GenreUpdate,
@@ -13,6 +15,8 @@ from schemas.genre import (
     GenreBulkCreate,
 )
 from utils.auth import get_current_admin
+from utils.age import is_adult as user_is_adult
+from routes.user_auth import get_optional_current_user
 
 router = APIRouter(prefix="/genres", tags=["Genres"])
 
@@ -35,6 +39,25 @@ async def get_genres(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Genre).where(Genre.is_deleted == False).order_by(Genre.name)
     )
+    genres = result.scalars().all()
+    return [genre_to_response(g) for g in genres]
+
+
+@router.get("/mobile", response_model=list[GenreResponse])
+async def get_genres_for_mobile(
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """Get genres filtered by user age. Adult genres hidden for users under 18."""
+    query = select(Genre).where(Genre.is_deleted == False)
+
+    # Filter adult genres for non-adult users
+    is_adult = current_user and current_user.birth_date and user_is_adult(current_user.birth_date)
+    if not is_adult:
+        query = query.where(Genre.is_adult == False)
+
+    query = query.order_by(Genre.name)
+    result = await db.execute(query)
     genres = result.scalars().all()
     return [genre_to_response(g) for g in genres]
 

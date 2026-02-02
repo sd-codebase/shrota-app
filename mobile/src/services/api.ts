@@ -47,13 +47,10 @@ export async function fetchAuthors(): Promise<Author[]> {
   return response.json();
 }
 
-// Fetch all genres (public endpoint)
+// Fetch all genres (age-filtered for mobile users)
 export async function fetchGenres(): Promise<Genre[]> {
-  const response = await fetch(`${API_URL}/genres`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch genres');
-  }
-  return response.json();
+  // Use /genres/mobile for age-filtered results
+  return apiClient.get<Genre[]>('/genres/mobile');
 }
 
 // Fetch all languages (public endpoint)
