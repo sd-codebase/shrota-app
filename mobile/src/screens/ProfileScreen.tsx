@@ -8,6 +8,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +23,7 @@ import { RootStackParamList, ProfileStackParamList, Genre, Language } from '../t
 import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { fetchGenres, fetchLanguages } from '../services/api';
 import { deactivateAccount } from '../services/authApi';
+import { APP_LINKS, SOCIAL_LINKS } from '../constants/links';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -143,6 +145,12 @@ export function ProfileScreen() {
           },
         },
       ]
+    );
+  };
+
+  const openLink = (url: string) => {
+    Linking.openURL(url).catch((err) =>
+      console.error('Failed to open URL:', err)
     );
   };
 
@@ -341,6 +349,91 @@ export function ProfileScreen() {
           </View>
         </View>
 
+        {/* Links Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          LINKS
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(APP_LINKS.privacyPolicy)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={colors.brand.green} />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(APP_LINKS.termsAndConditions)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="document-text-outline" size={20} color={colors.brand.blue} />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Terms & Conditions</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(APP_LINKS.about)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="people-outline" size={20} color="#9333EA" />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>About Us</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(APP_LINKS.website)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="globe-outline" size={20} color={colors.brand.orange} />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Website</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Connect With Us Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          CONNECT WITH US
+        </Text>
+        <View style={styles.socialContainer}>
+          {SOCIAL_LINKS.map((link) => (
+            <TouchableOpacity
+              key={link.key}
+              style={[styles.socialButton, { backgroundColor: colors.card }]}
+              onPress={() => openLink(link.url)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={link.icon as any} size={24} color={link.color} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Logout Button */}
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: colors.card }]}
@@ -493,6 +586,19 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 12,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 24,
+  },
+  socialButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
+import { APP_LINKS } from '../constants/links';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -93,8 +95,10 @@ export function RegisterScreen() {
   const [birthDateText, setBirthDateText] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const hasAllContacts = email.trim() && whatsappNumber.trim();
+  const canRegister = hasAllContacts && termsAccepted;
   const otpType = 'email'; // Always verify email first
   const identifier = email.trim();
 
@@ -133,6 +137,11 @@ export function RegisterScreen() {
     const dateResult = parseDate(birthDateText);
     if (!dateResult.valid) {
       setDateError(dateResult.error || 'Invalid date');
+      return;
+    }
+
+    if (!termsAccepted) {
+      Alert.alert('Error', 'Please accept the Terms & Conditions and Privacy Policy');
       return;
     }
 
@@ -303,13 +312,50 @@ export function RegisterScreen() {
               <Text style={[styles.errorText, { color: colors.brand.red }]}>{dateError}</Text>
             )}
 
+            {/* Terms & Conditions Checkbox */}
+            <TouchableOpacity
+              style={styles.termsContainer}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: termsAccepted ? colors.brand.orange : colors.border,
+                    backgroundColor: termsAccepted ? colors.brand.orange : 'transparent',
+                  },
+                ]}
+              >
+                {termsAccepted && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={[styles.termsText, { color: colors.textSecondary }]}>
+                I agree to the{' '}
+                <Text
+                  style={[styles.termsLink, { color: colors.brand.orange }]}
+                  onPress={() => Linking.openURL(APP_LINKS.termsAndConditions)}
+                >
+                  Terms & Conditions
+                </Text>
+                {' '}and{' '}
+                <Text
+                  style={[styles.termsLink, { color: colors.brand.orange }]}
+                  onPress={() => Linking.openURL(APP_LINKS.privacyPolicy)}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: hasAllContacts ? colors.brand.orange : colors.border },
+                { backgroundColor: canRegister ? colors.brand.orange : colors.border },
               ]}
               onPress={handleRegister}
-              disabled={isLoading || !hasAllContacts}
+              disabled={isLoading || !canRegister}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -399,6 +445,30 @@ const styles = StyleSheet.create({
     marginTop: -12,
     marginBottom: 16,
     marginLeft: 4,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  termsLink: {
+    fontWeight: '600',
   },
   button: {
     height: 56,
