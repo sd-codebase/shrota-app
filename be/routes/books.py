@@ -244,6 +244,53 @@ async def get_published_books(
     return [book_to_response(book) for book in books]
 
 
+@router.get("/{book_id}/share")
+async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Public endpoint returning enriched book data for sharing.
+    Returns resolved names for authors, artists, genres, and language.
+    """
+    try:
+        uuid_id = UUID(book_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid book ID")
+
+    book = await get_book_with_relations(db, uuid_id)
+    if not book or book.is_deleted or not book.is_published:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Return 403 for adult content (website will show age warning)
+    if book.is_adult:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This content is restricted to users 18 years or older"
+        )
+
+    # Get language name
+    language_name = None
+    if book.language_id:
+        language = await db.get(Language, book.language_id)
+        if language:
+            language_name = language.name
+
+    # Count published chapters
+    chapter_count = len([ch for ch in book.chapters if ch.is_published and not ch.is_deleted])
+
+    return {
+        "id": str(book.id),
+        "title": book.title,
+        "information": book.information,
+        "thumbnail": book.thumbnail,
+        "total_duration": book.total_duration,
+        "author_names": [a.name for a in book.authors],
+        "artist_names": [a.name for a in book.artists],
+        "genre_names": [g.name for g in book.genres],
+        "language_name": language_name,
+        "chapter_count": chapter_count,
+        "is_adult": book.is_adult,
+    }
+
+
 @router.get("/{book_id}", response_model=BookResponse)
 async def get_book(
     book_id: str,

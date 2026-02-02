@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -39,6 +40,7 @@ export function OTPVerificationScreen() {
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+  const [instructionsExpanded, setInstructionsExpanded] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const autoSubmitTimer = useRef<NodeJS.Timeout | null>(null);
@@ -199,105 +201,202 @@ export function OTPVerificationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-
-          <View style={styles.header}>
-            <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
-              <Ionicons
-                name={otp_type === 'email' ? 'mail' : 'logo-whatsapp'}
-                size={48}
-                color={colors.brand.orange}
-              />
-            </View>
-            <Text style={[styles.title, { color: colors.text }]}>Verify OTP</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Enter the 6-digit code sent to{'\n'}
-              <Text style={{ color: colors.text, fontWeight: '600' }}>
-                {maskedIdentifier}
-              </Text>
-            </Text>
-          </View>
-
-          <View style={styles.otpContainer}>
-            {otp.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => { inputRefs.current[index] = ref; }}
-                style={[
-                  styles.otpInput,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: digit ? colors.brand.orange : colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                value={digit}
-                onChangeText={(value) => handleOtpChange(value.replace(/[^0-9]/g, ''), index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={OTP_LENGTH}
-                selectTextOnFocus
-              />
-            ))}
-          </View>
-
-          <View style={styles.buttonWrapper}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.brand.orange }]}
-              onPress={handleVerify}
-              disabled={isLoading || !isOtpComplete}
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
             >
-              {/* Progress bar overlay for auto-submit */}
-              {isAutoSubmitting && (
-                <Animated.View
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+
+            <View style={styles.header}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
+                <Ionicons
+                  name={otp_type === 'email' ? 'mail' : 'logo-whatsapp'}
+                  size={48}
+                  color={colors.brand.orange}
+                />
+              </View>
+              <Text style={[styles.title, { color: colors.text }]}>Verify OTP</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                Enter the 6-digit code sent to{'\n'}
+                <Text style={{ color: colors.text, fontWeight: '600' }}>
+                  {maskedIdentifier}
+                </Text>
+              </Text>
+            </View>
+
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => { inputRefs.current[index] = ref; }}
                   style={[
-                    styles.progressBar,
+                    styles.otpInput,
                     {
-                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                      width: progressWidth,
+                      backgroundColor: colors.inputBackground,
+                      borderColor: digit ? colors.brand.orange : colors.border,
+                      color: colors.text,
                     },
                   ]}
+                  value={digit}
+                  onChangeText={(value) => handleOtpChange(value.replace(/[^0-9]/g, ''), index)}
+                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  keyboardType="number-pad"
+                  maxLength={OTP_LENGTH}
+                  selectTextOnFocus
                 />
+              ))}
+            </View>
+
+            <View style={styles.buttonWrapper}>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: colors.brand.orange }]}
+                onPress={handleVerify}
+                disabled={isLoading || !isOtpComplete}
+              >
+                {/* Progress bar overlay for auto-submit */}
+                {isAutoSubmitting && (
+                  <Animated.View
+                    style={[
+                      styles.progressBar,
+                      {
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                        width: progressWidth,
+                      },
+                    ]}
+                  />
+                )}
+                <View style={styles.buttonContent}>
+                  {isLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>
+                      {isAutoSubmitting ? 'Verifying...' : 'Verify & Continue'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.resendContainer}>
+              <Text style={[styles.resendText, { color: colors.textSecondary }]}>
+                Didn't receive the code?{' '}
+              </Text>
+              {countdown > 0 ? (
+                <Text style={[styles.countdown, { color: colors.textSecondary }]}>
+                  Resend in {countdown}s
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResendOTP} disabled={isResending}>
+                  {isResending ? (
+                    <ActivityIndicator size="small" color={colors.brand.orange} />
+                  ) : (
+                    <Text style={[styles.resendLink, { color: colors.brand.orange }]}>
+                      Resend OTP
+                    </Text>
+                  )}
+                </TouchableOpacity>
               )}
-              <View style={styles.buttonContent}>
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {isAutoSubmitting ? 'Verifying...' : 'Verify & Continue'}
+            </View>
+
+            {/* Email OTP Instructions - Only shown for email verification */}
+            {otp_type === 'email' && (
+              <View style={styles.instructionsContainer}>
+                <TouchableOpacity
+                  style={styles.instructionsHeader}
+                  onPress={() => setInstructionsExpanded(!instructionsExpanded)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.instructionsHeaderText, { color: colors.textSecondary }]}>
+                    Need help finding OTP?
                   </Text>
+                  <Ionicons
+                    name={instructionsExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {instructionsExpanded && (
+                  <View style={[styles.instructionsContent, { backgroundColor: colors.card }]}>
+                    {/* English Instructions */}
+                    <View style={styles.languageSection}>
+                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                        English
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                        Didn't receive OTP in Inbox?{'\n'}
+                        Please check your Spam / Junk / Promotions folder.
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                        Steps:{'\n'}
+                        1. Open your Email app or website.{'\n'}
+                        2. Go to Spam / Junk / Promotions.{'\n'}
+                        3. Find the email with subject "Shrota Verification Code".{'\n'}
+                        4. Open it and copy the OTP.{'\n'}
+                        5. Enter the OTP in the app to continue.
+                      </Text>
+                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                        Tip: Mark the email as "Not Spam" to receive future emails in Inbox.
+                      </Text>
+                    </View>
+
+                    {/* Hindi Instructions */}
+                    <View style={styles.languageSection}>
+                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                        हिंदी
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                        इनबॉक्स में OTP नहीं मिला?{'\n'}
+                        कृपया Spam / Junk / Promotions फोल्डर जांचें।
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                        कदम:{'\n'}
+                        1. अपना ईमेल खोलें।{'\n'}
+                        2. Spam / Junk / Promotions फोल्डर में जाएँ।{'\n'}
+                        3. "Shrota Verification Code" विषय वाला मेल ढूंढें।{'\n'}
+                        4. OTP कॉपी करें।{'\n'}
+                        5. ऐप में OTP डालकर आगे बढ़ें।
+                      </Text>
+                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                        सलाह: मेल को "Not Spam" मार्क करें ताकि आगे मेल इनबॉक्स में आए।
+                      </Text>
+                    </View>
+
+                    {/* Marathi Instructions */}
+                    <View style={[styles.languageSection, { marginBottom: 0 }]}>
+                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                        मराठी
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                        इनबॉक्समध्ये OTP दिसत नाही?{'\n'}
+                        कृपया Spam / Junk / Promotions फोल्डर तपासा.
+                      </Text>
+                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                        स्टेप्स:{'\n'}
+                        1. तुमचे ईमेल उघडा.{'\n'}
+                        2. Spam / Junk / Promotions मध्ये जा.{'\n'}
+                        3. "Shrota Verification Code" असा विषय असलेला मेल शोधा.{'\n'}
+                        4. OTP कॉपी करा.{'\n'}
+                        5. अॅपमध्ये OTP टाकून पुढे जा.
+                      </Text>
+                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                        टीप: मेलला "Not Spam" करा म्हणजे पुढील मेल इनबॉक्समध्ये मिळतील.
+                      </Text>
+                    </View>
+                  </View>
                 )}
               </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.resendContainer}>
-            <Text style={[styles.resendText, { color: colors.textSecondary }]}>
-              Didn't receive the code?{' '}
-            </Text>
-            {countdown > 0 ? (
-              <Text style={[styles.countdown, { color: colors.textSecondary }]}>
-                Resend in {countdown}s
-              </Text>
-            ) : (
-              <TouchableOpacity onPress={handleResendOTP} disabled={isResending}>
-                {isResending ? (
-                  <ActivityIndicator size="small" color={colors.brand.orange} />
-                ) : (
-                  <Text style={[styles.resendLink, { color: colors.brand.orange }]}>
-                    Resend OTP
-                  </Text>
-                )}
-              </TouchableOpacity>
             )}
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -309,6 +408,12 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
@@ -399,5 +504,41 @@ const styles = StyleSheet.create({
   resendLink: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  instructionsContainer: {
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  instructionsHeaderText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  instructionsContent: {
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  languageSection: {
+    marginBottom: 20,
+  },
+  languageTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  instructionText: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  tipText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });

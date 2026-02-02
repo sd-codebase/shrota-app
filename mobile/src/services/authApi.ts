@@ -6,6 +6,7 @@ import {
   VerifyOTPPayload,
   AuthTokenResponse,
   SendOTPResponse,
+  UpdateProfilePayload,
 } from '../types';
 
 const AUTH_BASE_URL = `${API_URL}/v1/auth`;
@@ -119,4 +120,25 @@ export async function deactivateAccount(token: string): Promise<void> {
     const errorMessage = await parseErrorResponse(response);
     throw new Error(errorMessage);
   }
+}
+
+/**
+ * Update the current user's profile
+ */
+export async function updateProfile(token: string, data: UpdateProfilePayload): Promise<User> {
+  const response = await fetch(`${API_URL}/v1/users/me`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }

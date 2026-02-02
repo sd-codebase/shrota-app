@@ -23,6 +23,7 @@ def genre_to_response(genre: Genre) -> dict:
         "name": genre.name,
         "description": genre.description,
         "thumbnail": genre.thumbnail,
+        "is_adult": genre.is_adult,
         "is_deleted": genre.is_deleted,
         "created_at": genre.created_at,
         "updated_at": genre.updated_at,
@@ -61,6 +62,7 @@ async def create_genre(
         name=genre.name,
         description=genre.description,
         thumbnail=genre.thumbnail,
+        is_adult=genre.is_adult,
     )
     db.add(new_genre)
     await db.commit()
@@ -75,7 +77,7 @@ async def bulk_create_genres(
     admin: Admin = Depends(get_current_admin)
 ):
     new_genres = [
-        Genre(name=g.name, description=g.description, thumbnail=g.thumbnail)
+        Genre(name=g.name, description=g.description, thumbnail=g.thumbnail, is_adult=g.is_adult)
         for g in data.genres
     ]
     db.add_all(new_genres)

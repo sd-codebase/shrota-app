@@ -8,9 +8,8 @@ interface AppStoreButtonsProps {
   direction?: "row" | "column";
 }
 
-// TODO: Update these URLs when apps are published to stores
 const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.shrota.app";
-const APP_STORE_URL = "";    // e.g., "https://apps.apple.com/app/shrota/id123456789"
+const APP_STORE_URL = "https://apps.apple.com/app/shrota/id6739370270";
 
 export function AppStoreButtons({
   className,

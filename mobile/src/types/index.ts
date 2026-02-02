@@ -209,8 +209,24 @@ export interface User {
   is_email_verified: boolean;
   is_whatsapp_verified: boolean;
   is_active: boolean;
+  address?: string;
+  village_landmark?: string;
+  tahsil_city?: string;
+  district?: string;
+  state?: string;
+  pin_code?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  address?: string;
+  village_landmark?: string;
+  tahsil_city?: string;
+  district?: string;
+  state?: string;
+  pin_code?: string;
 }
 
 export interface RegisterPayload {
@@ -299,6 +315,8 @@ export type RootStackParamList = {
   MainTabs: undefined;
   // Modal screens
   Player: { book: AudioBook; chapterIndex?: number };
+  // Deep link handler
+  DeepLinkHandler: { bookId: string };
 };
 
 export type MainTabParamList = {

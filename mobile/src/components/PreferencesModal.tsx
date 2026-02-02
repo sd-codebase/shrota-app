@@ -74,10 +74,6 @@ export function PreferencesModal({
       if (prev.includes(genreId)) {
         return prev.filter((id) => id !== genreId);
       }
-      if (prev.length >= PREFERENCES_CONFIG.MAX_GENRES) {
-        // Replace the first selected with the new one
-        return [...prev.slice(1), genreId];
-      }
       return [...prev, genreId];
     });
   };
@@ -86,10 +82,6 @@ export function PreferencesModal({
     setSelectedLanguages((prev) => {
       if (prev.includes(languageId)) {
         return prev.filter((id) => id !== languageId);
-      }
-      if (prev.length >= PREFERENCES_CONFIG.MAX_LANGUAGES) {
-        // Replace the first selected with the new one
-        return [...prev.slice(1), languageId];
       }
       return [...prev, languageId];
     });
@@ -164,14 +156,14 @@ export function PreferencesModal({
             </View>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {step === 'genres'
-                ? `Choose up to ${PREFERENCES_CONFIG.MAX_GENRES} genres you enjoy`
-                : `Choose up to ${PREFERENCES_CONFIG.MAX_LANGUAGES} languages you prefer`}
+                ? `Select at least ${PREFERENCES_CONFIG.MIN_GENRES} genres you enjoy`
+                : `Select at least ${PREFERENCES_CONFIG.MIN_LANGUAGES} language you prefer`}
             </Text>
             {/* Selection counter */}
             <Text style={[styles.counter, { color: colors.brand.orange }]}>
               {step === 'genres'
-                ? `${selectedGenres.length}/${PREFERENCES_CONFIG.MAX_GENRES} selected`
-                : `${selectedLanguages.length}/${PREFERENCES_CONFIG.MAX_LANGUAGES} selected`}
+                ? `${selectedGenres.length} selected`
+                : `${selectedLanguages.length} selected`}
             </Text>
           </View>
 

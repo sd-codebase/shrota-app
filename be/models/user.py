@@ -28,6 +28,14 @@ class User(Base, TimestampMixin):
     is_whatsapp_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # Address fields (all optional)
+    address: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    village_landmark: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tahsil_city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    district: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    pin_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
     # Relationships
     preferences: Mapped["UserPreferences"] = relationship(
         "UserPreferences",

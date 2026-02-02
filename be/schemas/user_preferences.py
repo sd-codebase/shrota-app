@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class PreferencesUpdate(BaseModel):
     """Schema for updating user preferences."""
     language_ids: List[str] = Field(..., min_length=1, description="List of language IDs")
-    genre_ids: List[str] = Field(..., min_length=1, description="List of genre IDs")
+    genre_ids: List[str] = Field(..., min_length=3, description="List of genre IDs (minimum 3)")
 
 
 class PreferencesResponse(BaseModel):

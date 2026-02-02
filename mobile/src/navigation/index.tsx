@@ -1,6 +1,6 @@
 import React, { createRef, useEffect } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
-import { NavigationContainer, NavigationContainerRef, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef, useNavigation, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,8 +22,19 @@ import { AuthorDetailsScreen } from '../screens/AuthorDetailsScreen';
 import { ArtistDetailsScreen } from '../screens/ArtistDetailsScreen';
 import { PublicationDetailsScreen } from '../screens/PublicationDetailsScreen';
 import { GenreDetailsScreen } from '../screens/GenreDetailsScreen';
+import { DeepLinkHandlerScreen } from '../screens/DeepLinkHandlerScreen';
 import { RootStackParamList, MainTabParamList } from '../types';
 import { useTheme } from '../context/ThemeContext';
+
+// Deep linking configuration
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['shrota://', 'https://shrota.in'],
+  config: {
+    screens: {
+      DeepLinkHandler: 'book/:bookId',
+    },
+  },
+};
 
 // Navigation reference for use outside React components
 export const navigationRef = createRef<NavigationContainerRef<RootStackParamList>>();
@@ -171,7 +182,7 @@ export function AppNavigator() {
   const { colors } = useTheme();
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <RootStack.Navigator
         initialRouteName="Splash"
         screenOptions={{
@@ -200,6 +211,9 @@ export function AppNavigator() {
             gestureDirection: 'vertical',
           }}
         />
+
+        {/* Deep Link Handler */}
+        <RootStack.Screen name="DeepLinkHandler" component={DeepLinkHandlerScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

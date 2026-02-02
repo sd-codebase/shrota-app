@@ -16,6 +16,7 @@ export interface Genre {
   name: string;
   description?: string;
   thumbnail?: string;
+  is_adult: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export interface GenreCreate {
   name: string;
   description?: string;
   thumbnail?: string;
+  is_adult?: boolean;
 }
 
 export interface Author {

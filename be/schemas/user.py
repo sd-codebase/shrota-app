@@ -46,11 +46,36 @@ class UserResponse(BaseModel):
     is_email_verified: bool
     is_whatsapp_verified: bool
     is_active: bool
+    address: Optional[str] = None
+    village_landmark: Optional[str] = None
+    tahsil_city: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    pin_code: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    """Schema for updating user profile (all fields optional)."""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    address: Optional[str] = Field(None, max_length=500)
+    village_landmark: Optional[str] = Field(None, max_length=200)
+    tahsil_city: Optional[str] = Field(None, max_length=100)
+    district: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=100)
+    pin_code: Optional[str] = Field(None, max_length=10)
+
+    @field_validator('pin_code')
+    @classmethod
+    def validate_pin_code(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v != '':
+            if not re.match(r'^\d{6}$', v):
+                raise ValueError('Pin code must be exactly 6 digits')
+        return v
 
 
 class SendOTPRequest(BaseModel):

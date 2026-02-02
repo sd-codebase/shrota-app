@@ -25,6 +25,7 @@ import { getBookChapterProgress, ChapterProgress } from '../services/chapterProg
 import { fetchGenres, fetchLanguages, fetchPublications, fetchBookById } from '../services/api';
 import { useIsBookPlaying, useCurrentBook, useCurrentChapterIndex, useIsPlaying, usePlaybackProgress } from '../stores/playerStore';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
+import { shareBook } from '../utils/share';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type BookDetailsRouteProp = RouteProp<HomeStackParamList, 'BookDetails'>;
@@ -331,6 +332,12 @@ export function BookDetailsScreen() {
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => shareBook({ book })}
+        >
+          <Ionicons name="share-outline" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 

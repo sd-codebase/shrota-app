@@ -28,6 +28,7 @@ interface AuthContextType {
   login: (payload: VerifyOTPPayload) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,6 +79,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Token is invalid, clear auth data
       await logout();
       return false;
+    }
+  }, [token]);
+
+  // Refresh user data from server
+  const refreshUser = useCallback(async (): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const currentUser = await getCurrentUser(token);
+      setUser(currentUser);
+      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser));
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
     }
   }, [token]);
 
@@ -140,6 +156,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login: handleLogin,
     logout,
     checkAuth,
+    refreshUser,
   };
 
   return (

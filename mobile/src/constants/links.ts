@@ -1,7 +1,8 @@
 export const APP_LINKS = {
   privacyPolicy: 'https://shrota.in/privacy?nofooter',
   termsAndConditions: 'https://shrota.in/terms?nofooter',
-  about: 'https://shrota.in/about',
+  vulnerabilityDisclosure: 'https://shrota.in/vulnerability-disclosure',
+  contact: 'https://shrota.in/contact',
   website: 'https://shrota.in',
 };
 

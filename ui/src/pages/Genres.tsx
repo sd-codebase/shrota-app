@@ -10,6 +10,8 @@ import {
   Popconfirm,
   Upload,
   Popover,
+  Switch,
+  Tag,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -186,6 +188,15 @@ function Genres() {
       render: (text: string) => text || '-',
     },
     {
+      title: 'Adult',
+      dataIndex: 'is_adult',
+      key: 'is_adult',
+      width: 70,
+      render: (isAdult: boolean) => (
+        isAdult ? <Tag color="red">18+</Tag> : null
+      ),
+    },
+    {
       title: 'Actions',
       key: 'actions',
       render: (_: unknown, record: Genre) => (
@@ -266,6 +277,9 @@ function Genres() {
                 </div>
               )}
             </Upload>
+          </Form.Item>
+          <Form.Item name="is_adult" label="Adult Content" valuePropName="checked">
+            <Switch />
           </Form.Item>
         </Form>
       </Drawer>

@@ -24,6 +24,7 @@ import { formatBytes } from '../services/downloadService';
 import { formatPlaybackTime } from '../utils/formatters';
 import { getLikeStatus, likeBook, unlikeBook } from '../services/userActivityApi';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
+import { shareBook } from '../utils/share';
 
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -193,6 +194,12 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textSecondary }]}>Now Playing</Text>
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => shareBook({ book })}
+            style={styles.headerButton}
+          >
+            <Ionicons name="share-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleLikeToggle}
             style={styles.headerButton}
