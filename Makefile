@@ -31,6 +31,7 @@ staging-migrate:
 		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
+		ALTER TABLE genres ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE NOT NULL; \
 		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
 		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
 		CREATE TABLE IF NOT EXISTS user_preferences ( \
@@ -50,7 +51,13 @@ staging-migrate:
 			PRIMARY KEY (user_id, genre_id) \
 		); \
 		DELETE FROM users WHERE birth_date IS NULL; \
-		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL;"
+		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(500) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS village_landmark VARCHAR(200) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS tahsil_city VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
 
 # =============================================================================
 # PRODUCTION COMMANDS
@@ -79,6 +86,7 @@ prod-migrate:
 		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
 		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
+		ALTER TABLE genres ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE NOT NULL; \
 		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
 		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
 		CREATE TABLE IF NOT EXISTS user_preferences ( \
@@ -98,7 +106,13 @@ prod-migrate:
 			PRIMARY KEY (user_id, genre_id) \
 		); \
 		DELETE FROM users WHERE birth_date IS NULL; \
-		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL;"
+		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(500) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS village_landmark VARCHAR(200) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS tahsil_city VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
 
 # =============================================================================
 # LOCAL COMMANDS
