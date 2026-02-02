@@ -30,6 +30,9 @@ import type {
   PromotedBook,
   PromotedBookCreate,
   ReorderItem,
+  User,
+  UserUpdate,
+  UserListResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -183,9 +186,43 @@ export const deletePublication = (id: string) =>
   request<void>(`/publications/${id}`, { method: 'DELETE' });
 
 // Books
-export const getBooks = (search?: string) => {
-  const params = search ? `?search=${encodeURIComponent(search)}` : '';
-  return request<Book[]>(`/books${params}`);
+export interface BookFilters {
+  search?: string;
+  language_ids?: string[];
+  genre_ids?: string[];
+  author_ids?: string[];
+  artist_ids?: string[];
+  publisher_ids?: string[];
+  is_adult?: boolean | null;
+}
+
+export const getBooks = (filters?: BookFilters) => {
+  const params = new URLSearchParams();
+
+  if (filters?.search) {
+    params.append('search', filters.search);
+  }
+  if (filters?.language_ids?.length) {
+    params.append('language_ids', filters.language_ids.join(','));
+  }
+  if (filters?.genre_ids?.length) {
+    params.append('genre_ids', filters.genre_ids.join(','));
+  }
+  if (filters?.author_ids?.length) {
+    params.append('author_ids', filters.author_ids.join(','));
+  }
+  if (filters?.artist_ids?.length) {
+    params.append('artist_ids', filters.artist_ids.join(','));
+  }
+  if (filters?.publisher_ids?.length) {
+    params.append('publisher_ids', filters.publisher_ids.join(','));
+  }
+  if (filters?.is_adult !== undefined && filters?.is_adult !== null) {
+    params.append('is_adult', filters.is_adult.toString());
+  }
+
+  const queryString = params.toString();
+  return request<Book[]>(`/books${queryString ? `?${queryString}` : ''}`);
 };
 
 export const createBook = (data: BookCreate) =>
@@ -515,3 +552,31 @@ export const reorderPromotedBooks = (items: ReorderItem[]) =>
     method: 'PUT',
     body: JSON.stringify({ items }),
   });
+
+// Admin User Management
+export const getUsers = (page: number = 1, perPage: number = 20, search?: string) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    per_page: perPage.toString(),
+  });
+  if (search) {
+    params.append('search', search);
+  }
+  return request<UserListResponse>(`/admin/users?${params.toString()}`);
+};
+
+export const getUser = (id: string) => request<User>(`/admin/users/${id}`);
+
+export const updateUser = (id: string, data: UserUpdate) =>
+  request<User>(`/admin/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const toggleUserStatus = (id: string) =>
+  request<User>(`/admin/users/${id}/toggle-status`, {
+    method: 'PUT',
+  });
+
+export const deleteUser = (id: string) =>
+  request<void>(`/admin/users/${id}`, { method: 'DELETE' });

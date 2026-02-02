@@ -291,3 +291,32 @@ export interface ReorderItem {
   id: string;
   display_order: number;
 }
+
+// User types (mobile app users)
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  whatsapp_number?: string;
+  birth_date: string;
+  is_email_verified: boolean;
+  is_whatsapp_verified: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserUpdate {
+  name?: string;
+  email?: string;
+  whatsapp_number?: string;
+  birth_date?: string;
+}
+
+export interface UserListResponse {
+  users: User[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}

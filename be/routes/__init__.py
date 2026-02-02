@@ -13,3 +13,4 @@ from routes.user_activity import router as user_activity_router
 from routes.content_promotion import router as content_promotion_router
 from routes.user_preferences import router as user_preferences_router
 from routes.mobile import router as mobile_router
+from routes.admin_users import router as admin_users_router

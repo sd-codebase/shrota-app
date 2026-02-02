@@ -57,6 +57,7 @@ import {
   getThumbnailUrl,
   uploadChapterImage,
   getChapterImageUrl,
+  type BookFilters,
 } from '../api';
 
 function Books() {
@@ -85,16 +86,32 @@ function Books() {
   const [viewingBook, setViewingBook] = useState<Book | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filters, setFilters] = useState<{
+    languageIds: string[];
+    genreIds: string[];
+    authorIds: string[];
+    artistIds: string[];
+    publisherIds: string[];
+    isAdult: boolean | null;
+  }>({
+    languageIds: [],
+    genreIds: [],
+    authorIds: [],
+    artistIds: [],
+    publisherIds: [],
+    isAdult: null,
+  });
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [bookForm] = Form.useForm();
   const [chapterForm] = Form.useForm();
 
-  const fetchBooks = async (search?: string) => {
+  const fetchBooks = async (bookFilters?: BookFilters) => {
     setLoading(true);
     try {
-      const data = await getBooks(search);
+      const data = await getBooks(bookFilters);
       setBooks(data);
       // Update viewing book if drawer is open
       if (viewingBook) {
@@ -165,14 +182,44 @@ function Books() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Fetch books when debounced search changes
+  // Debounce filters
   useEffect(() => {
-    fetchBooks(debouncedSearch || undefined);
-  }, [debouncedSearch]);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters]);
+
+  // Fetch books when debounced search or filters change
+  useEffect(() => {
+    const bookFilters: BookFilters = {
+      search: debouncedSearch || undefined,
+      language_ids: debouncedFilters.languageIds.length > 0 ? debouncedFilters.languageIds : undefined,
+      genre_ids: debouncedFilters.genreIds.length > 0 ? debouncedFilters.genreIds : undefined,
+      author_ids: debouncedFilters.authorIds.length > 0 ? debouncedFilters.authorIds : undefined,
+      artist_ids: debouncedFilters.artistIds.length > 0 ? debouncedFilters.artistIds : undefined,
+      publisher_ids: debouncedFilters.publisherIds.length > 0 ? debouncedFilters.publisherIds : undefined,
+      is_adult: debouncedFilters.isAdult,
+    };
+    fetchBooks(bookFilters);
+  }, [debouncedSearch, debouncedFilters]);
+
+  // Helper to build current filters for refreshing
+  const buildCurrentFilters = (): BookFilters => ({
+    search: debouncedSearch || undefined,
+    language_ids: debouncedFilters.languageIds.length > 0 ? debouncedFilters.languageIds : undefined,
+    genre_ids: debouncedFilters.genreIds.length > 0 ? debouncedFilters.genreIds : undefined,
+    author_ids: debouncedFilters.authorIds.length > 0 ? debouncedFilters.authorIds : undefined,
+    artist_ids: debouncedFilters.artistIds.length > 0 ? debouncedFilters.artistIds : undefined,
+    publisher_ids: debouncedFilters.publisherIds.length > 0 ? debouncedFilters.publisherIds : undefined,
+    is_adult: debouncedFilters.isAdult,
+  });
+
+  const refreshBooks = () => fetchBooks(buildCurrentFilters());
 
   const handleAddBook = () => {
     setEditingBook(null);
@@ -205,7 +252,7 @@ function Books() {
         setDrawerOpen(false);
         setViewingBook(null);
       }
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to delete book');
     }
@@ -238,7 +285,7 @@ function Books() {
         message.success('Book created');
       }
       setBookModalOpen(false);
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to save book');
     }
@@ -281,7 +328,7 @@ function Books() {
     try {
       await deleteChapter(book.id, chapterId);
       message.success('Chapter deleted');
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to delete chapter');
     }
@@ -310,7 +357,7 @@ function Books() {
       clearInterval(progressInterval);
       setProcessingProgress((prev) => ({ ...prev, [chapterKey]: 100 }));
       setProcessingComplete(true);
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       clearInterval(progressInterval);
       setProcessingModalVisible(false);
@@ -402,7 +449,7 @@ function Books() {
       setChapterModalOpen(false);
       setUploadedFileId(null);
       setUploadProgress(null);
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to save chapter');
     }
@@ -458,7 +505,7 @@ function Books() {
     try {
       await updateBook(book.id, { is_published: !book.is_published });
       message.success(book.is_published ? 'Book unpublished' : 'Book published');
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to update publish status');
     }
@@ -468,7 +515,7 @@ function Books() {
     try {
       await updateChapter(book.id, chapter.id, { is_published: !chapter.is_published });
       message.success(chapter.is_published ? 'Chapter unpublished' : 'Chapter published');
-      fetchBooks(debouncedSearch || undefined);
+      refreshBooks();
     } catch (error) {
       message.error('Failed to update chapter publish status');
     }
@@ -775,6 +822,73 @@ function Books() {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAddBook}>
             Add Book
           </Button>
+        </Space>
+      </div>
+
+      {/* Filter Bar */}
+      <div style={{ marginBottom: 16 }}>
+        <Space wrap size={8}>
+          <Select
+            mode="multiple"
+            placeholder="Language"
+            style={{ minWidth: 140 }}
+            options={languages.map(l => ({ value: l.id, label: l.name }))}
+            value={filters.languageIds}
+            onChange={(values) => setFilters(f => ({ ...f, languageIds: values }))}
+            allowClear
+            maxTagCount="responsive"
+          />
+          <Select
+            mode="multiple"
+            placeholder="Genre"
+            style={{ minWidth: 140 }}
+            options={genres.map(g => ({ value: g.id, label: g.name }))}
+            value={filters.genreIds}
+            onChange={(values) => setFilters(f => ({ ...f, genreIds: values }))}
+            allowClear
+            maxTagCount="responsive"
+          />
+          <Select
+            mode="multiple"
+            placeholder="Author"
+            style={{ minWidth: 140 }}
+            options={authors.map(a => ({ value: a.id, label: a.name }))}
+            value={filters.authorIds}
+            onChange={(values) => setFilters(f => ({ ...f, authorIds: values }))}
+            allowClear
+            maxTagCount="responsive"
+          />
+          <Select
+            mode="multiple"
+            placeholder="Narrator"
+            style={{ minWidth: 140 }}
+            options={artists.map(a => ({ value: a.id, label: a.name }))}
+            value={filters.artistIds}
+            onChange={(values) => setFilters(f => ({ ...f, artistIds: values }))}
+            allowClear
+            maxTagCount="responsive"
+          />
+          <Select
+            mode="multiple"
+            placeholder="Publisher"
+            style={{ minWidth: 140 }}
+            options={publications.map(p => ({ value: p.id, label: p.name }))}
+            value={filters.publisherIds}
+            onChange={(values) => setFilters(f => ({ ...f, publisherIds: values }))}
+            allowClear
+            maxTagCount="responsive"
+          />
+          <Select
+            placeholder="Adult"
+            style={{ minWidth: 120 }}
+            value={filters.isAdult}
+            onChange={(value) => setFilters(f => ({ ...f, isAdult: value }))}
+            allowClear
+            options={[
+              { value: true, label: 'Adult Only' },
+              { value: false, label: 'Non-Adult Only' },
+            ]}
+          />
         </Space>
       </div>
 

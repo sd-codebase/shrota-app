@@ -95,3 +95,38 @@ class UserTokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserResponse
+
+
+# Admin schemas for user management
+class UserAdminUpdate(BaseModel):
+    """Schema for admin updating a user."""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    email: Optional[EmailStr] = None
+    whatsapp_number: Optional[str] = Field(None, max_length=20)
+    birth_date: Optional[date] = None
+
+    @field_validator('whatsapp_number')
+    @classmethod
+    def validate_whatsapp(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = re.sub(r'[\s-]', '', v)
+        if not re.match(r'^\+?\d{10,15}$', cleaned):
+            raise ValueError('Invalid WhatsApp number format')
+        return cleaned
+
+    @field_validator('birth_date')
+    @classmethod
+    def validate_birth_date(cls, v: Optional[date]) -> Optional[date]:
+        if v is not None and v > date.today():
+            raise ValueError('Birth date cannot be in the future')
+        return v
+
+
+class UserListResponse(BaseModel):
+    """Schema for paginated user list response."""
+    users: list[UserResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int

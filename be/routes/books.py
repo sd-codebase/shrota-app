@@ -107,9 +107,20 @@ async def get_book_with_relations(db: AsyncSession, book_id: UUID) -> Optional[B
 @router.get("", response_model=list[BookResponse])
 async def get_books(
     search: Optional[str] = Query(None, description="Search books by title"),
+    language_ids: Optional[str] = Query(None, description="Comma-separated language IDs"),
+    genre_ids: Optional[str] = Query(None, description="Comma-separated genre IDs"),
+    author_ids: Optional[str] = Query(None, description="Comma-separated author IDs"),
+    artist_ids: Optional[str] = Query(None, description="Comma-separated artist IDs"),
+    publisher_ids: Optional[str] = Query(None, description="Comma-separated publisher IDs"),
+    is_adult: Optional[bool] = Query(None, description="Filter by adult content"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all non-deleted books, sorted by updated_at DESC (latest first)."""
+    """Get all non-deleted books, sorted by updated_at DESC (latest first).
+
+    Filters:
+    - Multiple IDs within a filter use OR logic (book matches any)
+    - Multiple filters use AND logic (book must match all active filters)
+    """
     query = (
         select(Book)
         .options(
@@ -119,12 +130,84 @@ async def get_books(
             selectinload(Book.chapters),
         )
         .where(Book.is_deleted == False)
-        .order_by(Book.updated_at.desc())
     )
 
     if search:
         query = query.where(Book.title.ilike(f"%{search}%"))
 
+    # Filter by language (single value, OR across multiple)
+    if language_ids:
+        lang_id_list = [id.strip() for id in language_ids.split(",") if id.strip()]
+        if lang_id_list:
+            try:
+                lang_uuids = [UUID(id) for id in lang_id_list]
+                query = query.where(Book.language_id.in_(lang_uuids))
+            except ValueError:
+                pass  # Invalid UUIDs ignored
+
+    # Filter by publisher (single value, OR across multiple)
+    if publisher_ids:
+        pub_id_list = [id.strip() for id in publisher_ids.split(",") if id.strip()]
+        if pub_id_list:
+            try:
+                pub_uuids = [UUID(id) for id in pub_id_list]
+                query = query.where(Book.publisher_id.in_(pub_uuids))
+            except ValueError:
+                pass
+
+    # Filter by adult content
+    if is_adult is not None:
+        query = query.where(Book.is_adult == is_adult)
+
+    # Filter by genres (many-to-many, OR across selected)
+    if genre_ids:
+        genre_id_list = [id.strip() for id in genre_ids.split(",") if id.strip()]
+        if genre_id_list:
+            try:
+                genre_uuids = [UUID(id) for id in genre_id_list]
+                query = query.where(
+                    Book.id.in_(
+                        select(book_genres.c.book_id).where(
+                            book_genres.c.genre_id.in_(genre_uuids)
+                        )
+                    )
+                )
+            except ValueError:
+                pass
+
+    # Filter by authors (many-to-many, OR across selected)
+    if author_ids:
+        author_id_list = [id.strip() for id in author_ids.split(",") if id.strip()]
+        if author_id_list:
+            try:
+                author_uuids = [UUID(id) for id in author_id_list]
+                query = query.where(
+                    Book.id.in_(
+                        select(book_authors.c.book_id).where(
+                            book_authors.c.author_id.in_(author_uuids)
+                        )
+                    )
+                )
+            except ValueError:
+                pass
+
+    # Filter by artists (many-to-many, OR across selected)
+    if artist_ids:
+        artist_id_list = [id.strip() for id in artist_ids.split(",") if id.strip()]
+        if artist_id_list:
+            try:
+                artist_uuids = [UUID(id) for id in artist_id_list]
+                query = query.where(
+                    Book.id.in_(
+                        select(book_artists.c.book_id).where(
+                            book_artists.c.artist_id.in_(artist_uuids)
+                        )
+                    )
+                )
+            except ValueError:
+                pass
+
+    query = query.order_by(Book.updated_at.desc())
     result = await db.execute(query)
     books = result.scalars().all()
     return [book_to_response(book) for book in books]

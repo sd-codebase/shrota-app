@@ -10,6 +10,7 @@ import {
   CustomerServiceOutlined,
   LogoutOutlined,
   StarOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -18,6 +19,7 @@ import Artists from './pages/Artists';
 import Publications from './pages/Publications';
 import Books from './pages/Books';
 import ContentPromotion from './pages/ContentPromotion';
+import Users from './pages/Users';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
@@ -67,6 +69,11 @@ function App() {
       key: '/content',
       icon: <StarOutlined />,
       label: <Link to="/content">Content Promotion</Link>,
+    },
+    {
+      key: '/users',
+      icon: <TeamOutlined />,
+      label: <Link to="/users">Users</Link>,
     },
   ];
 
@@ -135,6 +142,7 @@ function App() {
                 <Route path="/publications" element={<Publications />} />
                 <Route path="/books" element={<Books />} />
                 <Route path="/content" element={<ContentPromotion />} />
+                <Route path="/users" element={<Users />} />
               </Routes>
             </div>
           </Content>

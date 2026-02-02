@@ -329,8 +329,8 @@ export function RegisterScreen() {
                 style={[
                   styles.checkbox,
                   {
-                    borderColor: termsAccepted ? colors.brand.orange : colors.border,
-                    backgroundColor: termsAccepted ? colors.brand.orange : 'transparent',
+                    borderColor: termsAccepted ? colors.brand.orange : colors.textSecondary,
+                    backgroundColor: termsAccepted ? colors.brand.orange : colors.inputBackground,
                   },
                 ]}
               >
