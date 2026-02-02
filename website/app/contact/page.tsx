@@ -1,9 +1,11 @@
-"use client";
-
-import { useState } from "react";
+import { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
-import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/animations/FadeIn";
+
+export const metadata: Metadata = {
+  title: "Contact Us - Shrota",
+  description: "Get in touch with Shrota. We'd love to hear from you!",
+};
 
 const contactInfo = [
   {
@@ -45,25 +47,6 @@ const contactReasons = [
 ];
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSubmitting(false);
-    setSubmitted(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  };
-
   return (
     <div className="pt-20">
       {/* Hero Section */}
@@ -91,177 +74,47 @@ export default function ContactPage() {
       {/* Contact Section */}
       <section className="py-24 bg-bg-secondary">
         <Container>
-          <div className="grid lg:grid-cols-3 gap-12">
-            {/* Contact Info */}
-            <div className="lg:col-span-1">
-              <FadeIn>
-                <h2 className="text-2xl font-bold mb-2">Shravanam Soft Solutions LLP</h2>
-                <p className="text-text-secondary mb-8">
-                  Our team at Shrota is always happy to assist you. We aim to respond
-                  to all queries as quickly as possible.
-                </p>
+          <FadeIn className="max-w-2xl mx-auto">
+            <div className="bg-bg-card rounded-2xl p-8 md:p-12 border border-white/5">
+              <h2 className="text-2xl font-bold mb-2 text-center">Shravanam Soft Solutions LLP</h2>
+              <p className="text-text-secondary mb-8 text-center">
+                Our team at Shrota is always happy to assist you. We aim to respond
+                to all queries as quickly as possible.
+              </p>
 
-                <div className="space-y-6">
-                  {contactInfo.map((item) => (
-                    <div key={item.title} className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-brand-blue/20 text-brand-blue-light flex items-center justify-center flex-shrink-0">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <p className="text-text-secondary text-sm">
-                          {item.title}
-                        </p>
-                        <p className="text-text-primary font-medium">
-                          {item.value}
-                        </p>
-                      </div>
+              <div className="space-y-6 mb-8">
+                {contactInfo.map((item) => (
+                  <div key={item.title} className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-brand-blue/20 text-brand-blue-light flex items-center justify-center flex-shrink-0">
+                      {item.icon}
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 p-4 bg-bg-card rounded-xl border border-white/5">
-                  <p className="text-text-secondary text-sm mb-3">You can reach us via email for:</p>
-                  <ul className="space-y-2">
-                    {contactReasons.map((reason) => (
-                      <li key={reason} className="flex items-center gap-2 text-text-primary text-sm">
-                        <svg className="w-4 h-4 text-brand-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {reason}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </FadeIn>
-            </div>
-
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <FadeIn direction="right">
-                <div className="bg-bg-card rounded-2xl p-8 border border-white/5">
-                  {submitted ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
-                        <svg
-                          className="w-8 h-8"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2">Message Sent!</h3>
-                      <p className="text-text-secondary mb-6">
-                        Thank you for reaching out. We&apos;ll get back to you
-                        shortly.
+                    <div>
+                      <p className="text-text-secondary text-sm">
+                        {item.title}
                       </p>
-                      <Button onClick={() => setSubmitted(false)}>
-                        Send Another Message
-                      </Button>
+                      <p className="text-text-primary font-medium">
+                        {item.value}
+                      </p>
                     </div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid sm:grid-cols-2 gap-6">
-                        <div>
-                          <label
-                            htmlFor="name"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Name
-                          </label>
-                          <input
-                            type="text"
-                            id="name"
-                            required
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData({ ...formData, name: e.target.value })
-                            }
-                            className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-white/10 text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-                            placeholder="Your name"
-                          />
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="email"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            id="email"
-                            required
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData({ ...formData, email: e.target.value })
-                            }
-                            className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-white/10 text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-                            placeholder="your@email.com"
-                          />
-                        </div>
-                      </div>
+                  </div>
+                ))}
+              </div>
 
-                      <div>
-                        <label
-                          htmlFor="subject"
-                          className="block text-sm font-medium text-text-primary mb-2"
-                        >
-                          Subject
-                        </label>
-                        <input
-                          type="text"
-                          id="subject"
-                          required
-                          value={formData.subject}
-                          onChange={(e) =>
-                            setFormData({ ...formData, subject: e.target.value })
-                          }
-                          className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-white/10 text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-                          placeholder="How can we help?"
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="message"
-                          className="block text-sm font-medium text-text-primary mb-2"
-                        >
-                          Message
-                        </label>
-                        <textarea
-                          id="message"
-                          rows={6}
-                          required
-                          value={formData.message}
-                          onChange={(e) =>
-                            setFormData({ ...formData, message: e.target.value })
-                          }
-                          className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-white/10 text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent resize-none"
-                          placeholder="Tell us more..."
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Sending..." : "Send Message"}
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              </FadeIn>
+              <div className="p-4 bg-bg-secondary rounded-xl border border-white/5">
+                <p className="text-text-secondary text-sm mb-3">You can reach us via email for:</p>
+                <ul className="space-y-2">
+                  {contactReasons.map((reason) => (
+                    <li key={reason} className="flex items-center gap-2 text-text-primary text-sm">
+                      <svg className="w-4 h-4 text-brand-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          </FadeIn>
         </Container>
       </section>
     </div>

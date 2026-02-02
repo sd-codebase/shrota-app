@@ -53,10 +53,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${inter.variable} antialiased bg-bg-primary text-text-primary`}
+        className={`${poppins.variable} ${inter.variable} antialiased bg-bg-primary text-text-primary min-h-screen flex flex-col`}
       >
         <Navbar />
-        <main>{children}</main>
+        <main className="flex-grow">{children}</main>
         <Footer />
       </body>
     </html>
