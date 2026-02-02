@@ -29,7 +29,13 @@ class User(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Relationships
-    preferences: Mapped["UserPreferences"] = relationship("UserPreferences", back_populates="user", uselist=False)
+    preferences: Mapped["UserPreferences"] = relationship(
+        "UserPreferences",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     # Add check constraint to ensure at least one contact method is provided
     __table_args__ = (

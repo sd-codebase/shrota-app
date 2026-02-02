@@ -48,10 +48,12 @@ class UserPreferences(Base, TimestampMixin):
         secondary=user_preferred_languages,
         primaryjoin="UserPreferences.user_id == user_preferred_languages.c.user_id",
         secondaryjoin="user_preferred_languages.c.language_id == Language.id",
+        passive_deletes=True,
     )
     genres = relationship(
         "Genre",
         secondary=user_preferred_genres,
         primaryjoin="UserPreferences.user_id == user_preferred_genres.c.user_id",
         secondaryjoin="user_preferred_genres.c.genre_id == Genre.id",
+        passive_deletes=True,
     )

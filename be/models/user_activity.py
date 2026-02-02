@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Float, UniqueConstraint, DateTime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 from sqlalchemy.dialects.postgresql import UUID
 from models.base import Base, TimestampMixin, utc_now
 
@@ -28,8 +28,8 @@ class UserBookProgress(Base, TimestampMixin):
     last_played_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
-    user = relationship("User", backref="book_progress")
-    book = relationship("Book", backref="user_progress")
+    user = relationship("User", backref=backref("book_progress", passive_deletes=True))
+    book = relationship("Book", backref=backref("user_progress", passive_deletes=True))
 
     __table_args__ = (
         UniqueConstraint('user_id', 'book_id', name='unique_user_book_progress'),
@@ -46,8 +46,8 @@ class UserLikedBook(Base):
     liked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
-    user = relationship("User", backref="liked_books")
-    book = relationship("Book", backref="liked_by_users")
+    user = relationship("User", backref=backref("liked_books", passive_deletes=True))
+    book = relationship("Book", backref=backref("liked_by_users", passive_deletes=True))
 
     __table_args__ = (
         UniqueConstraint('user_id', 'book_id', name='unique_user_liked_book'),
