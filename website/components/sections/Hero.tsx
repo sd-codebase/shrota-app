@@ -46,17 +46,17 @@ export function Hero() {
               <div className="flex items-center justify-center lg:justify-start gap-8 mt-10">
                 <div>
                   <p className="text-3xl font-bold text-text-primary">10K+</p>
+                  <p className="text-text-secondary text-sm">Happy Listeners</p>
+                </div>
+                <div className="w-px h-12 bg-white/10" />
+                <div>
+                  <p className="text-3xl font-bold text-text-primary">100+</p>
                   <p className="text-text-secondary text-sm">Audiobooks</p>
                 </div>
                 <div className="w-px h-12 bg-white/10" />
                 <div>
-                  <p className="text-3xl font-bold text-text-primary">15+</p>
+                  <p className="text-3xl font-bold text-text-primary">3</p>
                   <p className="text-text-secondary text-sm">Languages</p>
-                </div>
-                <div className="w-px h-12 bg-white/10" />
-                <div>
-                  <p className="text-3xl font-bold text-text-primary">4.8</p>
-                  <p className="text-text-secondary text-sm">App Rating</p>
                 </div>
               </div>
             </FadeIn>

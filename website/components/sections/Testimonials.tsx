@@ -8,21 +8,21 @@ const testimonials = [
   {
     quote:
       "Shrota has transformed my daily commute. Now I look forward to traffic jams!",
-    author: "Priya S.",
+    author: "Priya Sawant",
     role: "Avid Listener",
     avatar: "PS",
   },
   {
     quote:
       "The regional content selection is incredible. Finally, quality audiobooks in my mother tongue.",
-    author: "Rajesh K.",
-    role: "Tamil Literature Fan",
+    author: "Rajesh Kharat",
+    role: "Marathi Literature Fan",
     avatar: "RK",
   },
   {
     quote:
       "My kids love the bedtime stories. The sleep timer is a lifesaver for parents!",
-    author: "Anjali M.",
+    author: "Anjali Mane",
     role: "Parent",
     avatar: "AM",
   },
@@ -98,12 +98,11 @@ export function Testimonials() {
         {/* Stats */}
         <FadeIn delay={0.4} className="mt-16">
           <div className="bg-bg-card rounded-2xl p-8 border border-white/5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-3 gap-8">
               {[
-                { value: "4.8", label: "App Store Rating" },
-                { value: "100K+", label: "Happy Listeners" },
-                { value: "10K+", label: "Audiobooks" },
-                { value: "15+", label: "Languages" },
+                { value: "10K+", label: "Happy Listeners" },
+                { value: "100+", label: "Audiobooks" },
+                { value: "3", label: "Languages" },
               ].map((stat, index) => (
                 <div key={index} className="text-center">
                   <p className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange">

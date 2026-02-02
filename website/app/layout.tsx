@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -57,7 +57,7 @@ export default function RootLayout({
       >
         <Navbar />
         <main className="flex-grow">{children}</main>
-        <Footer />
+        <ConditionalFooter />
       </body>
     </html>
   );

@@ -205,7 +205,7 @@ export interface User {
   name: string;
   email?: string;
   whatsapp_number?: string;
-  birth_date?: string;
+  birth_date: string;
   is_email_verified: boolean;
   is_whatsapp_verified: boolean;
   is_active: boolean;
@@ -217,7 +217,7 @@ export interface RegisterPayload {
   name: string;
   email?: string;
   whatsapp_number?: string;
-  birth_date?: string;
+  birth_date: string;
 }
 
 export interface SendOTPPayload {

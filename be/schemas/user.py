@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: Optional[EmailStr] = None
     whatsapp_number: Optional[str] = Field(None, max_length=20)
-    birth_date: Optional[date] = None
+    birth_date: date = Field(..., description="User's birth date (required)")
 
     @field_validator('whatsapp_number')
     @classmethod
@@ -25,9 +25,7 @@ class UserRegister(BaseModel):
 
     @field_validator('birth_date')
     @classmethod
-    def validate_birth_date(cls, v: Optional[date]) -> Optional[date]:
-        if v is None:
-            return v
+    def validate_birth_date(cls, v: date) -> date:
         if v > date.today():
             raise ValueError('Birth date cannot be in the future')
         return v
@@ -44,7 +42,7 @@ class UserResponse(BaseModel):
     name: str
     email: Optional[str] = None
     whatsapp_number: Optional[str] = None
-    birth_date: Optional[date] = None
+    birth_date: date
     is_email_verified: bool
     is_whatsapp_verified: bool
     is_active: bool

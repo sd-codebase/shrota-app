@@ -98,7 +98,8 @@ export function RegisterScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const hasAllContacts = email.trim() && whatsappNumber.trim();
-  const canRegister = hasAllContacts && termsAccepted;
+  const hasBirthDate = birthDateText.trim().length === 10;
+  const canRegister = hasAllContacts && hasBirthDate && termsAccepted;
   const otpType = 'email'; // Always verify email first
   const identifier = email.trim();
 
@@ -133,10 +134,18 @@ export function RegisterScreen() {
       return;
     }
 
-    // Validate date if entered
+    // Validate birth date (required)
+    if (!birthDateText.trim()) {
+      setDateError('Birth date is required');
+      return;
+    }
     const dateResult = parseDate(birthDateText);
     if (!dateResult.valid) {
       setDateError(dateResult.error || 'Invalid date');
+      return;
+    }
+    if (!dateResult.date) {
+      setDateError('Birth date is required');
       return;
     }
 
@@ -152,9 +161,7 @@ export function RegisterScreen() {
         name: name.trim(),
         email: email.trim() || undefined,
         whatsapp_number: whatsappNumber.trim() || undefined,
-        birth_date: dateResult.date
-          ? `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`
-          : undefined,
+        birth_date: `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`,
       });
 
       // Send OTP
@@ -285,7 +292,7 @@ export function RegisterScreen() {
             </Text>
 
             {/* Birth Date Input */}
-            <Text style={[styles.label, { color: colors.text }]}>Birth Date (Optional)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Birth Date *</Text>
             <View
               style={[
                 styles.inputContainer,

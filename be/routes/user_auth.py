@@ -16,6 +16,7 @@ from schemas.user import (
 )
 from utils.otp import store_otp, verify_otp, get_otp_expiry_seconds
 from utils.auth import create_access_token, decode_access_token
+from utils.age import is_eligible_for_registration
 from config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/v1/auth", tags=["User Authentication"])
@@ -137,6 +138,13 @@ async def register_user(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="User with this WhatsApp number already exists"
                 )
+
+    # Validate age - user must be at least 13 years and 1 day old
+    if not is_eligible_for_registration(payload.birth_date):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must be at least 13 years old to register"
+        )
 
     # Create new user
     user = User(
