@@ -8,7 +8,7 @@ import { FadeIn } from "@/components/animations/FadeIn";
 const contactInfo = [
   {
     title: "Email",
-    value: "hello@shrota.com",
+    value: "myshrota@gmail.com",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -16,17 +16,17 @@ const contactInfo = [
     ),
   },
   {
-    title: "Support",
-    value: "support@shrota.com",
+    title: "Website",
+    value: "https://shrota.in",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
       </svg>
     ),
   },
   {
-    title: "Location",
-    value: "Mumbai, India",
+    title: "Address",
+    value: "Jijau Colony, Hanuman Nagar, Daund Road, Ahilyanagar, Maharashtra, India. Pin 414005",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -34,6 +34,14 @@ const contactInfo = [
       </svg>
     ),
   },
+];
+
+const contactReasons = [
+  "Technical support",
+  "Content-related queries",
+  "Partnerships and collaborations",
+  "Career opportunities",
+  "General inquiries",
 ];
 
 export default function ContactPage() {
@@ -72,8 +80,9 @@ export default function ContactPage() {
               </span>
             </h1>
             <p className="text-text-secondary text-lg">
-              Have questions, feedback, or just want to say hello? We&apos;d
-              love to hear from you.
+              We&apos;d love to hear from you! If you have any questions, feedback,
+              support requests, partnership inquiries, or suggestions, please feel
+              free to get in touch with us.
             </p>
           </FadeIn>
         </Container>
@@ -86,10 +95,10 @@ export default function ContactPage() {
             {/* Contact Info */}
             <div className="lg:col-span-1">
               <FadeIn>
-                <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
+                <h2 className="text-2xl font-bold mb-2">Shravanam Soft Solutions LLP</h2>
                 <p className="text-text-secondary mb-8">
-                  Reach out through any of the following channels and we&apos;ll
-                  get back to you as soon as possible.
+                  Our team at Shrota is always happy to assist you. We aim to respond
+                  to all queries as quickly as possible.
                 </p>
 
                 <div className="space-y-6">
@@ -108,6 +117,20 @@ export default function ContactPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div className="mt-8 p-4 bg-bg-card rounded-xl border border-white/5">
+                  <p className="text-text-secondary text-sm mb-3">You can reach us via email for:</p>
+                  <ul className="space-y-2">
+                    {contactReasons.map((reason) => (
+                      <li key={reason} className="flex items-center gap-2 text-text-primary text-sm">
+                        <svg className="w-4 h-4 text-brand-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </FadeIn>
             </div>

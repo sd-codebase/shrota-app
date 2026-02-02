@@ -1,84 +1,12 @@
 import { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { FadeIn, FadeInStagger, FadeInStaggerItem } from "@/components/animations/FadeIn";
+import { FadeIn } from "@/components/animations/FadeIn";
 
 export const metadata: Metadata = {
-  title: "Careers - Shrota",
-  description: "Join the Shrota team and help bring the joy of audiobooks to millions.",
+  title: "Work With Us - Shrota",
+  description: "Join Shrota and be part of a growing digital audio platform. We're looking for passionate creators, storytellers, and technology enthusiasts.",
 };
-
-const benefits = [
-  {
-    title: "Remote First",
-    description: "Work from anywhere in India. We believe in flexibility and trust.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-  },
-  {
-    title: "Health Insurance",
-    description: "Comprehensive health coverage for you and your family.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Learning Budget",
-    description: "Annual budget for courses, books, and conferences.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    ),
-  },
-  {
-    title: "Flexible Hours",
-    description: "We care about output, not when you clock in.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
-];
-
-const openings = [
-  {
-    title: "Senior iOS Developer",
-    department: "Engineering",
-    location: "Remote (India)",
-    type: "Full-time",
-  },
-  {
-    title: "Android Developer",
-    department: "Engineering",
-    location: "Remote (India)",
-    type: "Full-time",
-  },
-  {
-    title: "Content Partnerships Manager",
-    department: "Content",
-    location: "Mumbai / Remote",
-    type: "Full-time",
-  },
-  {
-    title: "UX Designer",
-    department: "Design",
-    location: "Remote (India)",
-    type: "Full-time",
-  },
-  {
-    title: "Audio Editor",
-    department: "Content",
-    location: "Mumbai",
-    type: "Full-time",
-  },
-];
 
 export default function CareersPage() {
   return (
@@ -88,98 +16,82 @@ export default function CareersPage() {
         <Container>
           <FadeIn className="max-w-3xl mx-auto text-center">
             <span className="inline-block px-4 py-2 rounded-full bg-brand-orange/10 text-brand-orange text-sm font-medium mb-6 border border-brand-orange/20">
-              We&apos;re Hiring
+              Join Us
             </span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-              Build the Future of{" "}
+              Work With{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange">
-                Audio
+                Us
               </span>
             </h1>
             <p className="text-text-secondary text-lg">
-              Join our mission to make audiobooks accessible to everyone. We&apos;re
-              looking for passionate people who love stories as much as we do.
+              At Shrota, we believe in the power of audio to educate, inspire,
+              and transform lives. We are always looking for passionate individuals
+              who want to be part of a growing digital audio platform.
             </p>
           </FadeIn>
         </Container>
       </section>
 
-      {/* Benefits Section */}
+      {/* Call for Collaborators */}
       <section className="py-24 bg-bg-secondary">
         <Container>
-          <FadeIn className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Why Join Shrota?</h2>
-            <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-              We offer more than just a job. We offer a chance to make a real impact.
-            </p>
-          </FadeIn>
+          <FadeIn className="max-w-3xl mx-auto">
+            <div className="bg-bg-card rounded-2xl p-8 md:p-12 border border-white/5">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
+                We&apos;re Looking For
+              </h2>
 
-          <FadeInStagger className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6" staggerDelay={0.1}>
-            {benefits.map((benefit) => (
-              <FadeInStaggerItem key={benefit.title}>
-                <div className="h-full bg-bg-card rounded-2xl p-6 border border-white/5 text-center">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br from-brand-blue/20 to-brand-orange/20 flex items-center justify-center text-brand-blue-light">
-                    {benefit.icon}
+              <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                {[
+                  "Writers",
+                  "Voice Artists",
+                  "Educators",
+                  "Developers",
+                  "Designers",
+                  "Content Creators",
+                ].map((role) => (
+                  <div
+                    key={role}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-bg-secondary border border-white/5"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue/20 to-brand-orange/20 flex items-center justify-center text-brand-blue-light">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-text-primary font-medium">{role}</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-text-primary">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-text-secondary">{benefit.description}</p>
-                </div>
-              </FadeInStaggerItem>
-            ))}
-          </FadeInStagger>
+                ))}
+              </div>
+
+              <p className="text-text-secondary text-center mb-8">
+                Whether you are a <strong className="text-text-primary">storyteller</strong>, <strong className="text-text-primary">narrator</strong>, <strong className="text-text-primary">translator</strong>, <strong className="text-text-primary">editor</strong>, or <strong className="text-text-primary">technology enthusiast</strong>, Shrota offers an opportunity to collaborate, learn, and grow while contributing to meaningful content for listeners across India and beyond.
+              </p>
+
+              <div className="bg-gradient-to-br from-brand-blue/10 to-brand-orange/10 rounded-xl p-6 border border-white/5 text-center">
+                <p className="text-text-secondary mb-4">
+                  If you are interested in working with us, please send your profile, sample work, or resume to:
+                </p>
+                <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange mb-6">
+                  myshrota@gmail.com
+                </p>
+                <Button href="mailto:myshrota@gmail.com" size="lg">
+                  Send Your Profile
+                </Button>
+              </div>
+            </div>
+          </FadeIn>
         </Container>
       </section>
 
-      {/* Open Positions */}
+      {/* Tagline Section */}
       <section className="py-24 bg-bg-primary">
         <Container>
-          <FadeIn className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Open Positions</h2>
-            <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-              Find your next role at Shrota. Don&apos;t see a fit? Send us your
-              resume anyway - we&apos;re always looking for talented people.
+          <FadeIn className="text-center">
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange max-w-3xl mx-auto">
+              Let&apos;s build the future of learning and storytelling together with Shrota.
             </p>
-          </FadeIn>
-
-          <FadeInStagger className="max-w-3xl mx-auto space-y-4" staggerDelay={0.1}>
-            {openings.map((job) => (
-              <FadeInStaggerItem key={job.title}>
-                <div className="bg-bg-card rounded-2xl p-6 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-text-primary mb-1">
-                      {job.title}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-                      <span className="px-2 py-1 rounded-full bg-brand-blue/10 text-brand-blue-light">
-                        {job.department}
-                      </span>
-                      <span>{job.location}</span>
-                      <span>&bull;</span>
-                      <span>{job.type}</span>
-                    </div>
-                  </div>
-                  <Button href="#" size="sm">
-                    Apply Now
-                  </Button>
-                </div>
-              </FadeInStaggerItem>
-            ))}
-          </FadeInStagger>
-
-          {/* General Application */}
-          <FadeIn delay={0.5} className="mt-16">
-            <div className="max-w-3xl mx-auto bg-gradient-to-br from-brand-blue/10 to-brand-orange/10 rounded-2xl p-8 border border-white/5 text-center">
-              <h3 className="text-2xl font-bold mb-4">Don&apos;t See a Fit?</h3>
-              <p className="text-text-secondary mb-6">
-                We&apos;re always looking for talented people. Send us your resume
-                and tell us how you can contribute to Shrota.
-              </p>
-              <Button href="mailto:careers@shrota.com" variant="secondary">
-                Send Your Resume
-              </Button>
-            </div>
           </FadeIn>
         </Container>
       </section>
