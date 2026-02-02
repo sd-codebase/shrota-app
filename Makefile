@@ -48,7 +48,9 @@ staging-migrate:
 			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
 			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
 			PRIMARY KEY (user_id, genre_id) \
-		);"
+		); \
+		DELETE FROM users WHERE birth_date IS NULL; \
+		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL;"
 
 # =============================================================================
 # PRODUCTION COMMANDS
@@ -94,7 +96,9 @@ prod-migrate:
 			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
 			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
 			PRIMARY KEY (user_id, genre_id) \
-		);"
+		); \
+		DELETE FROM users WHERE birth_date IS NULL; \
+		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL;"
 
 # =============================================================================
 # LOCAL COMMANDS
