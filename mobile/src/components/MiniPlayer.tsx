@@ -51,7 +51,7 @@ export function MiniPlayer({ onPress }: MiniPlayerProps) {
       </View>
       <View style={styles.content}>
         <Image
-          source={{ uri: currentBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
+          source={{ uri: currentChapter?.thumbnail || currentBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
           style={[styles.thumbnail, { backgroundColor: colors.backgroundSecondary }]}
           priority="high"
           cachePolicy="memory-disk"

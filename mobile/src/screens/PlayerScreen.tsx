@@ -241,7 +241,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
       <View style={styles.content}>
         <Image
-          source={{ uri: book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
+          source={{ uri: currentChapter?.thumbnail || book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK }}
           style={[styles.artwork, { backgroundColor: colors.backgroundSecondary }]}
           placeholder={require('../../assets/icon.png')}
           priority="high"
