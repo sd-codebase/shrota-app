@@ -57,6 +57,7 @@ export default function PrivacyPage() {
                     <li>Name</li>
                     <li>Email address</li>
                     <li>Phone number (if provided)</li>
+                    <li>Address (optional, if provided)</li>
                     <li>Login credentials</li>
                   </ul>
 
