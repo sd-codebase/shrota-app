@@ -6,7 +6,7 @@ const buildGradlePath = path.join(androidDir, 'app', 'build.gradle');
 const keystorePropsPath = path.join(androidDir, 'keystore.properties');
 
 // Create keystore.properties
-const keystoreProps = `storeFile=../keystore/shrota-release.keystore
+const keystoreProps = `storeFile=../../keystore/shrota-release.keystore
 storePassword=shrota123
 keyAlias=shrota
 keyPassword=shrota123
@@ -20,27 +20,28 @@ let buildGradle = fs.readFileSync(buildGradlePath, 'utf8');
 
 // 1. Add keystore loading before "android {" (only if not already present)
 if (!buildGradle.includes('keystorePropertiesFile')) {
-    const keystoreLoader = `// Load keystore properties for release signing
+    buildGradle = buildGradle.replace(
+        'android {',
+        `// Load keystore properties for release signing
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-android {`;
-
-    buildGradle = buildGradle.replace('android {', keystoreLoader);
+android {`
+    );
     console.log('✅ Added keystore loader');
 }
 
-// 2. Add release signing config after debug signing config (only if not already present)
-if (!buildGradle.includes('signingConfigs') || !buildGradle.match(/signingConfigs\s*\{[\s\S]*?release\s*\{/)) {
-    const releaseSigningConfig = `debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
+// 2. Add release signing config inside signingConfigs block
+// Find the signingConfigs block and add release config after debug
+const signingConfigsRegex = /(signingConfigs\s*\{[\s\S]*?debug\s*\{[^}]*\})/;
+
+if (!buildGradle.includes('signingConfigs') || !buildGradle.match(/signingConfigs[\s\S]*?release\s*\{[\s\S]*?keystoreProperties/)) {
+    buildGradle = buildGradle.replace(
+        signingConfigsRegex,
+        `$1
         release {
             if (keystorePropertiesFile.exists()) {
                 storeFile file(keystoreProperties['storeFile'])
@@ -48,30 +49,20 @@ if (!buildGradle.includes('signingConfigs') || !buildGradle.match(/signingConfig
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
             }
-        }`;
-
-    buildGradle = buildGradle.replace(
-        /debug \{\s*storeFile file\('debug\.keystore'\)\s*storePassword 'android'\s*keyAlias 'androiddebugkey'\s*keyPassword 'android'\s*\}/,
-        releaseSigningConfig
+        }`
     );
     console.log('✅ Added release signing config');
 }
 
-// 3. Fix debug buildType to use debug signing (not release)
+// 3. Ensure release buildType uses signingConfigs.release
 buildGradle = buildGradle.replace(
-    /(buildTypes\s*\{[\s\S]*?debug\s*\{[\s\S]*?)signingConfig signingConfigs\.release/,
-    '$1signingConfig signingConfigs.debug'
+    /signingConfig signingConfigs\.debug(\s*\n\s*def enableShrinkResources)/,
+    'signingConfig signingConfigs.release$1'
 );
 
-// 4. Fix release buildType to use release signing (not debug)
-buildGradle = buildGradle.replace(
-    /(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)signingConfig signingConfigs\.debug/,
-    '$1signingConfig signingConfigs.release'
-);
-
-console.log('✅ Fixed signing configs for build types');
+console.log('✅ Fixed signing config for release build type');
 
 fs.writeFileSync(buildGradlePath, buildGradle);
-console.log('✅ Updated build.gradle with release signing config');
+console.log('✅ Updated build.gradle');
 console.log('');
 console.log('🔨 Now run: cd android && ./gradlew bundleRelease');
