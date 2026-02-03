@@ -13,6 +13,7 @@ const footerLinks = {
     { href: "/privacy", label: "Privacy Policy" },
     { href: "/terms", label: "Terms & Conditions" },
     { href: "/vulnerability-disclosure", label: "Vulnerability Disclosure" },
+    { href: "/delete-account", label: "Delete Account" },
   ],
 };
 
