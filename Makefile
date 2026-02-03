@@ -1,10 +1,11 @@
-.PHONY: staging-up staging-down staging-build staging-deploy staging-logs staging-migrate \
-        staging-migrate-remove-whatsapp \
-        prod-up prod-down prod-build prod-deploy prod-logs prod-migrate \
-        prod-migrate-remove-whatsapp \
+.PHONY: staging-up staging-down staging-build staging-deploy staging-logs \
+        staging-migrate staging-migrate-stamp \
+        prod-up prod-down prod-build prod-deploy prod-logs \
+        prod-migrate prod-migrate-stamp \
         local-up local-down local-build local-logs \
         dev-up dev-down dev-build dev-logs dev-restart-be dev-restart-ui \
-        dev-seed dev-seed-verify dev-migrate-remove-whatsapp
+        dev-seed dev-seed-verify \
+        dev-migrate dev-migrate-new dev-migrate-downgrade dev-migrate-history
 
 # =============================================================================
 # STAGING COMMANDS
@@ -28,43 +29,11 @@ staging-logs:
 	docker compose --env-file .env.staging -f docker-compose.staging.yml logs -f
 
 staging-migrate:
-	docker exec -it shrota-postgres-staging psql -U shrota -d shrota_staging -c "\
-		ALTER TABLE authors ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
-		ALTER TABLE genres ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE NOT NULL; \
-		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
-		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
-		CREATE TABLE IF NOT EXISTS user_preferences ( \
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
-			user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE, \
-			created_at TIMESTAMPTZ DEFAULT NOW(), \
-			updated_at TIMESTAMPTZ DEFAULT NOW() \
-		); \
-		CREATE TABLE IF NOT EXISTS user_preferred_languages ( \
-			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
-			language_id UUID REFERENCES languages(id) ON DELETE CASCADE, \
-			PRIMARY KEY (user_id, language_id) \
-		); \
-		CREATE TABLE IF NOT EXISTS user_preferred_genres ( \
-			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
-			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
-			PRIMARY KEY (user_id, genre_id) \
-		); \
-		DELETE FROM users WHERE birth_date IS NULL; \
-		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(500) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS village_landmark VARCHAR(200) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS tahsil_city VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
+	docker exec -it shrota-backend-staging alembic upgrade head
 
-staging-migrate-remove-whatsapp:
-	docker exec -it shrota-postgres-staging psql -U shrota -d shrota_staging -c "\
-		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
-		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"
+# One-time command to mark existing database as up-to-date with initial migration
+staging-migrate-stamp:
+	docker exec -it shrota-backend-staging alembic stamp head
 
 # =============================================================================
 # PRODUCTION COMMANDS
@@ -88,43 +57,11 @@ prod-logs:
 	docker compose --env-file .env.production -f docker-compose.prod.yml logs -f
 
 prod-migrate:
-	docker exec -it shrota-postgres psql -U shrota -d shrota -c "\
-		ALTER TABLE authors ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE artists ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE publications ADD COLUMN IF NOT EXISTS photo VARCHAR(500) NULL; \
-		ALTER TABLE genres ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500) NULL; \
-		ALTER TABLE genres ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE NOT NULL; \
-		ALTER TABLE books ADD COLUMN IF NOT EXISTS is_adult BOOLEAN DEFAULT FALSE; \
-		ALTER TABLE chapters ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL; \
-		CREATE TABLE IF NOT EXISTS user_preferences ( \
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
-			user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE, \
-			created_at TIMESTAMPTZ DEFAULT NOW(), \
-			updated_at TIMESTAMPTZ DEFAULT NOW() \
-		); \
-		CREATE TABLE IF NOT EXISTS user_preferred_languages ( \
-			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
-			language_id UUID REFERENCES languages(id) ON DELETE CASCADE, \
-			PRIMARY KEY (user_id, language_id) \
-		); \
-		CREATE TABLE IF NOT EXISTS user_preferred_genres ( \
-			user_id UUID REFERENCES users(id) ON DELETE CASCADE, \
-			genre_id UUID REFERENCES genres(id) ON DELETE CASCADE, \
-			PRIMARY KEY (user_id, genre_id) \
-		); \
-		DELETE FROM users WHERE birth_date IS NULL; \
-		ALTER TABLE users ALTER COLUMN birth_date SET NOT NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(500) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS village_landmark VARCHAR(200) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS tahsil_city VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
-		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
+	docker exec -it shrota-backend alembic upgrade head
 
-prod-migrate-remove-whatsapp:
-	docker exec -it shrota-postgres psql -U shrota -d shrota -c "\
-		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
-		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"
+# One-time command to mark existing database as up-to-date with initial migration
+prod-migrate-stamp:
+	docker exec -it shrota-backend alembic stamp head
 
 # =============================================================================
 # LOCAL COMMANDS
@@ -187,7 +124,17 @@ dev-seed-verify:
 		UNION ALL SELECT 'books', count(*) FROM books \
 		UNION ALL SELECT 'chapters', count(*) FROM chapters;"
 
-dev-migrate-remove-whatsapp:
-	docker exec -it shrota-postgres-dev psql -U shrota -d shrota -c "\
-		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
-		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"
+# =============================================================================
+# DEV MIGRATION COMMANDS (Alembic)
+# =============================================================================
+dev-migrate:
+	docker exec -it shrota-backend-dev alembic upgrade head
+
+dev-migrate-new:
+	docker exec -it shrota-backend-dev alembic revision --autogenerate -m "$(MSG)"
+
+dev-migrate-downgrade:
+	docker exec -it shrota-backend-dev alembic downgrade -1
+
+dev-migrate-history:
+	docker exec -it shrota-backend-dev alembic history

@@ -9,10 +9,15 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 
 async def init_db():
-    """Create all tables in the database."""
+    """Initialize database connection.
+
+    Note: Table creation is handled by Alembic migrations.
+    Run 'alembic upgrade head' to apply migrations.
+    """
+    # Verify database connection by testing the engine
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("PostgreSQL tables created")
+        pass
+    print("PostgreSQL connection established")
 
 
 async def close_db():

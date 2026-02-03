@@ -7,6 +7,7 @@ python-dotenv>=1.0.0
 # PostgreSQL
 sqlalchemy[asyncio]>=2.0.25
 asyncpg>=0.29.0
+alembic>=1.13.0
 
 # Authentication
 bcrypt>=4.1.0
