@@ -69,14 +69,24 @@ curl http://localhost:8000/auth/me \
 
 ---
 
-## Mobile App Build
+## Mobile App
 
-See `mobile/BUILD.md` for full details.
+> **Uses local builds, NOT EAS.** See `mobile/BUILD.md` for full details.
 
-### Quick Commands (run from `mobile/` directory)
+### Commands (run from `mobile/` directory)
+
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start Metro bundler |
+| `npm run android` | Run on emulator/device |
+| `npm run prebuild:clean` | Clean prebuild (both platforms) |
+| `npm run prebuild:android` | Clean prebuild Android only |
+| `npm run build:aab` | Build release AAB for Google Play |
+| `npm run build:apk` | Build release APK |
+
+### Clean Build
 ```bash
-npm run build:aab    # Build release AAB for Google Play
-npm run build:apk    # Build release APK for testing
+rm -rf android && npm run build:aab
 ```
 
 ### Output Locations

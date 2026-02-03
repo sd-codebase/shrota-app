@@ -8,6 +8,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "postinstall": "patch-package",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "prebuild:android": "expo prebuild --platform android --clean",
+    "prebuild:ios": "expo prebuild --platform ios --clean",
     "build:apk": "./scripts/build-apk.sh",
     "build:aab": "./scripts/build-release.sh"
   },
