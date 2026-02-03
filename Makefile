@@ -1,8 +1,10 @@
 .PHONY: staging-up staging-down staging-build staging-deploy staging-logs staging-migrate \
+        staging-migrate-remove-whatsapp \
         prod-up prod-down prod-build prod-deploy prod-logs prod-migrate \
+        prod-migrate-remove-whatsapp \
         local-up local-down local-build local-logs \
         dev-up dev-down dev-build dev-logs dev-restart-be dev-restart-ui \
-        dev-seed dev-seed-verify
+        dev-seed dev-seed-verify dev-migrate-remove-whatsapp
 
 # =============================================================================
 # STAGING COMMANDS
@@ -59,6 +61,11 @@ staging-migrate:
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
 
+staging-migrate-remove-whatsapp:
+	docker exec -it shrota-postgres-staging psql -U shrota -d shrota_staging -c "\
+		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
+		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"
+
 # =============================================================================
 # PRODUCTION COMMANDS
 # =============================================================================
@@ -113,6 +120,11 @@ prod-migrate:
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) NULL; \
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL; \
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(10) NULL;"
+
+prod-migrate-remove-whatsapp:
+	docker exec -it shrota-postgres psql -U shrota -d shrota -c "\
+		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
+		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"
 
 # =============================================================================
 # LOCAL COMMANDS
@@ -174,3 +186,8 @@ dev-seed-verify:
 		UNION ALL SELECT 'publications', count(*) FROM publications \
 		UNION ALL SELECT 'books', count(*) FROM books \
 		UNION ALL SELECT 'chapters', count(*) FROM chapters;"
+
+dev-migrate-remove-whatsapp:
+	docker exec -it shrota-postgres-dev psql -U shrota -d shrota -c "\
+		ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_number; \
+		ALTER TABLE users DROP COLUMN IF EXISTS is_whatsapp_verified;"

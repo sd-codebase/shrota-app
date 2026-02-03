@@ -30,13 +30,9 @@ export function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Detect if input is email or WhatsApp number
-  const isWhatsApp = /^\d+$/.test(identifier.trim());
-  const otpType = isWhatsApp ? 'whatsapp' : 'email';
-
   const handleSendOTP = async () => {
     if (!identifier.trim()) {
-      Alert.alert('Error', 'Please enter your email or WhatsApp number');
+      Alert.alert('Error', 'Please enter your email');
       return;
     }
 
@@ -44,12 +40,11 @@ export function LoginScreen() {
     try {
       await sendOTP({
         identifier: identifier.trim().toLowerCase(),
-        otp_type: otpType,
+        otp_type: 'email',
       });
 
       navigation.navigate('OTPVerification', {
         identifier: identifier.trim().toLowerCase(),
-        otp_type: otpType,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to send OTP';
@@ -79,7 +74,7 @@ export function LoginScreen() {
             />
             <Text style={[styles.title, { color: colors.text }]}>Welcome to Shrota</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Sign in with your email or WhatsApp number
+              Sign in with your email
             </Text>
           </View>
 
@@ -91,14 +86,14 @@ export function LoginScreen() {
               ]}
             >
               <Ionicons
-                name={isWhatsApp ? 'logo-whatsapp' : 'mail-outline'}
+                name="mail-outline"
                 size={24}
                 color={colors.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="Email or WhatsApp number"
+                placeholder="Email"
                 placeholderTextColor={colors.placeholder}
                 value={identifier}
                 onChangeText={setIdentifier}
@@ -107,10 +102,6 @@ export function LoginScreen() {
                 keyboardType="email-address"
               />
             </View>
-
-            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-              For WhatsApp, enter 10-digit Indian number without country code
-            </Text>
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.brand.orange }]}
@@ -192,12 +183,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-  },
-  hintText: {
-    fontSize: 12,
-    marginTop: -8,
-    marginBottom: 16,
-    marginLeft: 4,
   },
   button: {
     height: 56,

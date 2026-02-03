@@ -33,7 +33,7 @@ export function OTPVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { login, sendOTP } = useAuth();
 
-  const { identifier, otp_type } = route.params;
+  const { identifier } = route.params;
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -149,7 +149,7 @@ export function OTPVerificationScreen() {
       await login({
         identifier,
         otp: otpString,
-        otp_type,
+        otp_type: 'email',
       });
 
       navigation.reset({
@@ -170,7 +170,7 @@ export function OTPVerificationScreen() {
   const handleResendOTP = async () => {
     setIsResending(true);
     try {
-      await sendOTP({ identifier, otp_type });
+      await sendOTP({ identifier, otp_type: 'email' });
       setCountdown(60); // 60 seconds cooldown
       Alert.alert('Success', 'OTP has been resent');
     } catch (error: unknown) {
@@ -181,9 +181,7 @@ export function OTPVerificationScreen() {
     }
   };
 
-  const maskedIdentifier = otp_type === 'email'
-    ? identifier.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-    : identifier.replace(/(.{4})(.*)(.{2})/, '$1****$3');
+  const maskedIdentifier = identifier.replace(/(.{2})(.*)(@.*)/, '$1***$3');
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -218,7 +216,7 @@ export function OTPVerificationScreen() {
             <View style={styles.header}>
               <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
                 <Ionicons
-                  name={otp_type === 'email' ? 'mail' : 'logo-whatsapp'}
+                  name="mail"
                   size={48}
                   color={colors.brand.orange}
                 />
@@ -306,9 +304,8 @@ export function OTPVerificationScreen() {
               )}
             </View>
 
-            {/* Email OTP Instructions - Only shown for email verification */}
-            {otp_type === 'email' && (
-              <View style={styles.instructionsContainer}>
+            {/* Email OTP Instructions */}
+            <View style={styles.instructionsContainer}>
                 <TouchableOpacity
                   style={styles.instructionsHeader}
                   onPress={() => setInstructionsExpanded(!instructionsExpanded)}
@@ -394,7 +391,6 @@ export function OTPVerificationScreen() {
                   </View>
                 )}
               </View>
-            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

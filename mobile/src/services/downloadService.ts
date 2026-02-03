@@ -289,6 +289,7 @@ export async function downloadBook(
         localAudioUrl: localPath,
         duration: chapter.duration,
         isPublished: chapter.isPublished,
+        thumbnail: chapter.thumbnail,
       });
     } catch (error) {
       await FileSystem.deleteAsync(bookDir, { idempotent: true });

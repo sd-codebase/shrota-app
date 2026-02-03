@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from database import get_db
@@ -112,32 +112,17 @@ async def register_user(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Register a new user.
-
-    At least one of email or whatsapp_number must be provided.
+    Register a new user with email.
     """
-    # Check for existing user with same email or WhatsApp
-    conditions = []
-    if payload.email:
-        conditions.append(User.email == payload.email.lower())
-    if payload.whatsapp_number:
-        conditions.append(User.whatsapp_number == payload.whatsapp_number)
+    # Check for existing user with same email
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    existing_user = result.scalar_one_or_none()
 
-    if conditions:
-        result = await db.execute(select(User).where(or_(*conditions)))
-        existing_user = result.scalar_one_or_none()
-
-        if existing_user:
-            if payload.email and existing_user.email == payload.email.lower():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="User with this email already exists"
-                )
-            if payload.whatsapp_number and existing_user.whatsapp_number == payload.whatsapp_number:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="User with this WhatsApp number already exists"
-                )
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
 
     # Validate age - user must be at least 13 years and 1 day old
     if not is_eligible_for_registration(payload.birth_date):
@@ -149,8 +134,7 @@ async def register_user(
     # Create new user
     user = User(
         name=payload.name,
-        email=payload.email.lower() if payload.email else None,
-        whatsapp_number=payload.whatsapp_number,
+        email=payload.email.lower(),
         birth_date=payload.birth_date,
     )
 
@@ -162,10 +146,8 @@ async def register_user(
         id=str(user.id),
         name=user.name,
         email=user.email,
-        whatsapp_number=user.whatsapp_number,
         birth_date=user.birth_date,
         is_email_verified=user.is_email_verified,
-        is_whatsapp_verified=user.is_whatsapp_verified,
         is_active=user.is_active,
         created_at=user.created_at,
         updated_at=user.updated_at,
@@ -178,24 +160,20 @@ async def send_otp(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Send OTP to user's email or WhatsApp.
+    Send OTP to user's email.
 
     The OTP will be logged to the FastAPI console (simulated sending).
     """
     identifier = payload.identifier.lower()
 
-    # Find user by email or WhatsApp
-    if payload.otp_type == "email":
-        result = await db.execute(select(User).where(User.email == identifier))
-    else:
-        result = await db.execute(select(User).where(User.whatsapp_number == identifier))
-
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == identifier))
     user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User not found with this {payload.otp_type}"
+            detail="User not found with this email"
         )
 
     if not user.is_active:
@@ -236,12 +214,8 @@ async def verify_otp_endpoint(
             detail="Invalid or expired OTP"
         )
 
-    # Find user
-    if payload.otp_type == "email":
-        result = await db.execute(select(User).where(User.email == identifier))
-    else:
-        result = await db.execute(select(User).where(User.whatsapp_number == identifier))
-
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == identifier))
     user = result.scalar_one_or_none()
 
     if not user:
@@ -250,13 +224,9 @@ async def verify_otp_endpoint(
             detail="User not found"
         )
 
-    # Mark appropriate contact method as verified
-    if payload.otp_type == "email" and not user.is_email_verified:
+    # Mark email as verified
+    if not user.is_email_verified:
         user.is_email_verified = True
-        await db.commit()
-        await db.refresh(user)
-    elif payload.otp_type == "whatsapp" and not user.is_whatsapp_verified:
-        user.is_whatsapp_verified = True
         await db.commit()
         await db.refresh(user)
 
@@ -273,10 +243,8 @@ async def verify_otp_endpoint(
             id=str(user.id),
             name=user.name,
             email=user.email,
-            whatsapp_number=user.whatsapp_number,
             birth_date=user.birth_date,
             is_email_verified=user.is_email_verified,
-            is_whatsapp_verified=user.is_whatsapp_verified,
             is_active=user.is_active,
             address=user.address,
             village_landmark=user.village_landmark,
@@ -301,10 +269,8 @@ async def get_current_user_info(
         id=str(current_user.id),
         name=current_user.name,
         email=current_user.email,
-        whatsapp_number=current_user.whatsapp_number,
         birth_date=current_user.birth_date,
         is_email_verified=current_user.is_email_verified,
-        is_whatsapp_verified=current_user.is_whatsapp_verified,
         is_active=current_user.is_active,
         address=current_user.address,
         village_landmark=current_user.village_landmark,

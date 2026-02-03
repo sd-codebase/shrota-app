@@ -21,7 +21,7 @@ import { useDownload } from '../context/DownloadContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes } from '../services/downloadService';
-import { getThumbnailUrl } from '../config';
+import { getThumbnailUrl, DOWNLOAD_FEATURE_ENABLED } from '../config';
 import { useCurrentBook, useIsPlaying, usePlayerStore } from '../stores/playerStore';
 import {
   getContinueListening,
@@ -45,12 +45,17 @@ interface Tab {
   iconFocused: string;
 }
 
-const TABS: Tab[] = [
+const ALL_TABS: Tab[] = [
   { key: 'continue', label: 'Continue', icon: 'play-circle-outline', iconFocused: 'play-circle' },
   { key: 'downloaded', label: 'Downloaded', icon: 'download-outline', iconFocused: 'download' },
   { key: 'listened', label: 'Listened', icon: 'checkmark-circle-outline', iconFocused: 'checkmark-circle' },
   { key: 'liked', label: 'Favourites', icon: 'heart-outline', iconFocused: 'heart' },
 ];
+
+// Filter out 'downloaded' tab if feature is disabled
+const TABS: Tab[] = DOWNLOAD_FEATURE_ENABLED
+  ? ALL_TABS
+  : ALL_TABS.filter(tab => tab.key !== 'downloaded');
 
 export function DownloadsScreen() {
   const navigation = useNavigation<NavigationProp>();

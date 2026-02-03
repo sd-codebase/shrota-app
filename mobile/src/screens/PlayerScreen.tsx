@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePlayer, PLAYBACK_SPEEDS } from '../context/PlayerContext';
@@ -25,6 +25,7 @@ import { formatPlaybackTime } from '../utils/formatters';
 import { getLikeStatus, likeBook, unlikeBook } from '../services/userActivityApi';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 import { shareBook } from '../utils/share';
+import { DOWNLOAD_FEATURE_ENABLED } from '../config';
 
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -35,6 +36,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { book } = route.params;
   const { colors, isDark } = useTheme();
   const { isAuthenticated } = useAuth();
+  const insets = useSafeAreaInsets();
   const {
     currentBook,
     currentChapterIndex,
@@ -211,25 +213,27 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
               color={isLiked ? colors.brand.red : colors.text}
             />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleDownload}
-            style={styles.headerButton}
-            disabled={bookIsDownloading}
-          >
-            {bookIsDownloading ? (
-              <View style={[styles.downloadProgress, { backgroundColor: colors.brand.orange }]}>
-                <Text style={styles.downloadProgressText}>
-                  {Math.round(downloadProgress?.progress || 0)}%
-                </Text>
-              </View>
-            ) : (
-              <Ionicons
-                name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
-                size={24}
-                color={bookIsDownloaded ? colors.brand.green : colors.text}
-              />
-            )}
-          </TouchableOpacity>
+          {DOWNLOAD_FEATURE_ENABLED && (
+            <TouchableOpacity
+              onPress={handleDownload}
+              style={styles.headerButton}
+              disabled={bookIsDownloading}
+            >
+              {bookIsDownloading ? (
+                <View style={[styles.downloadProgress, { backgroundColor: colors.brand.orange }]}>
+                  <Text style={styles.downloadProgressText}>
+                    {Math.round(downloadProgress?.progress || 0)}%
+                  </Text>
+                </View>
+              ) : (
+                <Ionicons
+                  name={bookIsDownloaded ? 'checkmark-circle' : 'download-outline'}
+                  size={24}
+                  color={bookIsDownloaded ? colors.brand.green : colors.text}
+                />
+              )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => setShowChapterList(true)}
             style={styles.headerButton}
@@ -478,7 +482,10 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.chapterList}>
+            <ScrollView
+              style={styles.chapterList}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            >
               {book.chapters.map((chapter, index) => {
                 const isPlayable = chapter.isPublished && chapter.audioUrl;
                 const isCurrentlyPlaying = currentBook?.chapters[currentChapterIndex]?.id === chapter.id;

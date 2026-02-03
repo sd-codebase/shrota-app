@@ -285,7 +285,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         title: chapter.title,
         artist: book.author,
         album: book.title,
-        artwork: downloadedBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
+        artwork: chapter.thumbnail || downloadedBook.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
       }));
     } else {
       // Use remote streaming URLs
@@ -310,7 +310,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         title: chapter.title,
         artist: book.author,
         album: book.title,
-        artwork: book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
+        artwork: chapter.thumbnail || book.thumbnail || DEFAULT_AUDIOBOOK_ARTWORK,
       }));
     }
 

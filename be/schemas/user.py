@@ -7,21 +7,8 @@ import re
 class UserRegister(BaseModel):
     """Schema for user registration."""
     name: str = Field(..., min_length=1, max_length=200)
-    email: Optional[EmailStr] = None
-    whatsapp_number: Optional[str] = Field(None, max_length=20)
+    email: EmailStr = Field(..., description="User's email address (required)")
     birth_date: date = Field(..., description="User's birth date (required)")
-
-    @field_validator('whatsapp_number')
-    @classmethod
-    def validate_whatsapp(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        # Remove spaces and dashes, keep + for country code
-        cleaned = re.sub(r'[\s-]', '', v)
-        # Validate format: optional +, then 10-15 digits
-        if not re.match(r'^\+?\d{10,15}$', cleaned):
-            raise ValueError('Invalid WhatsApp number format')
-        return cleaned
 
     @field_validator('birth_date')
     @classmethod
@@ -30,21 +17,14 @@ class UserRegister(BaseModel):
             raise ValueError('Birth date cannot be in the future')
         return v
 
-    def model_post_init(self, __context) -> None:
-        """Ensure at least one contact method is provided."""
-        if not self.email and not self.whatsapp_number:
-            raise ValueError('At least one of email or whatsapp_number must be provided')
-
 
 class UserResponse(BaseModel):
     """Schema for user response."""
     id: str
     name: str
-    email: Optional[str] = None
-    whatsapp_number: Optional[str] = None
+    email: str
     birth_date: date
     is_email_verified: bool
-    is_whatsapp_verified: bool
     is_active: bool
     address: Optional[str] = None
     village_landmark: Optional[str] = None
@@ -80,8 +60,8 @@ class UserUpdate(BaseModel):
 
 class SendOTPRequest(BaseModel):
     """Schema for sending OTP."""
-    identifier: str = Field(..., min_length=1, description="Email or WhatsApp number")
-    otp_type: Literal['email', 'whatsapp'] = Field(..., description="Type of OTP to send")
+    identifier: str = Field(..., min_length=1, description="Email address")
+    otp_type: Literal['email'] = Field(..., description="Type of OTP to send")
 
     @field_validator('identifier')
     @classmethod
@@ -97,9 +77,9 @@ class SendOTPResponse(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
     """Schema for verifying OTP."""
-    identifier: str = Field(..., min_length=1, description="Email or WhatsApp number")
+    identifier: str = Field(..., min_length=1, description="Email address")
     otp: str = Field(..., min_length=6, max_length=6, description="6-digit OTP")
-    otp_type: Literal['email', 'whatsapp'] = Field(..., description="Type of OTP")
+    otp_type: Literal['email'] = Field(..., description="Type of OTP")
 
     @field_validator('identifier')
     @classmethod
@@ -127,18 +107,7 @@ class UserAdminUpdate(BaseModel):
     """Schema for admin updating a user."""
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     email: Optional[EmailStr] = None
-    whatsapp_number: Optional[str] = Field(None, max_length=20)
     birth_date: Optional[date] = None
-
-    @field_validator('whatsapp_number')
-    @classmethod
-    def validate_whatsapp(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        cleaned = re.sub(r'[\s-]', '', v)
-        if not re.match(r'^\+?\d{10,15}$', cleaned):
-            raise ValueError('Invalid WhatsApp number format')
-        return cleaned
 
     @field_validator('birth_date')
     @classmethod

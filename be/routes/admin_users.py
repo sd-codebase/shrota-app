@@ -18,10 +18,8 @@ def user_to_response(user: User) -> dict:
         "id": str(user.id),
         "name": user.name,
         "email": user.email,
-        "whatsapp_number": user.whatsapp_number,
         "birth_date": user.birth_date,
         "is_email_verified": user.is_email_verified,
-        "is_whatsapp_verified": user.is_whatsapp_verified,
         "is_active": user.is_active,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
@@ -45,7 +43,6 @@ async def get_users(
         search_filter = or_(
             User.name.ilike(f"%{search}%"),
             User.email.ilike(f"%{search}%"),
-            User.whatsapp_number.ilike(f"%{search}%"),
         )
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
@@ -119,17 +116,6 @@ async def update_user(
         )
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already in use")
-
-    # Check for whatsapp uniqueness if whatsapp is being updated
-    if "whatsapp_number" in update_data and update_data["whatsapp_number"] != user.whatsapp_number:
-        existing = await db.execute(
-            select(User).where(
-                User.whatsapp_number == update_data["whatsapp_number"],
-                User.id != uuid_id
-            )
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="WhatsApp number already in use")
 
     for key, value in update_data.items():
         setattr(user, key, value)

@@ -28,8 +28,8 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     Generate, store, and send an OTP for the given identifier.
 
     Args:
-        identifier: Email or WhatsApp number
-        otp_type: Type of OTP ('email' or 'whatsapp')
+        identifier: Email address
+        otp_type: Type of OTP ('email')
 
     Returns:
         Tuple of (success: bool, message: str)
@@ -56,23 +56,18 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     _otp_store[key] = (otp, expiry)
 
     # Log OTP to console for debugging
-    otp_type_display = "EMAIL" if otp_type == "email" else "WHATSAPP"
     print(f"\n{'='*50}")
-    print(f"[OTP] {otp_type_display} OTP for {identifier}: {otp}")
+    print(f"[OTP] EMAIL OTP for {identifier}: {otp}")
     print(f"[OTP] Expires at: {expiry.isoformat()}")
     print(f"{'='*50}\n")
 
-    # Send OTP via appropriate channel
-    if otp_type == "email":
-        success = await send_otp_email(identifier, otp)
-        if not success:
-            # Remove stored OTP if sending failed
-            del _otp_store[key]
-            return False, "Failed to send OTP email. Please try again."
-        return True, "OTP sent to email"
-    else:
-        # WhatsApp not implemented yet
-        return True, "OTP sent to WhatsApp (simulated)"
+    # Send OTP via email
+    success = await send_otp_email(identifier, otp)
+    if not success:
+        # Remove stored OTP if sending failed
+        del _otp_store[key]
+        return False, "Failed to send OTP email. Please try again."
+    return True, "OTP sent to email"
 
 
 def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
@@ -80,9 +75,9 @@ def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
     Verify an OTP for the given identifier.
 
     Args:
-        identifier: Email or WhatsApp number
+        identifier: Email address
         otp: The OTP to verify
-        otp_type: Type of OTP ('email' or 'whatsapp')
+        otp_type: Type of OTP ('email')
 
     Returns:
         True if OTP is valid and not expired, False otherwise

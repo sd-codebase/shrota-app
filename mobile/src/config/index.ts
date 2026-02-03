@@ -2,6 +2,9 @@
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 export const CDN_URL = process.env.EXPO_PUBLIC_CDN_URL || 'http://localhost:8080';
 
+// Feature flags
+export const DOWNLOAD_FEATURE_ENABLED = process.env.EXPO_PUBLIC_DOWNLOAD_FEATURE_ENABLED === 'true';
+
 // Helper to get full CDN URL for audio files
 export const getAudioUrl = (audioPath: string): string => {
   if (!audioPath) return '';

@@ -293,19 +293,6 @@ export function ProfileScreen() {
                 )}
               </View>
             )}
-            {user?.whatsapp_number && (
-              <View style={styles.profileRow}>
-                <Ionicons name="logo-whatsapp" size={18} color={colors.textSecondary} />
-                <Text style={[styles.profileDetail, { color: colors.textSecondary }]}>
-                  {user.whatsapp_number}
-                </Text>
-                {user.is_whatsapp_verified && (
-                  <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
-                    <Ionicons name="checkmark" size={12} color="#fff" />
-                  </View>
-                )}
-              </View>
-            )}
             {user?.birth_date && (
               <View style={styles.profileRow}>
                 <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />

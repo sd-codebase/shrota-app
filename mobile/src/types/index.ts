@@ -115,6 +115,7 @@ export interface DownloadedChapter {
   localAudioUrl: string;
   duration: number;
   isPublished: boolean;
+  thumbnail?: string;
 }
 
 export interface DownloadedBook extends Omit<AudioBook, 'chapters'> {
@@ -133,82 +134,13 @@ export interface DownloadProgress {
   error?: string;
 }
 
-// Search API Types
-export interface SearchBookResult {
-  id: string;
-  title: string;
-  genre_ids: string[];
-  information: string;
-  author_ids: string[];
-  author_names: string[];
-  artist_ids: string[];
-  artist_names: string[];
-  publisher_id?: string;
-  publisher_name?: string;
-  language_id?: string;
-  thumbnail?: string;
-  total_duration?: number;
-  is_published: boolean;
-  is_adult: boolean;
-  is_deleted: boolean;
-  chapters: Chapter[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SearchWriterResult {
-  id: string;
-  name: string;
-  bio?: string;
-  photo?: string;
-  book_count: number;
-}
-
-export interface SearchNarratorResult {
-  id: string;
-  name: string;
-  bio?: string;
-  photo?: string;
-  book_count: number;
-}
-
-export interface SearchPublicationResult {
-  id: string;
-  name: string;
-  description?: string;
-  photo?: string;
-  book_count: number;
-}
-
-export interface SearchResult {
-  query: string;
-  books: {
-    count: number;
-    results: SearchBookResult[];
-  };
-  writers: {
-    count: number;
-    results: SearchWriterResult[];
-  };
-  narrators: {
-    count: number;
-    results: SearchNarratorResult[];
-  };
-  publications: {
-    count: number;
-    results: SearchPublicationResult[];
-  };
-}
-
 // User Authentication Types
 export interface User {
   id: string;
   name: string;
-  email?: string;
-  whatsapp_number?: string;
+  email: string;
   birth_date: string;
   is_email_verified: boolean;
-  is_whatsapp_verified: boolean;
   is_active: boolean;
   address?: string;
   village_landmark?: string;
@@ -232,20 +164,19 @@ export interface UpdateProfilePayload {
 
 export interface RegisterPayload {
   name: string;
-  email?: string;
-  whatsapp_number?: string;
+  email: string;
   birth_date: string;
 }
 
 export interface SendOTPPayload {
   identifier: string;
-  otp_type: 'email' | 'whatsapp';
+  otp_type: 'email';
 }
 
 export interface VerifyOTPPayload {
   identifier: string;
   otp: string;
-  otp_type: 'email' | 'whatsapp';
+  otp_type: 'email';
 }
 
 export interface AuthTokenResponse {
@@ -311,7 +242,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Register: undefined;
-  OTPVerification: { identifier: string; otp_type: 'email' | 'whatsapp' };
+  OTPVerification: { identifier: string };
   // Main app (tab navigator)
   MainTabs: undefined;
   // Modal screens
@@ -370,16 +301,15 @@ export type BookshelfStackParamList = {
   GenreDetails: { genreId: string; genreName: string };
 };
 
-export type SearchStackParamList = {
-  SearchMain: undefined;
-  BookDetails: { book: AudioBook };
-  Explore: {
+export type ExploreStackParamList = {
+  ExploreMain: {
     authorId?: string;
     artistId?: string;
     publisherId?: string;
     genreId?: string;
     title?: string;
   } | undefined;
+  BookDetails: { book: AudioBook };
   AuthorDetails: { authorId: string; authorName: string };
   ArtistDetails: { artistId: string; artistName: string };
   PublicationDetails: { publicationId: string; publicationName: string };

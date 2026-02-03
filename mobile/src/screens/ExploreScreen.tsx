@@ -58,6 +58,9 @@ export function ExploreScreen() {
   const route = useRoute<ExploreRouteProp>();
   const { colors, isDark } = useTheme();
 
+  // Check if we can go back (to conditionally show back button)
+  const canGoBack = navigation.canGoBack();
+
   // Get initial filters from route params
   const routeParams = route.params;
   const screenTitle = routeParams?.title || 'Explore';
@@ -446,12 +449,16 @@ export function ExploreScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.headerButton, { backgroundColor: colors.card }]}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
+        {canGoBack ? (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.headerButton, { backgroundColor: colors.card }]}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{screenTitle}</Text>
         <View style={styles.headerSpacer} />
       </View>

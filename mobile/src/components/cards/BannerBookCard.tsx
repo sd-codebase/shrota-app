@@ -44,7 +44,7 @@ export function BannerBookCard({ book, onPress }: BannerBookCardProps) {
           </View>
           <View style={styles.contentOverlay}>
             <View style={styles.info}>
-              <Text style={styles.title} numberOfLines={2}>
+              <Text style={styles.title} numberOfLines={1}>
                 {book.title}
               </Text>
               <Text style={styles.author} numberOfLines={1}>
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: '60%',
+    height: '70%',
     backgroundColor: 'transparent',
   },
   gradientBottom: {
@@ -89,19 +89,21 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '40%',
+    height: '30%',
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   contentOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
   info: {
     gap: 4,
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.5)',
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   author: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
   },
 });

@@ -91,16 +91,14 @@ export function RegisterScreen() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [birthDateText, setBirthDateText] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const hasAllContacts = email.trim() && whatsappNumber.trim();
+  const hasEmail = email.trim().length > 0;
   const hasBirthDate = birthDateText.trim().length === 10;
-  const canRegister = hasAllContacts && hasBirthDate && termsAccepted;
-  const otpType = 'email'; // Always verify email first
+  const canRegister = hasEmail && hasBirthDate && termsAccepted;
   const identifier = email.trim();
 
   const handleDateChange = (text: string) => {
@@ -121,16 +119,6 @@ export function RegisterScreen() {
 
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
-      return;
-    }
-
-    if (!whatsappNumber.trim()) {
-      Alert.alert('Error', 'Please enter your WhatsApp number');
-      return;
-    }
-
-    if (whatsappNumber.trim().length !== 10) {
-      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
 
@@ -159,21 +147,19 @@ export function RegisterScreen() {
       // Register user
       await register({
         name: name.trim(),
-        email: email.trim() || undefined,
-        whatsapp_number: whatsappNumber.trim() || undefined,
+        email: email.trim(),
         birth_date: `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`,
       });
 
       // Send OTP
       await sendOTP({
         identifier: identifier.toLowerCase(),
-        otp_type: otpType,
+        otp_type: 'email',
       });
 
       // Navigate to OTP verification
       navigation.navigate('OTPVerification', {
         identifier: identifier.toLowerCase(),
-        otp_type: otpType,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Registration failed';
@@ -262,34 +248,6 @@ export function RegisterScreen() {
                 keyboardType="email-address"
               />
             </View>
-
-            {/* WhatsApp Input */}
-            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
-            <View
-              style={[
-                styles.inputContainer,
-                { backgroundColor: colors.inputBackground, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons
-                name="logo-whatsapp"
-                size={24}
-                color={colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="9876543210"
-                placeholderTextColor={colors.placeholder}
-                value={whatsappNumber}
-                onChangeText={setWhatsappNumber}
-                keyboardType="phone-pad"
-                maxLength={10}
-              />
-            </View>
-            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-              Enter 10-digit Indian number without country code
-            </Text>
 
             {/* Birth Date Input */}
             <Text style={[styles.label, { color: colors.text }]}>Birth Date *</Text>

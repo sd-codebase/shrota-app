@@ -1,6 +1,6 @@
-import React, { createRef, useEffect } from 'react';
-import { View, StyleSheet, BackHandler } from 'react-native';
-import { NavigationContainer, NavigationContainerRef, useNavigation, LinkingOptions } from '@react-navigation/native';
+import React, { createRef } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { NavigationContainer, NavigationContainerRef, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,6 @@ import { SectionListScreen } from '../screens/SectionListScreen';
 import { ExploreScreen } from '../screens/ExploreScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
-import { SearchScreen } from '../screens/SearchScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AuthorDetailsScreen } from '../screens/AuthorDetailsScreen';
 import { ArtistDetailsScreen } from '../screens/ArtistDetailsScreen';
@@ -52,7 +51,6 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 // Stack navigator for Home tab
 const HomeStack = createNativeStackNavigator();
 function HomeStackScreen() {
-  const { colors } = useTheme();
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={BooksScreen} />
@@ -83,19 +81,18 @@ function BookshelfStackScreen() {
   );
 }
 
-// Stack navigator for Search tab
-const SearchStack = createNativeStackNavigator();
-function SearchStackScreen() {
+// Stack navigator for Search tab (now uses ExploreScreen as main)
+const ExploreStack = createNativeStackNavigator();
+function ExploreStackScreen() {
   return (
-    <SearchStack.Navigator screenOptions={{ headerShown: false }}>
-      <SearchStack.Screen name="SearchMain" component={SearchScreen} />
-      <SearchStack.Screen name="BookDetails" component={BookDetailsScreen} />
-      <SearchStack.Screen name="Explore" component={ExploreScreen} />
-      <SearchStack.Screen name="AuthorDetails" component={AuthorDetailsScreen} />
-      <SearchStack.Screen name="ArtistDetails" component={ArtistDetailsScreen} />
-      <SearchStack.Screen name="PublicationDetails" component={PublicationDetailsScreen} />
-      <SearchStack.Screen name="GenreDetails" component={GenreDetailsScreen} />
-    </SearchStack.Navigator>
+    <ExploreStack.Navigator screenOptions={{ headerShown: false }}>
+      <ExploreStack.Screen name="ExploreMain" component={ExploreScreen} />
+      <ExploreStack.Screen name="BookDetails" component={BookDetailsScreen} />
+      <ExploreStack.Screen name="AuthorDetails" component={AuthorDetailsScreen} />
+      <ExploreStack.Screen name="ArtistDetails" component={ArtistDetailsScreen} />
+      <ExploreStack.Screen name="PublicationDetails" component={PublicationDetailsScreen} />
+      <ExploreStack.Screen name="GenreDetails" component={GenreDetailsScreen} />
+    </ExploreStack.Navigator>
   );
 }
 
@@ -154,7 +151,7 @@ function MainTabNavigator() {
       />
       <Tab.Screen
         name="Search"
-        component={SearchStackScreen}
+        component={ExploreStackScreen}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <View style={styles.tabIconContainer}>
