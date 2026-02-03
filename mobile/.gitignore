@@ -16,7 +16,11 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+*.keystore
 *.mobileprovision
+
+# Keystore folder (sensitive credentials)
+/keystore/
 
 # Metro
 .metro-health-check*
