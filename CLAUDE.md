@@ -66,3 +66,19 @@ curl http://localhost:8000/auth/me \
 - `/publications` - Publication CRUD
 - `/books` - Book CRUD
 - `/files` - File uploads
+
+---
+
+## Mobile App Build
+
+See `mobile/BUILD.md` for full details.
+
+### Quick Commands (run from `mobile/` directory)
+```bash
+npm run build:aab    # Build release AAB for Google Play
+npm run build:apk    # Build release APK for testing
+```
+
+### Output Locations
+- AAB: `android/app/build/outputs/bundle/release/app-release.aab`
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
