@@ -5,7 +5,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CommonActions } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../context/ThemeContext';
-import { usePlayer } from '../context/PlayerContext';
 import { fetchBookById } from '../services/api';
 import { Analytics } from '../services/analytics';
 
@@ -14,7 +13,6 @@ type DeepLinkHandlerScreenProps = NativeStackScreenProps<RootStackParamList, 'De
 export function DeepLinkHandlerScreen({ navigation, route }: DeepLinkHandlerScreenProps) {
   const { bookId } = route.params;
   const { colors } = useTheme();
-  const { playBook } = usePlayer();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,22 +24,30 @@ export function DeepLinkHandlerScreen({ navigation, route }: DeepLinkHandlerScre
         // Track book viewed via deeplink
         Analytics.trackBookViewed(bookId, 'deeplink');
 
-        // Reset navigation to MainTabs first (establish navigation state)
+        // Navigate to MainTabs with BookDetails screen
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
-            routes: [{ name: 'MainTabs' }],
+            routes: [
+              {
+                name: 'MainTabs',
+                state: {
+                  routes: [
+                    {
+                      name: 'Home',
+                      state: {
+                        routes: [
+                          { name: 'HomeMain' },
+                          { name: 'BookDetails', params: { book } },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
           })
         );
-
-        // Small delay to ensure navigation state is set
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Play the book
-        await playBook(book);
-
-        // Navigate to Player screen
-        navigation.navigate('Player', { book });
       } catch (err) {
         console.error('Failed to handle deep link:', err);
         setError('Unable to load this audiobook. It may have been removed or is not available.');
@@ -59,7 +65,7 @@ export function DeepLinkHandlerScreen({ navigation, route }: DeepLinkHandlerScre
     };
 
     handleDeepLink();
-  }, [bookId, navigation, playBook]);
+  }, [bookId, navigation]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
