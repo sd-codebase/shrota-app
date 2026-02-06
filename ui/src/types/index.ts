@@ -341,6 +341,7 @@ export interface NotificationSend {
   title: string;
   body: string;
   image_url?: string;
+  book_id?: string;
 }
 
 export interface NotificationSendResponse {

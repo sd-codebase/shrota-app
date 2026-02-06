@@ -1,9 +1,12 @@
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import { Alert, Platform } from 'react-native';
+import messaging from '@react-native-firebase/messaging';
+import { Alert } from 'react-native';
 import { Analytics } from './analytics';
 
 // Topic for broadcasting to all users
 const ALL_USERS_TOPIC = 'all_users';
+
+// Navigation callback - will be set by the app
+let onNotificationNavigation: ((bookId: string) => void) | null = null;
 
 // Notification events for analytics
 export const NotificationEvents = {
@@ -18,6 +21,20 @@ export const NotificationEvents = {
 
 class NotificationService {
   private isInitialized: boolean = false;
+  private pendingBookId: string | null = null;
+
+  /**
+   * Set the navigation callback for handling notification taps
+   */
+  setNavigationCallback(callback: (bookId: string) => void): void {
+    onNotificationNavigation = callback;
+
+    // If there's a pending navigation, execute it now
+    if (this.pendingBookId) {
+      callback(this.pendingBookId);
+      this.pendingBookId = null;
+    }
+  }
 
   /**
    * Initialize push notifications
@@ -128,11 +145,23 @@ class NotificationService {
         title: remoteMessage.notification?.title,
       });
 
-      // Show an in-app alert for foreground notifications
       const title = remoteMessage.notification?.title || 'Shrota';
       const body = remoteMessage.notification?.body || '';
+      const bookId = remoteMessage.data?.book_id as string | undefined;
 
-      Alert.alert(title, body, [{ text: 'OK', style: 'default' }]);
+      // Show alert with option to view book if book_id is present
+      if (bookId) {
+        Alert.alert(title, body, [
+          { text: 'Dismiss', style: 'cancel' },
+          {
+            text: 'View Book',
+            style: 'default',
+            onPress: () => this.navigateToBook(bookId)
+          },
+        ]);
+      } else {
+        Alert.alert(title, body, [{ text: 'OK', style: 'default' }]);
+      }
     });
   }
 
@@ -156,6 +185,7 @@ class NotificationService {
         message_id: remoteMessage.messageId,
         title: remoteMessage.notification?.title,
         source: 'background',
+        book_id: remoteMessage.data?.book_id,
       });
 
       // Handle deep linking based on notification data
@@ -172,6 +202,7 @@ class NotificationService {
             message_id: remoteMessage.messageId,
             title: remoteMessage.notification?.title,
             source: 'quit',
+            book_id: remoteMessage.data?.book_id,
           });
 
           // Handle deep linking based on notification data
@@ -198,15 +229,23 @@ class NotificationService {
   private handleNotificationData(data?: { [key: string]: string }): void {
     if (!data) return;
 
-    // Handle deep linking based on notification data
-    // For example, if notification contains a book_id, navigate to that book
-    if (data.book_id) {
-      // Navigation will be handled by the app's linking configuration
-      console.log('Notification contains book_id:', data.book_id);
+    const bookId = data.book_id;
+    if (bookId) {
+      console.log('Notification contains book_id:', bookId);
+      this.navigateToBook(bookId);
     }
+  }
 
-    if (data.screen) {
-      console.log('Notification contains screen:', data.screen);
+  /**
+   * Navigate to a book's details page
+   */
+  private navigateToBook(bookId: string): void {
+    if (onNotificationNavigation) {
+      onNotificationNavigation(bookId);
+    } else {
+      // Navigation not ready yet, store for later
+      console.log('Navigation not ready, storing book_id:', bookId);
+      this.pendingBookId = bookId;
     }
   }
 

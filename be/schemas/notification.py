@@ -9,6 +9,7 @@ class NotificationSend(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Notification title")
     body: str = Field(..., min_length=1, max_length=1000, description="Notification body text")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")
+    book_id: Optional[str] = Field(None, description="Optional book ID for deep linking")
 
 
 class NotificationResponse(BaseModel):
@@ -18,6 +19,7 @@ class NotificationResponse(BaseModel):
     title: str
     body: str
     image_url: Optional[str] = None
+    book_id: Optional[str] = None
     topic: str
     fcm_message_id: Optional[str] = None
     status: str

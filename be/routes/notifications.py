@@ -28,6 +28,7 @@ async def send_notification(
         title=notification_data.title,
         body=notification_data.body,
         image_url=notification_data.image_url,
+        book_id=notification_data.book_id,
         topic=ALL_USERS_TOPIC,
         status="pending"
     )
@@ -35,11 +36,20 @@ async def send_notification(
     await db.commit()
     await db.refresh(notification)
 
+    # Build data payload for deep linking
+    data = {}
+    if notification_data.book_id:
+        data["book_id"] = notification_data.book_id
+        data["action"] = "open_book"
+    else:
+        data["action"] = "open_app"
+
     # Send via FCM
     result = await send_notification_to_all_users(
         title=notification_data.title,
         body=notification_data.body,
-        image_url=notification_data.image_url
+        image_url=notification_data.image_url,
+        data=data
     )
 
     # Update notification record with result
@@ -62,6 +72,7 @@ async def send_notification(
             title=notification.title,
             body=notification.body,
             image_url=notification.image_url,
+            book_id=str(notification.book_id) if notification.book_id else None,
             topic=notification.topic,
             fcm_message_id=notification.fcm_message_id,
             status=notification.status,
@@ -98,6 +109,7 @@ async def list_notifications(
             title=n.title,
             body=n.body,
             image_url=n.image_url,
+            book_id=str(n.book_id) if n.book_id else None,
             topic=n.topic,
             fcm_message_id=n.fcm_message_id,
             status=n.status,
@@ -135,6 +147,7 @@ async def get_notification(
         title=notification.title,
         body=notification.body,
         image_url=notification.image_url,
+        book_id=str(notification.book_id) if notification.book_id else None,
         topic=notification.topic,
         fcm_message_id=notification.fcm_message_id,
         status=notification.status,

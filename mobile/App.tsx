@@ -60,6 +60,12 @@ function AppContent() {
 
       // Initialize push notifications
       await Notifications.initialize();
+
+      // Set up navigation callback for notification deep links
+      Notifications.setNavigationCallback((bookId: string) => {
+        console.log('Navigating to book from notification:', bookId);
+        navigate('DeepLinkHandler', { bookId });
+      });
     }
     setup();
   }, []);

@@ -9,17 +9,22 @@ import {
   Card,
   Tag,
   Typography,
+  Select,
+  Divider,
 } from 'antd';
-import { SendOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { Notification, NotificationSend } from '../types';
-import { getNotifications, sendNotification } from '../api';
+import { SendOutlined, ReloadOutlined, BookOutlined } from '@ant-design/icons';
+import type { Notification, NotificationSend, Book } from '../types';
+import { getNotifications, sendNotification, getBooks } from '../api';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
+  const [booksLoading, setBooksLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [form] = Form.useForm();
 
@@ -35,8 +40,21 @@ function Notifications() {
     }
   };
 
+  const fetchBooks = async () => {
+    setBooksLoading(true);
+    try {
+      const data = await getBooks();
+      setBooks(data);
+    } catch (error) {
+      message.error('Failed to fetch books');
+    } finally {
+      setBooksLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
+    fetchBooks();
   }, []);
 
   const handleSend = async (values: NotificationSend) => {
@@ -70,12 +88,18 @@ function Notifications() {
     }
   };
 
+  const getBookTitle = (bookId: string | null | undefined) => {
+    if (!bookId) return '-';
+    const book = books.find((b) => b.id === bookId);
+    return book ? book.title : bookId;
+  };
+
   const columns = [
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
-      width: 200,
+      width: 180,
     },
     {
       title: 'Body',
@@ -84,24 +108,39 @@ function Notifications() {
       ellipsis: true,
     },
     {
+      title: 'Book',
+      dataIndex: 'book_id',
+      key: 'book_id',
+      width: 150,
+      ellipsis: true,
+      render: (bookId: string | null) =>
+        bookId ? (
+          <Tag icon={<BookOutlined />} color="blue">
+            {getBookTitle(bookId)}
+          </Tag>
+        ) : (
+          <Text type="secondary">General</Text>
+        ),
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 90,
       render: (status: string) => getStatusTag(status),
     },
     {
       title: 'Sent At',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: 180,
+      width: 160,
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
       title: 'Error',
       dataIndex: 'error_message',
       key: 'error_message',
-      width: 200,
+      width: 150,
       ellipsis: true,
       render: (error: string | null) =>
         error ? <Text type="danger">{error}</Text> : '-',
@@ -152,6 +191,35 @@ function Notifications() {
               maxLength={1000}
               showCount
             />
+          </Form.Item>
+
+          <Divider orientation="left" plain>
+            Deep Link (Optional)
+          </Divider>
+
+          <Form.Item
+            name="book_id"
+            label="Link to Book"
+            extra="When user taps the notification, they'll be taken directly to this book"
+          >
+            <Select
+              placeholder="Select a book (optional)"
+              allowClear
+              showSearch
+              loading={booksLoading}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.children as unknown as string)
+                  ?.toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            >
+              {books.map((book) => (
+                <Option key={book.id} value={book.id}>
+                  {book.title}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item
