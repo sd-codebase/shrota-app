@@ -6,6 +6,7 @@ import {
   getDownloads,
 } from '../services/downloadService';
 import { useAuth } from './AuthContext';
+import { Analytics } from '../services/analytics';
 
 interface DownloadContextType {
   downloads: DownloadedBook[];
@@ -57,6 +58,9 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
       throw new Error('Book is already downloading');
     }
 
+    // Track download started
+    Analytics.trackDownloadStarted(book.id);
+
     setActiveDownloads(prev => {
       const next = new Map(prev);
       next.set(book.id, {
@@ -85,6 +89,9 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
       });
 
       await refreshDownloads();
+
+      // Track download completed
+      Analytics.trackDownloadCompleted(book.id);
     } catch (error) {
       setActiveDownloads(prev => {
         const next = new Map(prev);
@@ -114,6 +121,8 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
   const deleteDownload = async (bookId: string) => {
     await deleteDownloadService(bookId);
     await refreshDownloads();
+    // Track download deleted
+    Analytics.trackDownloadDeleted(bookId);
   };
 
   const isDownloaded = useCallback((bookId: string) => {

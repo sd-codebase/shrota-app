@@ -39,6 +39,7 @@ import {
 import { StandardBookCard } from '../components/cards/StandardBookCard';
 import { Image } from 'expo-image';
 import { DefaultBookCover } from '../components/DefaultBookCover';
+import { Analytics } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 type ExploreRouteProp = RouteProp<HomeStackParamList, 'Explore'>;
@@ -158,6 +159,11 @@ export function ExploreScreen() {
       }
 
       setHasMore(data.length === PAGE_SIZE);
+
+      // Track search if there's a search query and this is the initial load
+      if (!append && currentFilters.search && currentFilters.search.length > 0) {
+        Analytics.trackSearch(currentFilters.search, data.length);
+      }
     } catch (error) {
       console.error('Failed to fetch books:', error);
     } finally {
@@ -225,6 +231,23 @@ export function ExploreScreen() {
     setOffset(0);
     fetchBooks(newFilters, 0);
     closeDrawer();
+
+    // Track filter applied events
+    if (tempFilters.genreIds?.length) {
+      Analytics.trackFilterApplied('genre', tempFilters.genreIds.join(','));
+    }
+    if (tempFilters.languageIds?.length) {
+      Analytics.trackFilterApplied('language', tempFilters.languageIds.join(','));
+    }
+    if (tempFilters.authorIds?.length) {
+      Analytics.trackFilterApplied('author', tempFilters.authorIds.join(','));
+    }
+    if (tempFilters.artistIds?.length) {
+      Analytics.trackFilterApplied('artist', tempFilters.artistIds.join(','));
+    }
+    if (tempFilters.publisherIds?.length) {
+      Analytics.trackFilterApplied('publisher', tempFilters.publisherIds.join(','));
+    }
   };
 
   // Clear all filters

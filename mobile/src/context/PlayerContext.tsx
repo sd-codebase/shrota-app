@@ -15,6 +15,7 @@ import { updateProgress, getBookProgress } from '../services/userActivityApi';
 import { usePlayerStore } from '../stores/playerStore';
 import { saveChapterProgress, getChapterProgress } from '../services/chapterProgressService';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
+import { Analytics } from '../services/analytics';
 
 const AUTH_TOKEN_KEY = '@shrota_auth_token';
 const PROGRESS_SAVE_INTERVAL = 10000; // Save every 10 seconds
@@ -134,8 +135,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const subscription = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
       if (event.index !== undefined && event.index !== null) {
+        const book = currentBookRef.current;
+        const prevChapterIndex = currentChapterIndexRef.current;
+
         // Save progress of the previous chapter before switching
         await saveCurrentChapterProgress();
+
+        // Track chapter completion if moving to next chapter
+        if (book && event.index > prevChapterIndex) {
+          Analytics.trackChapterCompleted(book.id, prevChapterIndex);
+
+          // Check if book is completed (moved past the last chapter)
+          if (event.index >= book.chapters.length - 1) {
+            const bookDuration = book.duration || 0;
+            Analytics.trackBookCompleted(book.id, bookDuration);
+          }
+        }
 
         // Update to new chapter
         setCurrentChapterIndex(event.index);
@@ -153,6 +168,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (wasPlayingRef.current && !isPlaying) {
       // Playback just paused/stopped - save progress immediately
       saveCurrentChapterProgress();
+      // Track pause event
+      const book = currentBookRef.current;
+      if (book) {
+        Analytics.trackPlaybackPaused(book.id, lastPositionRef.current, lastDurationRef.current);
+      }
+    } else if (!wasPlayingRef.current && isPlaying) {
+      // Playback resumed
+      const book = currentBookRef.current;
+      if (book && lastPositionRef.current > 0) {
+        Analytics.trackPlaybackResumed(book.id, lastPositionRef.current);
+      }
     }
     wasPlayingRef.current = isPlaying;
   }, [isPlaying]);
@@ -349,6 +375,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // Store book with chapters to use for consistent navigation
     setCurrentBook({ ...book, chapters: chaptersToUse });
     setCurrentChapterIndex(startIndex);
+
+    // Track playback started
+    const source = chapterIndex !== undefined ? 'chapter_list' : (seekPosition > 0 ? 'resume' : 'book_details');
+    Analytics.trackPlaybackStarted(book.id, startIndex, source);
   };
 
   const playChapter = async (index: number) => {
@@ -375,11 +405,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const skipForward = async () => {
     const newPosition = Math.min(position + 15, duration);
     await TrackPlayer.seekTo(newPosition);
+    Analytics.trackSeek('forward', 15);
   };
 
   const skipBackward = async () => {
     const newPosition = Math.max(position - 15, 0);
     await TrackPlayer.seekTo(newPosition);
+    Analytics.trackSeek('backward', 15);
   };
 
   const nextChapter = async () => {
@@ -411,6 +443,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const setPlaybackSpeed = async (speed: PlaybackSpeed) => {
     await TrackPlayer.setRate(speed);
     setPlaybackSpeedState(speed);
+    Analytics.trackPlaybackSpeedChanged(speed);
   };
 
   return (

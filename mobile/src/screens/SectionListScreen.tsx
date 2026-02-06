@@ -28,6 +28,7 @@ import { AudioBook, BookProgress, RootStackParamList, HomeStackParamList, Sectio
 import { useCurrentBook } from '../stores/playerStore';
 import { getThumbnailUrl } from '../config';
 import { formatDuration } from '../utils/formatters';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeStackParamList>,
@@ -51,6 +52,14 @@ export function SectionListScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+
+  // Track section viewed on mount
+  useEffect(() => {
+    Analytics.track(AnalyticsEvents.SECTION_VIEWED, {
+      section_name: sectionType,
+      section_title: title,
+    });
+  }, [sectionType, title]);
 
   const loadData = useCallback(async (isLoadMore = false) => {
     try {

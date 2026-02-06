@@ -14,6 +14,7 @@ import {
 } from '../services/authApi';
 import { apiClient } from '../services/apiClient';
 import { clearUserPreferences } from '../services/preferencesService';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 const AUTH_TOKEN_KEY = '@shrota_auth_token';
 const AUTH_USER_KEY = '@shrota_auth_user';
@@ -52,8 +53,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         ]);
 
         if (storedToken && storedUser) {
+          const parsedUser = JSON.parse(storedUser);
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          setUser(parsedUser);
+          // Re-identify user for analytics on app launch
+          Analytics.identify(parsedUser.id);
         }
       } catch (error) {
         console.error('Failed to load auth data:', error);
@@ -100,26 +104,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Register new user
   const handleRegister = useCallback(async (payload: RegisterPayload): Promise<User> => {
     const newUser = await registerUser(payload);
+    Analytics.track(AnalyticsEvents.USER_REGISTERED, { method: 'email' });
     return newUser;
   }, []);
 
   // Send OTP
   const handleSendOTP = useCallback(async (payload: SendOTPPayload): Promise<void> => {
     await sendOTP(payload);
+    Analytics.track(AnalyticsEvents.OTP_SENT, {
+      identifier_type: payload.identifier.includes('@') ? 'email' : 'phone',
+    });
   }, []);
 
   // Login (verify OTP)
   const handleLogin = useCallback(async (payload: VerifyOTPPayload): Promise<void> => {
-    const response = await verifyOTP(payload);
+    try {
+      const response = await verifyOTP(payload);
 
-    // Store auth data
-    await Promise.all([
-      AsyncStorage.setItem(AUTH_TOKEN_KEY, response.access_token),
-      AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user)),
-    ]);
+      // Store auth data
+      await Promise.all([
+        AsyncStorage.setItem(AUTH_TOKEN_KEY, response.access_token),
+        AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user)),
+      ]);
 
-    setToken(response.access_token);
-    setUser(response.user);
+      setToken(response.access_token);
+      setUser(response.user);
+
+      // Track successful login and identify user
+      Analytics.identify(response.user.id);
+      Analytics.track(AnalyticsEvents.LOGIN_SUCCESS, { method: 'otp' });
+    } catch (error) {
+      Analytics.track(AnalyticsEvents.LOGIN_FAILED, {
+        error_reason: error instanceof Error ? error.message : 'unknown',
+      });
+      throw error;
+    }
   }, []);
 
   // Logout
@@ -133,6 +152,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Failed to clear auth data:', error);
     }
+
+    // Track logout and reset analytics identity
+    Analytics.track(AnalyticsEvents.LOGOUT);
+    Analytics.reset();
 
     setToken(null);
     setUser(null);

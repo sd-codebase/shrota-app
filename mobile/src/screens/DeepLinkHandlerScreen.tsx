@@ -7,6 +7,7 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { usePlayer } from '../context/PlayerContext';
 import { fetchBookById } from '../services/api';
+import { Analytics } from '../services/analytics';
 
 type DeepLinkHandlerScreenProps = NativeStackScreenProps<RootStackParamList, 'DeepLinkHandler'>;
 
@@ -21,6 +22,9 @@ export function DeepLinkHandlerScreen({ navigation, route }: DeepLinkHandlerScre
       try {
         // Fetch book data
         const book = await fetchBookById(bookId);
+
+        // Track book viewed via deeplink
+        Analytics.trackBookViewed(bookId, 'deeplink');
 
         // Reset navigation to MainTabs first (establish navigation state)
         navigation.dispatch(

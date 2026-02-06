@@ -27,6 +27,7 @@ import {
 } from '../types';
 import { fetchPublicationById, fetchBooksByPublisher } from '../services/api';
 import { getThumbnailUrl } from '../config';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type PublicationDetailsRouteProp = RouteProp<HomeStackParamList, 'PublicationDetails'>;
@@ -48,6 +49,8 @@ export function PublicationDetailsScreen() {
 
   useEffect(() => {
     loadData();
+    // Track publication viewed
+    Analytics.track(AnalyticsEvents.PUBLICATION_VIEWED, { publication_id: publicationId });
   }, [publicationId]);
 
   const loadData = async () => {

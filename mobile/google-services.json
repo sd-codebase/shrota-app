@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "823848353518",
+    "project_id": "shrota-7b943",
+    "storage_bucket": "shrota-7b943.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:823848353518:android:25bf6f751025c0c14f3dff",
+        "android_client_info": {
+          "package_name": "com.shrota.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjM7HwX-Fwq0hkuN_8RpxzZeAAIVtnohE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

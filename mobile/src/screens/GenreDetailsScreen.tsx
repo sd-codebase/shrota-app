@@ -26,6 +26,7 @@ import {
 } from '../types';
 import { fetchGenreById, fetchBooksByGenre } from '../services/api';
 import { getThumbnailUrl } from '../config';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type GenreDetailsRouteProp = RouteProp<HomeStackParamList, 'GenreDetails'>;
@@ -46,6 +47,8 @@ export function GenreDetailsScreen() {
 
   useEffect(() => {
     loadData();
+    // Track genre viewed
+    Analytics.track(AnalyticsEvents.GENRE_VIEWED, { genre_id: genreId });
   }, [genreId]);
 
   const loadData = async () => {

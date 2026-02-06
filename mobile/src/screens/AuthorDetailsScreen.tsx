@@ -28,6 +28,7 @@ import {
 } from '../types';
 import { fetchAuthorById, fetchBooksByAuthor } from '../services/api';
 import { getThumbnailUrl } from '../config';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type AuthorDetailsRouteProp = RouteProp<HomeStackParamList, 'AuthorDetails'>;
@@ -49,6 +50,8 @@ export function AuthorDetailsScreen() {
 
   useEffect(() => {
     loadData();
+    // Track author viewed
+    Analytics.track(AnalyticsEvents.AUTHOR_VIEWED, { author_id: authorId });
   }, [authorId]);
 
   const loadData = async () => {

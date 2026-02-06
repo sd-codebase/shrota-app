@@ -28,6 +28,7 @@ import {
 } from '../types';
 import { fetchArtistById, fetchBooksByArtist } from '../services/api';
 import { getThumbnailUrl } from '../config';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type ArtistDetailsRouteProp = RouteProp<HomeStackParamList, 'ArtistDetails'>;
@@ -49,6 +50,8 @@ export function ArtistDetailsScreen() {
 
   useEffect(() => {
     loadData();
+    // Track artist viewed
+    Analytics.track(AnalyticsEvents.ARTIST_VIEWED, { artist_id: artistId });
   }, [artistId]);
 
   const loadData = async () => {

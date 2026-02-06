@@ -35,6 +35,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.shrota.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.WAKE_LOCK"
@@ -68,6 +69,8 @@
           "addGeneratedScheme": true
         }
       ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
       [
         "expo-build-properties",
         {

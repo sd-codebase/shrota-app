@@ -26,6 +26,7 @@ import { fetchGenres, fetchLanguages, fetchPublications, fetchBookById } from '.
 import { useIsBookPlaying, useCurrentBook, useCurrentChapterIndex, useIsPlaying, usePlaybackProgress } from '../stores/playerStore';
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 import { shareBook } from '../utils/share';
+import { Analytics } from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type BookDetailsRouteProp = RouteProp<HomeStackParamList, 'BookDetails'>;
@@ -83,6 +84,11 @@ export function BookDetailsScreen() {
     };
     fetchFullBook();
   }, [initialBook.id, initialBook.chapters.length]);
+
+  // Track book viewed event
+  useEffect(() => {
+    Analytics.trackBookViewed(initialBook.id, 'browse');
+  }, [initialBook.id]);
 
   // Check if book has progress for "Resume" button
   const hasProgress = savedProgress !== null && !savedProgress.is_completed && savedProgress.progress_percentage > 0;

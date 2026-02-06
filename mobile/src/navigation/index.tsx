@@ -1,6 +1,6 @@
-import React, { createRef } from 'react';
+import React, { createRef, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { NavigationContainer, NavigationContainerRef, LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef, LinkingOptions, NavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,21 @@ import { GenreDetailsScreen } from '../screens/GenreDetailsScreen';
 import { DeepLinkHandlerScreen } from '../screens/DeepLinkHandlerScreen';
 import { RootStackParamList, MainTabParamList } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { Analytics, AnalyticsEvents } from '../services/analytics';
+
+// Helper to get the current route name from navigation state
+function getActiveRouteName(state: NavigationState | undefined): string | undefined {
+  if (!state) return undefined;
+
+  const route = state.routes[state.index];
+
+  // If the route has a nested state, recurse into it
+  if (route.state) {
+    return getActiveRouteName(route.state as NavigationState);
+  }
+
+  return route.name;
+}
 
 // Deep linking configuration
 const linking: LinkingOptions<RootStackParamList> = {
@@ -177,9 +192,37 @@ function MainTabNavigator() {
 
 export function AppNavigator() {
   const { colors } = useTheme();
+  const routeNameRef = useRef<string | undefined>();
+
+  const onNavigationReady = () => {
+    routeNameRef.current = getActiveRouteName(navigationRef.current?.getRootState());
+  };
+
+  const onNavigationStateChange = (state: NavigationState | undefined) => {
+    const previousRouteName = routeNameRef.current;
+    const currentRouteName = getActiveRouteName(state);
+
+    if (previousRouteName !== currentRouteName && currentRouteName) {
+      // Track screen view
+      Analytics.screenView(currentRouteName);
+
+      // Track tab switches
+      const tabs = ['Home', 'Bookshelf', 'Search', 'Profile'];
+      if (tabs.includes(currentRouteName)) {
+        Analytics.track(AnalyticsEvents.TAB_SWITCHED, { tab_name: currentRouteName });
+      }
+    }
+
+    routeNameRef.current = currentRouteName;
+  };
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
+    <NavigationContainer
+      ref={navigationRef}
+      linking={linking}
+      onReady={onNavigationReady}
+      onStateChange={onNavigationStateChange}
+    >
       <RootStack.Navigator
         initialRouteName="Splash"
         screenOptions={{
