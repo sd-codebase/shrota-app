@@ -61,8 +61,13 @@ services:
     restart: unless-stopped
 
   website:
-    build: ./website
+    build:
+      context: ./website
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: shrota-website
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     restart: unless-stopped
 
   nginx:
