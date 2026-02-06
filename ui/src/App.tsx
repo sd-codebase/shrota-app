@@ -11,6 +11,7 @@ import {
   LogoutOutlined,
   StarOutlined,
   TeamOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -20,6 +21,7 @@ import Publications from './pages/Publications';
 import Books from './pages/Books';
 import ContentPromotion from './pages/ContentPromotion';
 import Users from './pages/Users';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
@@ -74,6 +76,11 @@ function App() {
       key: '/users',
       icon: <TeamOutlined />,
       label: <Link to="/users">Users</Link>,
+    },
+    {
+      key: '/notifications',
+      icon: <NotificationOutlined />,
+      label: <Link to="/notifications">Notifications</Link>,
     },
   ];
 
@@ -143,6 +150,7 @@ function App() {
                 <Route path="/books" element={<Books />} />
                 <Route path="/content" element={<ContentPromotion />} />
                 <Route path="/users" element={<Users />} />
+                <Route path="/notifications" element={<Notifications />} />
               </Routes>
             </div>
           </Content>

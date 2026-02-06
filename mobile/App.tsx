@@ -9,6 +9,7 @@ import { DownloadProvider } from './src/context/DownloadContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { setupPlayer } from './src/services/trackPlayerService';
+import { Notifications } from './src/services/notifications';
 
 // Component to handle notification press navigation
 function NotificationHandler() {
@@ -56,6 +57,9 @@ function AppContent() {
     async function setup() {
       const isSetup = await setupPlayer();
       setIsPlayerReady(isSetup);
+
+      // Initialize push notifications
+      await Notifications.initialize();
     }
     setup();
   }, []);

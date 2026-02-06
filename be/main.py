@@ -21,6 +21,7 @@ from routes import (
     user_preferences_router,
     mobile_router,
     admin_users_router,
+    notifications_router,
 )
 
 
@@ -58,6 +59,7 @@ app.include_router(content_promotion_router)
 app.include_router(user_preferences_router)
 app.include_router(mobile_router)
 app.include_router(admin_users_router)
+app.include_router(notifications_router)
 
 
 @app.get("/")

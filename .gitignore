@@ -10,6 +10,10 @@ venv/
 .env.production
 .env.staging
 
+# Firebase credentials (never commit!)
+firebase-credentials.json
+**/firebase-credentials.json
+
 # Audio/Media files (user data)
 be/uploads/
 be/processed/

@@ -25,5 +25,8 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@shrota.in")
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Shrota Audiobooks")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Shrota")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+# Firebase Configuration
+FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "./firebase-credentials.json")

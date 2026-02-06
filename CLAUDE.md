@@ -66,6 +66,7 @@ curl http://localhost:8000/auth/me \
 - `/publications` - Publication CRUD
 - `/books` - Book CRUD
 - `/files` - File uploads
+- `/notifications` - Push notifications (admin only)
 
 ---
 
@@ -92,3 +93,53 @@ rm -rf android && npm run build:aab
 ### Output Locations
 - AAB: `android/app/build/outputs/bundle/release/app-release.aab`
 - APK: `android/app/build/outputs/apk/release/app-release.apk`
+
+---
+
+## Push Notifications (FCM)
+
+Push notifications use Firebase Cloud Messaging (FCM) to send notifications from admin dashboard to all app users.
+
+### Setup
+
+1. **Firebase Console Setup**:
+   - Go to Firebase Console → Project Settings → Service accounts
+   - Click "Generate new private key"
+   - Save as `be/firebase-credentials.json`
+   - Never commit this file (already in .gitignore)
+
+2. **Environment Configuration**:
+   - Set `NOTIFICATION_MODE=production` in production
+   - Set `FIREBASE_CREDENTIALS_PATH` if using non-default path
+
+### Admin Dashboard
+
+Navigate to **Notifications** in the admin sidebar to:
+- Send push notifications to all users
+- View notification history with delivery status
+
+### API Endpoints
+
+```bash
+# Send notification (requires admin auth)
+curl -X POST http://localhost:8000/notifications/send \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Audiobook!",
+    "body": "Check out our latest release",
+    "image_url": "https://example.com/image.png"
+  }'
+
+# List sent notifications
+curl http://localhost:8000/notifications \
+  -H "Authorization: Bearer <token>"
+```
+
+### Mobile App
+
+The app automatically:
+- Requests notification permission on first launch
+- Subscribes to `all_users` topic
+- Shows in-app alert for foreground notifications
+- System notification for background notifications

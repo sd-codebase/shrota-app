@@ -322,3 +322,29 @@ export interface UserListResponse {
   per_page: number;
   total_pages: number;
 }
+
+// Notification types
+export interface Notification {
+  id: string;
+  title: string;
+  body: string;
+  image_url?: string;
+  topic: string;
+  fcm_message_id?: string;
+  status: 'pending' | 'sent' | 'failed';
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationSend {
+  title: string;
+  body: string;
+  image_url?: string;
+}
+
+export interface NotificationSendResponse {
+  success: boolean;
+  notification: Notification;
+  message: string;
+}

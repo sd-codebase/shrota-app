@@ -33,6 +33,9 @@ import type {
   User,
   UserUpdate,
   UserListResponse,
+  Notification,
+  NotificationSend,
+  NotificationSendResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -580,3 +583,12 @@ export const toggleUserStatus = (id: string) =>
 
 export const deleteUser = (id: string) =>
   request<void>(`/admin/users/${id}`, { method: 'DELETE' });
+
+// Notifications
+export const getNotifications = () => request<Notification[]>('/notifications');
+
+export const sendNotification = (data: NotificationSend) =>
+  request<NotificationSendResponse>('/notifications/send', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
