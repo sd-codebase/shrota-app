@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
+import { SUPPORT_CONTACT } from '../constants/links';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -125,6 +127,33 @@ export function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Support Contact Section */}
+            <View style={styles.supportContainer}>
+              <Text style={[styles.supportText, { color: colors.textSecondary }]}>
+                Need help? Contact us
+              </Text>
+              <View style={styles.supportButtons}>
+                <TouchableOpacity
+                  style={[styles.supportButton, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(SUPPORT_CONTACT.whatsappUrl)}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.supportButton, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`)}
+                >
+                  <Ionicons name="call" size={20} color={colors.brand.blue} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.supportButton, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support`)}
+                >
+                  <Ionicons name="mail" size={20} color={colors.brand.orange} />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -207,5 +236,24 @@ const styles = StyleSheet.create({
   registerLink: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  supportContainer: {
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  supportText: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  supportButtons: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  supportButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

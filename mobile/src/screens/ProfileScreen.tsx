@@ -28,7 +28,7 @@ import { RootStackParamList, ProfileStackParamList, Genre, Language, UpdateProfi
 import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { fetchGenres, fetchLanguages } from '../services/api';
 import { deactivateAccount, updateProfile } from '../services/authApi';
-import { APP_LINKS, SOCIAL_LINKS } from '../constants/links';
+import { APP_LINKS, SOCIAL_LINKS, SUPPORT_CONTACT } from '../constants/links';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -449,6 +449,58 @@ export function ProfileScreen() {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Support Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          SUPPORT
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(SUPPORT_CONTACT.whatsappUrl)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>WhatsApp Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(`tel:${SUPPORT_CONTACT.phone}`)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="call" size={20} color={colors.brand.blue} />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Call Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLink(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support`)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="mail" size={20} color={colors.brand.orange} />
+              </View>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Email Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Links Section */}

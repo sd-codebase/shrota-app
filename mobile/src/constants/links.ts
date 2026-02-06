@@ -13,3 +13,10 @@ export const SOCIAL_LINKS = [
   { key: 'instagram', url: 'https://www.instagram.com/myshrota/', icon: 'logo-instagram', color: '#E4405F' },
   { key: 'whatsapp', url: 'https://whatsapp.com/channel/0029VbBpeipKrWQt31wOaN0o', icon: 'logo-whatsapp', color: '#25D366' },
 ];
+
+export const SUPPORT_CONTACT = {
+  phone: '+918055717170',
+  phoneDisplay: '+91 80557 17170',
+  email: 'myshrota@gmail.com',
+  whatsappUrl: 'https://wa.me/918055717170?text=Hi, I need help with Shrota app',
+};
