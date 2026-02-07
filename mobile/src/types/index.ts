@@ -332,7 +332,7 @@ export type ExploreStackParamList = {
 };
 
 export type ProfileStackParamList = {
-  ProfileMain: undefined;
+  ProfileMain: { action?: 'verify-whatsapp' | 'change-whatsapp' } | undefined;
 };
 
 // Entity detail response types

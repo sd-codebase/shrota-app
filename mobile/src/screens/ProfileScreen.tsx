@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, CompositeNavigationProp, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
@@ -37,6 +37,7 @@ type NavigationProp = CompositeNavigationProp<
 
 export function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProp<ProfileStackParamList, 'ProfileMain'>>();
   const { currentBook } = usePlayer();
   const { colors, isDark, toggleTheme } = useTheme();
   const { user, token, logout, refreshUser } = useAuth();
@@ -68,6 +69,25 @@ export function ProfileScreen() {
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState('');
   const [savingWhatsApp, setSavingWhatsApp] = useState(false);
+
+  // Handle action param from reminder alert navigation
+  useFocusEffect(
+    useCallback(() => {
+      const action = route.params?.action;
+      if (!action) return;
+
+      if (action === 'verify-whatsapp') {
+        setOtpInput('');
+        setShowOtpModal(true);
+      } else if (action === 'change-whatsapp') {
+        setWhatsappInput(user?.whatsapp_number || '');
+        setEditingWhatsApp(true);
+      }
+
+      // Clear the param so it doesn't re-trigger
+      navigation.setParams({ action: undefined } as any);
+    }, [route.params?.action])
+  );
 
   const loadPreferences = useCallback(async () => {
     try {

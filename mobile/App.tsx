@@ -40,7 +40,7 @@ function NotificationHandler() {
 }
 
 // Component to handle WhatsApp verification reminders and periodic status polling
-const FIFTEEN_MINUTES = 15 * 60 * 1000;
+const STATUS_POLL_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
 function WhatsAppReminderHandler() {
   const { token, user, isAuthenticated, refreshUser } = useAuth();
@@ -58,7 +58,8 @@ function WhatsAppReminderHandler() {
 
     const interval = setInterval(() => {
       refreshUser();
-    }, FIFTEEN_MINUTES);
+      checkWhatsAppReminder(token);
+    }, STATUS_POLL_INTERVAL);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, token, user?.is_whatsapp_verified, refreshUser]);

@@ -1,11 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { getWhatsAppStatus } from './authApi';
-import { navigate } from '../navigation';
+import { navigationRef } from '../navigation';
 
 const REMINDER_KEY = '@shrota_whatsapp_reminder_last';
-// TODO: Change back to 24 * 60 * 60 * 1000 (24 hours) after testing
-const TWENTY_FOUR_HOURS = 2 * 60 * 1000; // 2 minutes for testing
+const REMINDER_INTERVAL = 8 * 60 * 60 * 1000; // 8 hours
+
+function navigateToProfile(action: 'verify-whatsapp' | 'change-whatsapp') {
+  navigationRef.current?.navigate('MainTabs' as any, {
+    screen: 'Profile',
+    params: {
+      screen: 'ProfileMain',
+      params: { action },
+    },
+  });
+}
 
 /**
  * Check if we should show a WhatsApp verification reminder.
@@ -22,7 +31,7 @@ export async function checkWhatsAppReminder(token: string | null): Promise<void>
     const lastReminder = await AsyncStorage.getItem(REMINDER_KEY);
     if (lastReminder) {
       const elapsed = Date.now() - parseInt(lastReminder, 10);
-      if (elapsed < TWENTY_FOUR_HOURS) return;
+      if (elapsed < REMINDER_INTERVAL) return;
     }
 
     // Check current status from server
@@ -46,16 +55,12 @@ export async function checkWhatsAppReminder(token: string | null): Promise<void>
         {
           text: 'Change Number',
           style: 'destructive',
-          onPress: () => {
-            navigate('MainTabs', undefined);
-          },
+          onPress: () => navigateToProfile('change-whatsapp'),
         },
         {
           text: 'Verify',
           style: 'default',
-          onPress: () => {
-            navigate('MainTabs', undefined);
-          },
+          onPress: () => navigateToProfile('verify-whatsapp'),
         },
       ],
     );
