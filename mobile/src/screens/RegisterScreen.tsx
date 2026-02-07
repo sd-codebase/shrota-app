@@ -326,7 +326,7 @@ export function RegisterScreen() {
                 ]}
               >
                 {termsAccepted && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Ionicons name="checkmark" size={12} color="#fff" />
                 )}
               </View>
               <Text style={[styles.termsText, { color: colors.textSecondary }]}>
@@ -425,85 +425,84 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: 16,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
   },
   subtitle: {
-    fontSize: 16,
-    marginTop: 8,
+    fontSize: 15,
+    marginTop: 4,
   },
   form: {
     width: '100%',
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    height: 56,
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 10,
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   errorText: {
     fontSize: 12,
-    marginTop: -12,
-    marginBottom: 16,
+    marginTop: -6,
+    marginBottom: 10,
   },
   hintText: {
     fontSize: 12,
-    marginTop: -12,
-    marginBottom: 16,
+    marginTop: -6,
+    marginBottom: 10,
     marginLeft: 4,
   },
   termsContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    marginTop: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    marginTop: 2,
+    marginRight: 8,
   },
   termsText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
   },
   termsLink: {
     fontWeight: '600',
   },
   button: {
-    height: 56,
-    borderRadius: 12,
+    height: 46,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   loginContainer: {
