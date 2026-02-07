@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr = Field(..., description="User's email address (required)")
     birth_date: date = Field(..., description="User's birth date (required)")
-    whatsapp_number: str = Field(..., min_length=10, max_length=10, description="WhatsApp number (exactly 10 digits)")
+    whatsapp_number: Optional[str] = Field(None, max_length=10, description="WhatsApp number (exactly 10 digits)")
 
     @field_validator('birth_date')
     @classmethod
@@ -20,9 +20,10 @@ class UserRegister(BaseModel):
 
     @field_validator('whatsapp_number')
     @classmethod
-    def validate_whatsapp_number(cls, v: str) -> str:
-        if not re.match(r'^\d{10}$', v):
-            raise ValueError('WhatsApp number must be exactly 10 digits')
+    def validate_whatsapp_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v != '':
+            if not re.match(r'^\d{10}$', v):
+                raise ValueError('WhatsApp number must be exactly 10 digits')
         return v
 
 
