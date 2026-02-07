@@ -306,6 +306,33 @@ export function OTPVerificationScreen() {
               )}
             </View>
 
+            {/* Always Visible Support Contact */}
+            <View style={styles.supportContainer}>
+              <Text style={[styles.supportText, { color: colors.textSecondary }]}>
+                Need help? Contact us
+              </Text>
+              <View style={styles.supportButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(SUPPORT_CONTACT.whatsappUrl)}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`)}
+                >
+                  <Ionicons name="call" size={20} color={colors.brand.blue} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
+                  onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support - OTP Issue`)}
+                >
+                  <Ionicons name="mail" size={20} color={colors.brand.orange} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Email OTP Instructions */}
             <View style={styles.instructionsContainer}>
                 <TouchableOpacity
@@ -420,33 +447,6 @@ export function OTPVerificationScreen() {
                   </View>
                 )}
               </View>
-
-            {/* Always Visible Support Contact */}
-            <View style={styles.supportContainer}>
-              <Text style={[styles.supportText, { color: colors.textSecondary }]}>
-                Need help? Contact us
-              </Text>
-              <View style={styles.supportButtonsRow}>
-                <TouchableOpacity
-                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(SUPPORT_CONTACT.whatsappUrl)}
-                >
-                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`)}
-                >
-                  <Ionicons name="call" size={20} color={colors.brand.blue} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.supportBtn, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support - OTP Issue`)}
-                >
-                  <Ionicons name="mail" size={20} color={colors.brand.orange} />
-                </TouchableOpacity>
-              </View>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -506,11 +506,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   otpInput: {
-    width: 48,
-    height: 56,
-    borderRadius: 12,
+    width: 44,
+    height: 48,
+    borderRadius: 10,
     borderWidth: 2,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -519,8 +519,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   button: {
-    height: 56,
-    borderRadius: 12,
+    height: 46,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -616,6 +616,7 @@ const styles = StyleSheet.create({
   },
   supportContainer: {
     alignItems: 'center',
+    marginTop: 32,
     marginBottom: 32,
   },
   supportText: {
