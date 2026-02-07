@@ -7,9 +7,10 @@ import { AppNavigator, navigate } from './src/navigation';
 import { PlayerProvider, usePlayer } from './src/context/PlayerContext';
 import { DownloadProvider } from './src/context/DownloadContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { setupPlayer } from './src/services/trackPlayerService';
 import { Notifications } from './src/services/notifications';
+import { checkWhatsAppReminder } from './src/services/whatsappReminder';
 
 // Component to handle notification press navigation
 function NotificationHandler() {
@@ -34,6 +35,37 @@ function NotificationHandler() {
       subscription.remove();
     };
   }, [currentBook]);
+
+  return null;
+}
+
+// Component to handle WhatsApp verification reminders
+function WhatsAppReminderHandler() {
+  const { token, isAuthenticated } = useAuth();
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkWhatsAppReminder(token);
+    }
+  }, [isAuthenticated, token]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        token
+      ) {
+        checkWhatsAppReminder(token);
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [token]);
 
   return null;
 }
@@ -78,6 +110,7 @@ function AppContent() {
     <DownloadProvider>
       <PlayerProvider>
         <NotificationHandler />
+        <WhatsAppReminderHandler />
         <AppNavigator />
       </PlayerProvider>
     </DownloadProvider>

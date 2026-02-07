@@ -27,7 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { RootStackParamList, ProfileStackParamList, Genre, Language, UpdateProfilePayload } from '../types';
 import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { fetchGenres, fetchLanguages } from '../services/api';
-import { deactivateAccount, updateProfile } from '../services/authApi';
+import { deactivateAccount, updateProfile, verifyWhatsAppOTP } from '../services/authApi';
 import { APP_LINKS, SOCIAL_LINKS, SUPPORT_CONTACT } from '../constants/links';
 
 type NavigationProp = CompositeNavigationProp<
@@ -60,6 +60,14 @@ export function ProfileScreen() {
   });
   const [savingAddress, setSavingAddress] = useState(false);
   const [pinCodeError, setPinCodeError] = useState('');
+
+  // WhatsApp verification state
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [editingWhatsApp, setEditingWhatsApp] = useState(false);
+  const [whatsappInput, setWhatsappInput] = useState('');
+  const [savingWhatsApp, setSavingWhatsApp] = useState(false);
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -160,6 +168,49 @@ export function ProfileScreen() {
       Alert.alert('Error', message);
     } finally {
       setSavingAddress(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpInput.length !== 6) {
+      Alert.alert('Error', 'Please enter a 6-digit OTP');
+      return;
+    }
+    if (!token) return;
+
+    setVerifyingOtp(true);
+    try {
+      await verifyWhatsAppOTP(token, { otp: otpInput });
+      await refreshUser();
+      setShowOtpModal(false);
+      setOtpInput('');
+      Alert.alert('Success', 'WhatsApp number verified successfully!');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to verify OTP';
+      Alert.alert('Error', message);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleSaveWhatsApp = async () => {
+    const digits = whatsappInput.replace(/\D/g, '');
+    if (digits.length < 10) {
+      Alert.alert('Error', 'Please enter a valid WhatsApp number (at least 10 digits)');
+      return;
+    }
+    if (!token) return;
+
+    setSavingWhatsApp(true);
+    try {
+      await updateProfile(token, { whatsapp_number: whatsappInput.trim() });
+      await refreshUser();
+      setEditingWhatsApp(false);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Failed to update WhatsApp number';
+      Alert.alert('Error', msg);
+    } finally {
+      setSavingWhatsApp(false);
     }
   };
 
@@ -293,6 +344,79 @@ export function ProfileScreen() {
                 )}
               </View>
             )}
+            {/* WhatsApp Number */}
+            <View style={styles.profileRow}>
+              <Ionicons name="logo-whatsapp" size={18} color={colors.textSecondary} />
+              {editingWhatsApp ? (
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TextInput
+                    style={[
+                      styles.profileDetail,
+                      {
+                        color: colors.text,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.brand.orange,
+                        flex: 1,
+                        paddingVertical: 2,
+                      },
+                    ]}
+                    value={whatsappInput}
+                    onChangeText={setWhatsappInput}
+                    keyboardType="phone-pad"
+                    placeholder="+91 XXXXXXXXXX"
+                    placeholderTextColor={colors.placeholder}
+                    maxLength={15}
+                    autoFocus
+                  />
+                  <TouchableOpacity onPress={handleSaveWhatsApp} disabled={savingWhatsApp}>
+                    {savingWhatsApp ? (
+                      <ActivityIndicator size="small" color={colors.brand.orange} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={24} color={colors.brand.green} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setEditingWhatsApp(false)}>
+                    <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <Text style={[styles.profileDetail, { color: colors.textSecondary }]}>
+                    {user?.whatsapp_number || 'Not set'}
+                  </Text>
+                  {user?.is_whatsapp_verified ? (
+                    <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
+                      <Ionicons name="checkmark" size={12} color="#fff" />
+                    </View>
+                  ) : user?.whatsapp_otp_sent ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setOtpInput('');
+                        setShowOtpModal(true);
+                      }}
+                      style={[styles.verifyButton, { backgroundColor: colors.brand.orange }]}
+                    >
+                      <Text style={styles.verifyButtonText}>Verify</Text>
+                    </TouchableOpacity>
+                  ) : user?.whatsapp_number ? (
+                    <View style={[styles.pendingBadge, { backgroundColor: colors.border }]}>
+                      <Text style={[styles.pendingBadgeText, { color: colors.textSecondary }]}>Pending</Text>
+                    </View>
+                  ) : null}
+                  {user && !user.is_whatsapp_verified && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setWhatsappInput(user.whatsapp_number || '');
+                        setEditingWhatsApp(true);
+                      }}
+                    >
+                      <Ionicons name="pencil" size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
+
             {user?.birth_date && (
               <View style={styles.profileRow}>
                 <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
@@ -786,6 +910,71 @@ export function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      {/* WhatsApp OTP Verification Modal */}
+      <Modal
+        visible={showOtpModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowOtpModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Verify WhatsApp</Text>
+              <TouchableOpacity
+                onPress={() => setShowOtpModal(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.inputLabel, { color: colors.textSecondary, marginBottom: 16 }]}>
+              Enter the 6-digit OTP sent to your WhatsApp number
+            </Text>
+
+            <TextInput
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.card,
+                  color: colors.text,
+                  borderColor: colors.border,
+                  fontSize: 24,
+                  letterSpacing: 8,
+                  textAlign: 'center',
+                },
+              ]}
+              value={otpInput}
+              onChangeText={(text) => setOtpInput(text.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="000000"
+              placeholderTextColor={colors.textSecondary}
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                { backgroundColor: otpInput.length === 6 ? colors.brand.orange : colors.border },
+                verifyingOtp && { opacity: 0.7 },
+              ]}
+              onPress={handleVerifyOtp}
+              disabled={verifyingOtp || otpInput.length !== 6}
+            >
+              {verifyingOtp ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Verify OTP</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -853,6 +1042,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  verifyButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  pendingBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  pendingBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 12,

@@ -91,14 +91,16 @@ export function RegisterScreen() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [birthDateText, setBirthDateText] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const hasEmail = email.trim().length > 0;
+  const hasWhatsApp = whatsappNumber.replace(/\D/g, '').length >= 10;
   const hasBirthDate = birthDateText.trim().length === 10;
-  const canRegister = hasEmail && hasBirthDate && termsAccepted;
+  const canRegister = hasEmail && hasWhatsApp && hasBirthDate && termsAccepted;
   const identifier = email.trim();
 
   const handleDateChange = (text: string) => {
@@ -119,6 +121,11 @@ export function RegisterScreen() {
 
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+
+    if (!hasWhatsApp) {
+      Alert.alert('Error', 'Please enter a valid WhatsApp number (at least 10 digits)');
       return;
     }
 
@@ -149,6 +156,7 @@ export function RegisterScreen() {
         name: name.trim(),
         email: email.trim(),
         birth_date: `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`,
+        whatsapp_number: whatsappNumber.trim(),
       });
 
       // Send OTP
@@ -246,6 +254,31 @@ export function RegisterScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
+              />
+            </View>
+
+            {/* WhatsApp Number Input */}
+            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
+            <View
+              style={[
+                styles.inputContainer,
+                { backgroundColor: colors.inputBackground, borderColor: colors.border },
+              ]}
+            >
+              <Ionicons
+                name="logo-whatsapp"
+                size={24}
+                color={colors.textSecondary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="+91 XXXXXXXXXX"
+                placeholderTextColor={colors.placeholder}
+                value={whatsappNumber}
+                onChangeText={setWhatsappNumber}
+                keyboardType="phone-pad"
+                maxLength={15}
               />
             </View>
 

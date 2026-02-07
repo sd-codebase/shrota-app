@@ -11,6 +11,8 @@ import {
   Popconfirm,
   Tag,
   Tooltip,
+  Modal,
+  Typography,
 } from 'antd';
 import {
   EditOutlined,
@@ -20,15 +22,20 @@ import {
   StopOutlined,
   CheckOutlined,
   SearchOutlined,
+  WhatsAppOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
-import type { User, UserUpdate } from '../types';
+import type { User, UserUpdate, WhatsAppOTPResponse } from '../types';
 import {
   getUsers,
   updateUser,
   deleteUser,
   toggleUserStatus,
+  sendWhatsAppOTP,
 } from '../api';
 import dayjs from 'dayjs';
+
+const { Text, Title } = Typography;
 
 function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -43,6 +50,11 @@ function Users() {
   });
   const [searchText, setSearchText] = useState('');
   const [searchInput, setSearchInput] = useState('');
+
+  // OTP Modal state
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [otpData, setOtpData] = useState<WhatsAppOTPResponse | null>(null);
+  const [sendingOtp, setSendingOtp] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async (page: number, pageSize: number, search: string) => {
     setLoading(true);
@@ -108,6 +120,33 @@ function Users() {
       fetchUsers(pagination.current, pagination.pageSize, searchText);
     } catch (error) {
       message.error((error as Error).message || 'Failed to delete user');
+    }
+  };
+
+  const handleSendOTP = async (record: User) => {
+    setSendingOtp(record.id);
+    try {
+      const data = await sendWhatsAppOTP(record.id);
+      setOtpData(data);
+      setOtpModalOpen(true);
+      fetchUsers(pagination.current, pagination.pageSize, searchText);
+    } catch (error) {
+      message.error((error as Error).message || 'Failed to send OTP');
+    } finally {
+      setSendingOtp(null);
+    }
+  };
+
+  const handleCopyOTP = () => {
+    if (otpData?.otp) {
+      navigator.clipboard.writeText(otpData.otp);
+      message.success('OTP copied to clipboard');
+    }
+  };
+
+  const handleOpenWhatsApp = () => {
+    if (otpData?.wa_me_link) {
+      window.open(otpData.wa_me_link, '_blank');
     }
   };
 
@@ -211,6 +250,17 @@ function Users() {
       key: 'actions',
       render: (_: unknown, record: User) => (
         <Space>
+          {record.whatsapp_number && !record.is_whatsapp_verified && (
+            <Tooltip title="Send WhatsApp OTP">
+              <Button
+                icon={<WhatsAppOutlined />}
+                onClick={() => handleSendOTP(record)}
+                size="small"
+                loading={sendingOtp === record.id}
+                style={{ color: '#25D366', borderColor: '#25D366' }}
+              />
+            </Tooltip>
+          )}
           <Tooltip title="Edit">
             <Button
               icon={<EditOutlined />}
@@ -349,6 +399,14 @@ function Users() {
                 )}
               </p>
               <p>
+                <strong>WhatsApp OTP Sent:</strong>{' '}
+                {editingUser.whatsapp_otp_sent ? (
+                  <Tag color="blue">Yes</Tag>
+                ) : (
+                  <Tag color="default">No</Tag>
+                )}
+              </p>
+              <p>
                 <strong>Status:</strong>{' '}
                 <Tag color={editingUser.is_active ? 'green' : 'red'}>
                   {editingUser.is_active ? 'Active' : 'Disabled'}
@@ -362,6 +420,50 @@ function Users() {
           )}
         </Form>
       </Drawer>
+
+      {/* WhatsApp OTP Modal */}
+      <Modal
+        title="WhatsApp OTP Generated"
+        open={otpModalOpen}
+        onCancel={() => {
+          setOtpModalOpen(false);
+          setOtpData(null);
+        }}
+        footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyOTP}>
+            Copy OTP
+          </Button>,
+          <Button
+            key="whatsapp"
+            type="primary"
+            icon={<WhatsAppOutlined />}
+            onClick={handleOpenWhatsApp}
+            style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+          >
+            Open WhatsApp
+          </Button>,
+        ]}
+      >
+        {otpData && (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <Text type="secondary">Send this OTP to</Text>
+            <Title level={5} style={{ margin: '8px 0' }}>{otpData.whatsapp_number}</Title>
+            <div style={{
+              fontSize: 48,
+              fontWeight: 700,
+              letterSpacing: 12,
+              padding: '24px 0',
+              fontFamily: 'monospace',
+              color: '#1677ff',
+            }}>
+              {otpData.otp}
+            </div>
+            <Text type="secondary">
+              Click "Open WhatsApp" to send via WhatsApp Web, or copy and send manually.
+            </Text>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -13,6 +13,8 @@ from schemas.user import (
     SendOTPResponse,
     VerifyOTPRequest,
     UserTokenResponse,
+    VerifyWhatsAppOTPRequest,
+    WhatsAppStatusResponse,
 )
 from utils.otp import store_otp, verify_otp, get_otp_expiry_seconds
 from utils.auth import create_access_token, decode_access_token
@@ -22,6 +24,29 @@ from config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 router = APIRouter(prefix="/v1/auth", tags=["User Authentication"])
 
 security = HTTPBearer()
+
+
+def build_user_response(user: User) -> UserResponse:
+    """Build a UserResponse from a User model instance."""
+    return UserResponse(
+        id=str(user.id),
+        name=user.name,
+        email=user.email,
+        birth_date=user.birth_date,
+        is_email_verified=user.is_email_verified,
+        is_active=user.is_active,
+        whatsapp_number=user.whatsapp_number,
+        is_whatsapp_verified=user.is_whatsapp_verified,
+        whatsapp_otp_sent=user.whatsapp_otp is not None,
+        address=user.address,
+        village_landmark=user.village_landmark,
+        tahsil_city=user.tahsil_city,
+        district=user.district,
+        state=user.state,
+        pin_code=user.pin_code,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
 
 
 async def get_current_user(
@@ -112,7 +137,7 @@ async def register_user(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Register a new user with email.
+    Register a new user with email and WhatsApp number.
     """
     # Check for existing user with same email
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
@@ -136,22 +161,14 @@ async def register_user(
         name=payload.name,
         email=payload.email.lower(),
         birth_date=payload.birth_date,
+        whatsapp_number=payload.whatsapp_number,
     )
 
     db.add(user)
     await db.commit()
     await db.refresh(user)
 
-    return UserResponse(
-        id=str(user.id),
-        name=user.name,
-        email=user.email,
-        birth_date=user.birth_date,
-        is_email_verified=user.is_email_verified,
-        is_active=user.is_active,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-    )
+    return build_user_response(user)
 
 
 @router.post("/send-otp", response_model=SendOTPResponse)
@@ -239,22 +256,7 @@ async def verify_otp_endpoint(
         access_token=access_token,
         token_type="bearer",
         expires_in=JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse(
-            id=str(user.id),
-            name=user.name,
-            email=user.email,
-            birth_date=user.birth_date,
-            is_email_verified=user.is_email_verified,
-            is_active=user.is_active,
-            address=user.address,
-            village_landmark=user.village_landmark,
-            tahsil_city=user.tahsil_city,
-            district=user.district,
-            state=user.state,
-            pin_code=user.pin_code,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-        )
+        user=build_user_response(user),
     )
 
 
@@ -265,19 +267,55 @@ async def get_current_user_info(
     """
     Get current authenticated user's information.
     """
-    return UserResponse(
-        id=str(current_user.id),
-        name=current_user.name,
-        email=current_user.email,
-        birth_date=current_user.birth_date,
-        is_email_verified=current_user.is_email_verified,
-        is_active=current_user.is_active,
-        address=current_user.address,
-        village_landmark=current_user.village_landmark,
-        tahsil_city=current_user.tahsil_city,
-        district=current_user.district,
-        state=current_user.state,
-        pin_code=current_user.pin_code,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
+    return build_user_response(current_user)
+
+
+@router.get("/whatsapp-status", response_model=WhatsAppStatusResponse)
+async def get_whatsapp_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current user's WhatsApp verification status.
+    Used by mobile app for 24h reminder check.
+    """
+    return WhatsAppStatusResponse(
+        whatsapp_number=current_user.whatsapp_number,
+        is_whatsapp_verified=current_user.is_whatsapp_verified,
+        otp_sent=current_user.whatsapp_otp is not None,
     )
+
+
+@router.post("/verify-whatsapp-otp", response_model=UserResponse)
+async def verify_whatsapp_otp(
+    payload: VerifyWhatsAppOTPRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verify WhatsApp OTP. Compares submitted OTP with stored whatsapp_otp.
+    On success, sets is_whatsapp_verified=True and clears OTP.
+    """
+    if current_user.is_whatsapp_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WhatsApp number is already verified"
+        )
+
+    if current_user.whatsapp_otp is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No OTP has been sent yet. Please contact admin."
+        )
+
+    if current_user.whatsapp_otp != payload.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP"
+        )
+
+    current_user.is_whatsapp_verified = True
+    current_user.whatsapp_otp = None
+    await db.commit()
+    await db.refresh(current_user)
+
+    return build_user_response(current_user)

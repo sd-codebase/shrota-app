@@ -1,4 +1,4 @@
-"""Fix users table: drop whatsapp columns, make email not null
+"""Add whatsapp verification columns to users table
 
 Revision ID: 0005_fix_users_table
 Revises: 0004_notification_book_id
@@ -19,22 +19,40 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Drop whatsapp columns that were missed by a previous stamped migration
-    op.drop_column('users', 'is_whatsapp_verified')
-    op.drop_column('users', 'whatsapp_number')
+    # Add whatsapp_number column (safe for prod where it may already exist)
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(20) NOT NULL DEFAULT ''
+    """)
 
-    # Make email not null (matches model definition)
+    # Add is_whatsapp_verified column
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_whatsapp_verified BOOLEAN NOT NULL DEFAULT false
+    """)
+
+    # Add whatsapp_otp column for persistent OTP storage
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS whatsapp_otp VARCHAR(6)
+    """)
+
+    # Make email NOT NULL (if not already)
     op.alter_column('users', 'email',
                     existing_type=sa.VARCHAR(length=255),
                     nullable=False)
 
+    # Handle prod where whatsapp_number may be nullable: set default for existing rows, then set NOT NULL
+    op.execute("UPDATE users SET whatsapp_number = '' WHERE whatsapp_number IS NULL")
+    op.execute("""
+        ALTER TABLE users ALTER COLUMN whatsapp_number SET NOT NULL
+    """)
+    op.execute("""
+        ALTER TABLE users ALTER COLUMN whatsapp_number SET DEFAULT ''
+    """)
+
 
 def downgrade() -> None:
-    op.alter_column('users', 'email',
-                    existing_type=sa.VARCHAR(length=255),
-                    nullable=True)
-
-    op.add_column('users', sa.Column('whatsapp_number', sa.VARCHAR(length=20), nullable=True))
-    op.add_column('users', sa.Column('is_whatsapp_verified', sa.BOOLEAN(), nullable=True, server_default='false'))
-    op.execute("UPDATE users SET is_whatsapp_verified = false WHERE is_whatsapp_verified IS NULL")
-    op.alter_column('users', 'is_whatsapp_verified', nullable=False)
+    op.drop_column('users', 'whatsapp_otp')
+    op.drop_column('users', 'is_whatsapp_verified')
+    op.drop_column('users', 'whatsapp_number')

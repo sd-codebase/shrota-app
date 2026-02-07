@@ -1,3 +1,5 @@
+import random
+import string
 from datetime import datetime, timezone
 from uuid import UUID
 from math import ceil
@@ -7,7 +9,7 @@ from sqlalchemy import select, func, or_
 from database import get_db
 from models.user import User
 from models.admin import Admin
-from schemas.user import UserResponse, UserAdminUpdate, UserListResponse
+from schemas.user import UserResponse, UserAdminUpdate, UserListResponse, SendWhatsAppOTPResponse
 from utils.auth import get_current_admin
 
 router = APIRouter(prefix="/admin/users", tags=["Admin Users"])
@@ -21,6 +23,9 @@ def user_to_response(user: User) -> dict:
         "birth_date": user.birth_date,
         "is_email_verified": user.is_email_verified,
         "is_active": user.is_active,
+        "whatsapp_number": user.whatsapp_number,
+        "is_whatsapp_verified": user.is_whatsapp_verified,
+        "whatsapp_otp_sent": user.whatsapp_otp is not None,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
@@ -43,6 +48,7 @@ async def get_users(
         search_filter = or_(
             User.name.ilike(f"%{search}%"),
             User.email.ilike(f"%{search}%"),
+            User.whatsapp_number.ilike(f"%{search}%"),
         )
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
@@ -175,3 +181,50 @@ async def delete_user(
     await db.delete(user)
     await db.commit()
     return None
+
+
+@router.post("/{user_id}/send-whatsapp-otp", response_model=SendWhatsAppOTPResponse)
+async def send_whatsapp_otp(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    """
+    Generate a WhatsApp OTP for a user. Stores OTP in DB and returns
+    the OTP + wa.me link for the admin to send via WhatsApp Web.
+    """
+    try:
+        uuid_id = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+
+    user = await db.get(User, uuid_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.whatsapp_number:
+        raise HTTPException(status_code=400, detail="User has no WhatsApp number")
+
+    if user.is_whatsapp_verified:
+        raise HTTPException(status_code=400, detail="User's WhatsApp is already verified")
+
+    # Generate 6-digit OTP
+    otp = ''.join(random.choices(string.digits, k=6))
+
+    # Store in DB (persistent, never expires until verified)
+    user.whatsapp_otp = otp
+    user.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(user)
+
+    # Build wa.me link - strip leading + for the link
+    phone_digits = user.whatsapp_number.lstrip('+')
+    otp_message = f"Your Shrota verification code is: {otp}"
+    wa_me_link = f"https://wa.me/{phone_digits}?text={otp_message}"
+
+    return SendWhatsAppOTPResponse(
+        otp=otp,
+        whatsapp_number=user.whatsapp_number,
+        wa_me_link=wa_me_link,
+        message=f"OTP generated for {user.whatsapp_number}",
+    )

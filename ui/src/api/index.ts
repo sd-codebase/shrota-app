@@ -33,6 +33,7 @@ import type {
   User,
   UserUpdate,
   UserListResponse,
+  WhatsAppOTPResponse,
   Notification,
   NotificationSend,
   NotificationSendResponse,
@@ -583,6 +584,11 @@ export const toggleUserStatus = (id: string) =>
 
 export const deleteUser = (id: string) =>
   request<void>(`/admin/users/${id}`, { method: 'DELETE' });
+
+export const sendWhatsAppOTP = (userId: string) =>
+  request<WhatsAppOTPResponse>(`/admin/users/${userId}/send-whatsapp-otp`, {
+    method: 'POST',
+  });
 
 // Notifications
 export const getNotifications = () => request<Notification[]>('/notifications');

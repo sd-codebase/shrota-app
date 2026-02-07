@@ -303,9 +303,17 @@ export interface User {
   birth_date: string;
   is_email_verified: boolean;
   is_whatsapp_verified: boolean;
+  whatsapp_otp_sent: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface WhatsAppOTPResponse {
+  otp: string;
+  whatsapp_number: string;
+  wa_me_link: string;
+  message: string;
 }
 
 export interface UserUpdate {

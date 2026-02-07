@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.user import User
 from schemas.user import UserResponse, UserUpdate
-from routes.user_auth import get_current_user
+from routes.user_auth import get_current_user, build_user_response
 
 router = APIRouter(prefix="/v1/users", tags=["Users"])
 
@@ -24,22 +24,7 @@ async def deactivate_account(
     await db.commit()
     await db.refresh(current_user)
 
-    return UserResponse(
-        id=str(current_user.id),
-        name=current_user.name,
-        email=current_user.email,
-        birth_date=current_user.birth_date,
-        is_email_verified=current_user.is_email_verified,
-        is_active=current_user.is_active,
-        address=current_user.address,
-        village_landmark=current_user.village_landmark,
-        tahsil_city=current_user.tahsil_city,
-        district=current_user.district,
-        state=current_user.state,
-        pin_code=current_user.pin_code,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
-    )
+    return build_user_response(current_user)
 
 
 @router.patch("/me", response_model=UserResponse)
@@ -51,6 +36,17 @@ async def update_profile(
     """Update current user's profile."""
     update_data = user_update.model_dump(exclude_unset=True)
 
+    # If updating whatsapp_number, only allow if not yet verified
+    if 'whatsapp_number' in update_data:
+        if current_user.is_whatsapp_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change a verified WhatsApp number"
+            )
+        # If number is changing, clear any pending OTP
+        if update_data['whatsapp_number'] != current_user.whatsapp_number:
+            current_user.whatsapp_otp = None
+
     for key, value in update_data.items():
         setattr(current_user, key, value)
 
@@ -58,19 +54,4 @@ async def update_profile(
     await db.commit()
     await db.refresh(current_user)
 
-    return UserResponse(
-        id=str(current_user.id),
-        name=current_user.name,
-        email=current_user.email,
-        birth_date=current_user.birth_date,
-        is_email_verified=current_user.is_email_verified,
-        is_active=current_user.is_active,
-        address=current_user.address,
-        village_landmark=current_user.village_landmark,
-        tahsil_city=current_user.tahsil_city,
-        district=current_user.district,
-        state=current_user.state,
-        pin_code=current_user.pin_code,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
-    )
+    return build_user_response(current_user)

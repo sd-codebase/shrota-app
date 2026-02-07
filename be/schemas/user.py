@@ -9,6 +9,7 @@ class UserRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr = Field(..., description="User's email address (required)")
     birth_date: date = Field(..., description="User's birth date (required)")
+    whatsapp_number: str = Field(..., min_length=10, max_length=15, description="WhatsApp number (10-15 digits)")
 
     @field_validator('birth_date')
     @classmethod
@@ -16,6 +17,14 @@ class UserRegister(BaseModel):
         if v > date.today():
             raise ValueError('Birth date cannot be in the future')
         return v
+
+    @field_validator('whatsapp_number')
+    @classmethod
+    def validate_whatsapp_number(cls, v: str) -> str:
+        digits = re.sub(r'\D', '', v)
+        if len(digits) < 10 or len(digits) > 15:
+            raise ValueError('WhatsApp number must be 10-15 digits')
+        return v.strip()
 
 
 class UserResponse(BaseModel):
@@ -26,6 +35,9 @@ class UserResponse(BaseModel):
     birth_date: date
     is_email_verified: bool
     is_active: bool
+    whatsapp_number: str = ''
+    is_whatsapp_verified: bool = False
+    whatsapp_otp_sent: bool = False
     address: Optional[str] = None
     village_landmark: Optional[str] = None
     tahsil_city: Optional[str] = None
@@ -42,6 +54,7 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     """Schema for updating user profile (all fields optional)."""
     name: Optional[str] = Field(None, min_length=1, max_length=200)
+    whatsapp_number: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = Field(None, max_length=500)
     village_landmark: Optional[str] = Field(None, max_length=200)
     tahsil_city: Optional[str] = Field(None, max_length=100)
@@ -55,6 +68,15 @@ class UserUpdate(BaseModel):
         if v is not None and v != '':
             if not re.match(r'^\d{6}$', v):
                 raise ValueError('Pin code must be exactly 6 digits')
+        return v
+
+    @field_validator('whatsapp_number')
+    @classmethod
+    def validate_whatsapp_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v != '':
+            digits = re.sub(r'\D', '', v)
+            if len(digits) < 10 or len(digits) > 15:
+                raise ValueError('WhatsApp number must be 10-15 digits')
         return v
 
 
@@ -108,6 +130,7 @@ class UserAdminUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     email: Optional[EmailStr] = None
     birth_date: Optional[date] = None
+    whatsapp_number: Optional[str] = Field(None, max_length=20)
 
     @field_validator('birth_date')
     @classmethod
@@ -124,3 +147,31 @@ class UserListResponse(BaseModel):
     page: int
     per_page: int
     total_pages: int
+
+
+# WhatsApp OTP schemas
+class SendWhatsAppOTPResponse(BaseModel):
+    """Response when admin generates a WhatsApp OTP for a user."""
+    otp: str
+    whatsapp_number: str
+    wa_me_link: str
+    message: str
+
+
+class VerifyWhatsAppOTPRequest(BaseModel):
+    """Schema for user verifying their WhatsApp OTP."""
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit OTP")
+
+    @field_validator('otp')
+    @classmethod
+    def validate_otp(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError('OTP must contain only digits')
+        return v
+
+
+class WhatsAppStatusResponse(BaseModel):
+    """Response for WhatsApp verification status check."""
+    whatsapp_number: str
+    is_whatsapp_verified: bool
+    otp_sent: bool

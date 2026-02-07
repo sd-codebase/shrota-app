@@ -7,6 +7,8 @@ import {
   AuthTokenResponse,
   SendOTPResponse,
   UpdateProfilePayload,
+  WhatsAppStatusResponse,
+  VerifyWhatsAppOTPPayload,
 } from '../types';
 
 const AUTH_BASE_URL = `${API_URL}/v1/auth`;
@@ -133,6 +135,47 @@ export async function updateProfile(token: string, data: UpdateProfilePayload): 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get WhatsApp verification status
+ */
+export async function getWhatsAppStatus(token: string): Promise<WhatsAppStatusResponse> {
+  const response = await fetch(`${AUTH_BASE_URL}/whatsapp-status`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Verify WhatsApp OTP
+ */
+export async function verifyWhatsAppOTP(token: string, payload: VerifyWhatsAppOTPPayload): Promise<User> {
+  const response = await fetch(`${AUTH_BASE_URL}/verify-whatsapp-otp`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

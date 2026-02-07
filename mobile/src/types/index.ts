@@ -142,6 +142,9 @@ export interface User {
   birth_date: string;
   is_email_verified: boolean;
   is_active: boolean;
+  whatsapp_number: string;
+  is_whatsapp_verified: boolean;
+  whatsapp_otp_sent: boolean;
   address?: string;
   village_landmark?: string;
   tahsil_city?: string;
@@ -154,6 +157,7 @@ export interface User {
 
 export interface UpdateProfilePayload {
   name?: string;
+  whatsapp_number?: string;
   address?: string;
   village_landmark?: string;
   tahsil_city?: string;
@@ -166,6 +170,17 @@ export interface RegisterPayload {
   name: string;
   email: string;
   birth_date: string;
+  whatsapp_number: string;
+}
+
+export interface WhatsAppStatusResponse {
+  whatsapp_number: string;
+  is_whatsapp_verified: boolean;
+  otp_sent: boolean;
+}
+
+export interface VerifyWhatsAppOTPPayload {
+  otp: string;
 }
 
 export interface SendOTPPayload {
