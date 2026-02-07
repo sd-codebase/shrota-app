@@ -35,7 +35,7 @@ class UserResponse(BaseModel):
     birth_date: date
     is_email_verified: bool
     is_active: bool
-    whatsapp_number: str = ''
+    whatsapp_number: Optional[str] = None
     is_whatsapp_verified: bool = False
     whatsapp_otp_sent: bool = False
     address: Optional[str] = None

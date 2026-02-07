@@ -19,10 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add whatsapp_number column (safe for prod where it may already exist)
+    # Add whatsapp_number column (nullable — existing users won't have one)
     op.execute("""
         ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(20) NOT NULL DEFAULT ''
+        ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(20)
     """)
 
     # Add is_whatsapp_verified column
@@ -41,15 +41,6 @@ def upgrade() -> None:
     op.alter_column('users', 'email',
                     existing_type=sa.VARCHAR(length=255),
                     nullable=False)
-
-    # Handle prod where whatsapp_number may be nullable: set default for existing rows, then set NOT NULL
-    op.execute("UPDATE users SET whatsapp_number = '' WHERE whatsapp_number IS NULL")
-    op.execute("""
-        ALTER TABLE users ALTER COLUMN whatsapp_number SET NOT NULL
-    """)
-    op.execute("""
-        ALTER TABLE users ALTER COLUMN whatsapp_number SET DEFAULT ''
-    """)
 
 
 def downgrade() -> None:
