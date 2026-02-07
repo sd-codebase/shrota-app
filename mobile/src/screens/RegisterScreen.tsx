@@ -98,7 +98,7 @@ export function RegisterScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const hasEmail = email.trim().length > 0;
-  const hasWhatsApp = whatsappNumber.replace(/\D/g, '').length >= 10;
+  const hasWhatsApp = whatsappNumber.length === 10;
   const hasBirthDate = birthDateText.trim().length === 10;
   const canRegister = hasEmail && hasWhatsApp && hasBirthDate && termsAccepted;
   const identifier = email.trim();
@@ -125,7 +125,7 @@ export function RegisterScreen() {
     }
 
     if (!hasWhatsApp) {
-      Alert.alert('Error', 'Please enter a valid WhatsApp number (at least 10 digits)');
+      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
 
@@ -273,12 +273,12 @@ export function RegisterScreen() {
               />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="+91 XXXXXXXXXX"
+                placeholder="WhatsApp number"
                 placeholderTextColor={colors.placeholder}
                 value={whatsappNumber}
-                onChangeText={setWhatsappNumber}
-                keyboardType="phone-pad"
-                maxLength={15}
+                onChangeText={(text) => setWhatsappNumber(text.replace(/\D/g, '').slice(0, 10))}
+                keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
 

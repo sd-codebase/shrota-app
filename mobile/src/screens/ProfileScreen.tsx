@@ -194,9 +194,8 @@ export function ProfileScreen() {
   };
 
   const handleSaveWhatsApp = async () => {
-    const digits = whatsappInput.replace(/\D/g, '');
-    if (digits.length < 10) {
-      Alert.alert('Error', 'Please enter a valid WhatsApp number (at least 10 digits)');
+    if (whatsappInput.length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
     if (!token) return;
@@ -361,11 +360,11 @@ export function ProfileScreen() {
                       },
                     ]}
                     value={whatsappInput}
-                    onChangeText={setWhatsappInput}
-                    keyboardType="phone-pad"
-                    placeholder="+91 XXXXXXXXXX"
+                    onChangeText={(text) => setWhatsappInput(text.replace(/\D/g, '').slice(0, 10))}
+                    keyboardType="number-pad"
+                    placeholder="WhatsApp number"
                     placeholderTextColor={colors.placeholder}
-                    maxLength={15}
+                    maxLength={10}
                     autoFocus
                   />
                   <TouchableOpacity onPress={handleSaveWhatsApp} disabled={savingWhatsApp}>

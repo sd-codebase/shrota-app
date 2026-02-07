@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr = Field(..., description="User's email address (required)")
     birth_date: date = Field(..., description="User's birth date (required)")
-    whatsapp_number: str = Field(..., min_length=10, max_length=15, description="WhatsApp number (10-15 digits)")
+    whatsapp_number: str = Field(..., min_length=10, max_length=10, description="WhatsApp number (exactly 10 digits)")
 
     @field_validator('birth_date')
     @classmethod
@@ -21,10 +21,9 @@ class UserRegister(BaseModel):
     @field_validator('whatsapp_number')
     @classmethod
     def validate_whatsapp_number(cls, v: str) -> str:
-        digits = re.sub(r'\D', '', v)
-        if len(digits) < 10 or len(digits) > 15:
-            raise ValueError('WhatsApp number must be 10-15 digits')
-        return v.strip()
+        if not re.match(r'^\d{10}$', v):
+            raise ValueError('WhatsApp number must be exactly 10 digits')
+        return v
 
 
 class UserResponse(BaseModel):
@@ -54,7 +53,7 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     """Schema for updating user profile (all fields optional)."""
     name: Optional[str] = Field(None, min_length=1, max_length=200)
-    whatsapp_number: Optional[str] = Field(None, max_length=20)
+    whatsapp_number: Optional[str] = Field(None, max_length=10)
     address: Optional[str] = Field(None, max_length=500)
     village_landmark: Optional[str] = Field(None, max_length=200)
     tahsil_city: Optional[str] = Field(None, max_length=100)
@@ -74,9 +73,8 @@ class UserUpdate(BaseModel):
     @classmethod
     def validate_whatsapp_number(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and v != '':
-            digits = re.sub(r'\D', '', v)
-            if len(digits) < 10 or len(digits) > 15:
-                raise ValueError('WhatsApp number must be 10-15 digits')
+            if not re.match(r'^\d{10}$', v):
+                raise ValueError('WhatsApp number must be exactly 10 digits')
         return v
 
 
@@ -130,7 +128,7 @@ class UserAdminUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     email: Optional[EmailStr] = None
     birth_date: Optional[date] = None
-    whatsapp_number: Optional[str] = Field(None, max_length=20)
+    whatsapp_number: Optional[str] = Field(None, max_length=10)
 
     @field_validator('birth_date')
     @classmethod
