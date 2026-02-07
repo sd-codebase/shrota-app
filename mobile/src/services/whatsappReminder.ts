@@ -4,7 +4,8 @@ import { getWhatsAppStatus } from './authApi';
 import { navigate } from '../navigation';
 
 const REMINDER_KEY = '@shrota_whatsapp_reminder_last';
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+// TODO: Change back to 24 * 60 * 60 * 1000 (24 hours) after testing
+const TWENTY_FOUR_HOURS = 2 * 60 * 1000; // 2 minutes for testing
 
 /**
  * Check if we should show a WhatsApp verification reminder.
@@ -39,20 +40,22 @@ export async function checkWhatsAppReminder(token: string | null): Promise<void>
       'Please verify your WhatsApp number to complete your profile.',
       [
         {
+          text: 'Remind Me Later',
+          style: 'cancel',
+        },
+        {
           text: 'Change Number',
+          style: 'destructive',
           onPress: () => {
             navigate('MainTabs', undefined);
           },
         },
         {
           text: 'Verify',
+          style: 'default',
           onPress: () => {
             navigate('MainTabs', undefined);
           },
-        },
-        {
-          text: 'Remind Me Later',
-          style: 'cancel',
         },
       ],
     );

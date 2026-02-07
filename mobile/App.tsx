@@ -39,9 +39,11 @@ function NotificationHandler() {
   return null;
 }
 
-// Component to handle WhatsApp verification reminders
+// Component to handle WhatsApp verification reminders and periodic status polling
+const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
 function WhatsAppReminderHandler() {
-  const { token, isAuthenticated } = useAuth();
+  const { token, user, isAuthenticated, refreshUser } = useAuth();
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
@@ -50,6 +52,18 @@ function WhatsAppReminderHandler() {
     }
   }, [isAuthenticated, token]);
 
+  // Poll every 15 minutes if WhatsApp not yet verified
+  useEffect(() => {
+    if (!isAuthenticated || !token || user?.is_whatsapp_verified) return;
+
+    const interval = setInterval(() => {
+      refreshUser();
+    }, FIFTEEN_MINUTES);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, token, user?.is_whatsapp_verified, refreshUser]);
+
+  // Also refresh on foreground if not verified
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (
@@ -58,6 +72,9 @@ function WhatsAppReminderHandler() {
         token
       ) {
         checkWhatsAppReminder(token);
+        if (!user?.is_whatsapp_verified) {
+          refreshUser();
+        }
       }
       appState.current = nextAppState;
     });
@@ -65,7 +82,7 @@ function WhatsAppReminderHandler() {
     return () => {
       subscription.remove();
     };
-  }, [token]);
+  }, [token, user?.is_whatsapp_verified, refreshUser]);
 
   return null;
 }
