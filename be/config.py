@@ -14,7 +14,7 @@ AUDIO_LIBRARY_DIR = os.getenv("AUDIO_LIBRARY_DIR", "../audio-library/shrota-audi
 # JWT Authentication
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-in-production")
 JWT_ALGORITHM = "HS256"
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "262800"))  # default: 6 months
 
 # Notification settings
 NOTIFICATION_MODE = os.getenv("NOTIFICATION_MODE", "development")
