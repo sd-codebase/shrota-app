@@ -55,9 +55,6 @@ export default async function BookPage({ params }: BookPageProps) {
     if (bookError.status === 404) {
       notFound();
     }
-    if (bookError.status === 403) {
-      return <BookDetails book={null} bookId={bookId} isRestricted />;
-    }
     notFound();
   }
 }

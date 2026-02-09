@@ -259,13 +259,6 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
     if not book or book.is_deleted or not book.is_published:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Return 403 for adult content (website will show age warning)
-    if book.is_adult:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This content is restricted to users 18 years or older"
-        )
-
     # Get language name
     language_name = None
     if book.language_id:

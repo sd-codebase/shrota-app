@@ -10,10 +10,9 @@ import { AppStoreButtons } from "@/components/ui/AppStoreButtons";
 interface BookDetailsProps {
   book: BookShareData | null;
   bookId: string;
-  isRestricted?: boolean;
 }
 
-export function BookDetails({ book, bookId, isRestricted }: BookDetailsProps) {
+export function BookDetails({ book, bookId }: BookDetailsProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleListenNow = () => {
@@ -43,51 +42,14 @@ export function BookDetails({ book, bookId, isRestricted }: BookDetailsProps) {
   // Auto-attempt deep link on mobile
   useEffect(() => {
     const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
-    if (isMobile && book && !isRestricted) {
+    if (isMobile && book) {
       // Small delay to ensure page is loaded
       const timer = setTimeout(() => {
         window.location.href = `shrota://book/${bookId}`;
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [bookId, book, isRestricted]);
-
-  if (isRestricted) {
-    return (
-      <div className="pt-20 min-h-screen">
-        <section className="py-24 bg-bg-primary">
-          <Container>
-            <FadeIn className="max-w-2xl mx-auto text-center">
-              <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-brand-orange/10 flex items-center justify-center">
-                <svg
-                  className="w-12 h-12 text-brand-orange"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m0 0v2m0-2h2m-2 0H10m4-6V9a4 4 0 00-8 0v4m-2 0h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2z"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-text-primary mb-4">
-                Age Restricted Content
-              </h1>
-              <p className="text-text-secondary text-lg mb-8">
-                This content is restricted to users 18 years or older. Please
-                download the Shrota app and verify your age to access this
-                audiobook.
-              </p>
-              <AppStoreButtons />
-            </FadeIn>
-          </Container>
-        </section>
-      </div>
-    );
-  }
+  }, [bookId, book]);
 
   if (!book) {
     return null;
