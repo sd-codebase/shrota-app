@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import * as Application from 'expo-application';
 import {
   View,
   Text,
@@ -587,7 +588,7 @@ export function ProfileScreen() {
               <View>
                 <Text style={[styles.settingLabel, { color: colors.text }]}>Version</Text>
                 <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                  1.0.0
+                  {Application.nativeApplicationVersion || '1.0.0'}
                 </Text>
               </View>
             </View>

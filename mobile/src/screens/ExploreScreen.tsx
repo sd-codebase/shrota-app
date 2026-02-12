@@ -130,9 +130,7 @@ export function ExploreScreen() {
           fetchArtists().catch(() => []),
           fetchPublications().catch(() => []),
         ]);
-        // Client-side safety filter: exclude adult genres
-        const safeGenres = genresData.filter(g => !g.is_adult);
-        setGenres(safeGenres);
+        setGenres(genresData);
         setLanguages(languagesData);
         setAuthors(authorsData);
         setArtists(artistsData);
