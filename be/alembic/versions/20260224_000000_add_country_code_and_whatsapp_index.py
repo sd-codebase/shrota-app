@@ -22,6 +22,9 @@ def upgrade() -> None:
     # Add country_code column with default "91"
     op.add_column('users', sa.Column('country_code', sa.String(4), nullable=False, server_default='91'))
 
+    # Convert empty strings to NULL
+    op.execute("UPDATE users SET whatsapp_number = NULL WHERE whatsapp_number = ''")
+
     # Clear duplicate whatsapp_numbers before creating unique index.
     # For each duplicate number, keep the most recently updated row and
     # NULL out the rest so they don't block the unique constraint.
