@@ -15,8 +15,8 @@ export const SOCIAL_LINKS = [
 ];
 
 export const SUPPORT_CONTACT = {
-  phone: '+918055717170',
-  phoneDisplay: '+91 80557 17170',
+  phone: '+919422215658',
+  phoneDisplay: '+91 94222 15658',
   email: 'myshrota@gmail.com',
-  whatsappUrl: 'https://wa.me/918055717170?text=Hi, I need help with Shrota app',
+  whatsappUrl: 'https://wa.me/919422215658?text=Hi, I need help with Shrota app',
 };
