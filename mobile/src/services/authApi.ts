@@ -9,6 +9,8 @@ import {
   UpdateProfilePayload,
   WhatsAppStatusResponse,
   VerifyWhatsAppOTPPayload,
+  SendChangeWhatsAppOTPPayload,
+  VerifyChangeWhatsAppPayload,
 } from '../types';
 
 const AUTH_BASE_URL = `${API_URL}/v1/auth`;
@@ -166,10 +168,52 @@ export async function getWhatsAppStatus(token: string): Promise<WhatsAppStatusRe
 }
 
 /**
- * Verify WhatsApp OTP
+ * Verify WhatsApp OTP (legacy admin flow)
  */
 export async function verifyWhatsAppOTP(token: string, payload: VerifyWhatsAppOTPPayload): Promise<User> {
   const response = await fetch(`${AUTH_BASE_URL}/verify-whatsapp-otp`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Send OTP to a new WhatsApp number (for changing/verifying)
+ */
+export async function sendChangeWhatsAppOTP(token: string, payload: SendChangeWhatsAppOTPPayload): Promise<SendOTPResponse> {
+  const response = await fetch(`${AUTH_BASE_URL}/send-change-whatsapp-otp`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Verify OTP and change WhatsApp number
+ */
+export async function verifyChangeWhatsApp(token: string, payload: VerifyChangeWhatsAppPayload): Promise<User> {
+  const response = await fetch(`${AUTH_BASE_URL}/verify-change-whatsapp`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

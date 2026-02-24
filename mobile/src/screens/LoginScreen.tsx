@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -21,39 +22,75 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
 import { SUPPORT_CONTACT } from '../constants/links';
+import { CountryCodePicker, DEFAULT_COUNTRY_CODE } from '../components/CountryCodePicker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+type LoginMode = 'whatsapp' | 'email';
 
 export function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { sendOTP } = useAuth();
 
+  const [loginMode, setLoginMode] = useState<LoginMode>('whatsapp');
   const [identifier, setIdentifier] = useState('');
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendOTP = async () => {
-    if (!identifier.trim()) {
-      Alert.alert('Error', 'Please enter your email');
-      return;
-    }
+    if (loginMode === 'whatsapp') {
+      if (!identifier.trim() || identifier.trim().length !== 10) {
+        Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
+        return;
+      }
 
-    setIsLoading(true);
-    try {
-      await sendOTP({
-        identifier: identifier.trim().toLowerCase(),
-        otp_type: 'email',
-      });
+      setIsLoading(true);
+      try {
+        await sendOTP({
+          identifier: identifier.trim(),
+          otp_type: 'whatsapp',
+        });
 
-      navigation.navigate('OTPVerification', {
-        identifier: identifier.trim().toLowerCase(),
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to send OTP';
-      Alert.alert('Error', message);
-    } finally {
-      setIsLoading(false);
+        navigation.navigate('OTPVerification', {
+          identifier: identifier.trim(),
+          otp_type: 'whatsapp',
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to send OTP';
+        Alert.alert('Error', message);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      if (!identifier.trim()) {
+        Alert.alert('Error', 'Please enter your email');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        await sendOTP({
+          identifier: identifier.trim().toLowerCase(),
+          otp_type: 'email',
+        });
+
+        navigation.navigate('OTPVerification', {
+          identifier: identifier.trim().toLowerCase(),
+          otp_type: 'email',
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to send OTP';
+        Alert.alert('Error', message);
+      } finally {
+        setIsLoading(false);
+      }
     }
+  };
+
+  const switchMode = () => {
+    setIdentifier('');
+    setLoginMode(loginMode === 'whatsapp' ? 'email' : 'whatsapp');
   };
 
   return (
@@ -67,95 +104,143 @@ export function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Image
-              source={require('../../assets/shrota-logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={[styles.title, { color: colors.text }]}>Welcome to Shrota</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Sign in with your email
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            <View
-              style={[
-                styles.inputContainer,
-                { backgroundColor: colors.inputBackground, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons
-                name="mail-outline"
-                size={24}
-                color={colors.textSecondary}
-                style={styles.inputIcon}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Image
+                source={require('../../assets/shrota-logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
               />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Email"
-                placeholderTextColor={colors.placeholder}
-                value={identifier}
-                onChangeText={setIdentifier}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-              />
+              <Text style={[styles.title, { color: colors.text }]}>Welcome to Shrota</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {loginMode === 'whatsapp'
+                  ? 'Sign in with your WhatsApp number'
+                  : 'Sign in with your email'}
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.brand.orange }]}
-              onPress={handleSendOTP}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
+            <View style={styles.form}>
+              {loginMode === 'whatsapp' ? (
+                <View style={styles.phoneRow}>
+                  <CountryCodePicker
+                    value={countryCode}
+                    onChange={setCountryCode}
+                  />
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      styles.phoneInput,
+                      { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                    ]}
+                  >
+                    <Ionicons
+                      name="logo-whatsapp"
+                      size={24}
+                      color="#25D366"
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      placeholder="WhatsApp number"
+                      placeholderTextColor={colors.placeholder}
+                      value={identifier}
+                      onChangeText={(text) => setIdentifier(text.replace(/\D/g, '').slice(0, 10))}
+                      keyboardType="number-pad"
+                      maxLength={10}
+                    />
+                  </View>
+                </View>
               ) : (
-                <Text style={styles.buttonText}>Send OTP</Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={24}
+                    color={colors.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="Email"
+                    placeholderTextColor={colors.placeholder}
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                  />
+                </View>
               )}
-            </TouchableOpacity>
 
-            <View style={styles.registerContainer}>
-              <Text style={[styles.registerText, { color: colors.textSecondary }]}>
-                Don't have an account?{' '}
-              </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={[styles.registerLink, { color: colors.brand.orange }]}>
-                  Register
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: colors.brand.orange }]}
+                onPress={handleSendOTP}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Send OTP</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.switchModeContainer} onPress={switchMode}>
+                <Text style={[styles.switchModeText, { color: colors.brand.orange }]}>
+                  {loginMode === 'whatsapp'
+                    ? 'Use Email to login'
+                    : 'Use WhatsApp to login'}
                 </Text>
               </TouchableOpacity>
-            </View>
 
-            {/* Support Contact Section */}
-            <View style={styles.supportContainer}>
-              <Text style={[styles.supportText, { color: colors.textSecondary }]}>
-                Need help? Contact us
-              </Text>
-              <View style={styles.supportButtons}>
-                <TouchableOpacity
-                  style={[styles.supportButton, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(SUPPORT_CONTACT.whatsappUrl)}
-                >
-                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+              <View style={styles.registerContainer}>
+                <Text style={[styles.registerText, { color: colors.textSecondary }]}>
+                  Don't have an account?{' '}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                  <Text style={[styles.registerLink, { color: colors.brand.orange }]}>
+                    Register
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.supportButton, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`)}
-                >
-                  <Ionicons name="call" size={20} color={colors.brand.blue} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.supportButton, { backgroundColor: colors.card }]}
-                  onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support`)}
-                >
-                  <Ionicons name="mail" size={20} color={colors.brand.orange} />
-                </TouchableOpacity>
+              </View>
+
+              {/* Support Contact Section */}
+              <View style={styles.supportContainer}>
+                <Text style={[styles.supportText, { color: colors.textSecondary }]}>
+                  Need help? Contact us
+                </Text>
+                <View style={styles.supportButtons}>
+                  <TouchableOpacity
+                    style={[styles.supportButton, { backgroundColor: colors.card }]}
+                    onPress={() => Linking.openURL(SUPPORT_CONTACT.whatsappUrl)}
+                  >
+                    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.supportButton, { backgroundColor: colors.card }]}
+                    onPress={() => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`)}
+                  >
+                    <Ionicons name="call" size={20} color={colors.brand.blue} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.supportButton, { backgroundColor: colors.card }]}
+                    onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}?subject=Shrota App Support`)}
+                  >
+                    <Ionicons name="mail" size={20} color={colors.brand.orange} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -167,6 +252,9 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
@@ -197,6 +285,15 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -225,10 +322,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  switchModeContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  switchModeText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
   registerText: {
     fontSize: 16,

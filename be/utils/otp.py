@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 from services.email_service import send_otp_email
+from services.whatsapp_service import send_whatsapp_otp
 
 # In-memory OTP storage: {identifier: (otp, expiry_time)}
 _otp_store: dict[str, Tuple[str, datetime]] = {}
@@ -17,6 +18,10 @@ OTP_EXPIRY_MINUTES = 5
 TEST_EMAIL = "myshrota73649281@gmail.com"
 TEST_OTP = "643914"
 
+# Test WhatsApp number bypass
+TEST_WHATSAPP = "9999999999"
+TEST_WHATSAPP_OTP = "643914"
+
 
 def generate_otp() -> str:
     """Generate a random 6-digit OTP."""
@@ -28,14 +33,13 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     Generate, store, and send an OTP for the given identifier.
 
     Args:
-        identifier: Email address
-        otp_type: Type of OTP ('email')
+        identifier: Email address or full phone number (country_code + number)
+        otp_type: Type of OTP ('email' or 'whatsapp')
 
     Returns:
         Tuple of (success: bool, message: str)
     """
     # Test account bypass for Google Play Store verification
-    # TODO: Remove this bypass after app is released
     if otp_type == "email" and identifier.lower() == TEST_EMAIL.lower():
         otp = TEST_OTP
         expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
@@ -48,6 +52,19 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
         print(f"{'='*50}\n")
         return True, "OTP sent to email"
 
+    # Test WhatsApp number bypass
+    if otp_type == "whatsapp" and identifier.endswith(TEST_WHATSAPP):
+        otp = TEST_WHATSAPP_OTP
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
+        key = f"{otp_type}:{identifier}"
+        _otp_store[key] = (otp, expiry)
+        print(f"\n{'='*50}")
+        print(f"[OTP] TEST ACCOUNT - OTP for WhatsApp {identifier}: {otp}")
+        print(f"[OTP] Expires at: {expiry.isoformat()}")
+        print(f"[OTP] WhatsApp NOT sent (test account bypass)")
+        print(f"{'='*50}\n")
+        return True, "OTP sent to WhatsApp"
+
     otp = generate_otp()
     expiry = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
@@ -55,19 +72,29 @@ async def store_otp(identifier: str, otp_type: str) -> Tuple[bool, str]:
     key = f"{otp_type}:{identifier}"
     _otp_store[key] = (otp, expiry)
 
-    # Log OTP to console for debugging
-    print(f"\n{'='*50}")
-    print(f"[OTP] EMAIL OTP for {identifier}: {otp}")
-    print(f"[OTP] Expires at: {expiry.isoformat()}")
-    print(f"{'='*50}\n")
+    if otp_type == "whatsapp":
+        print(f"\n{'='*50}")
+        print(f"[OTP] WHATSAPP OTP for {identifier}: {otp}")
+        print(f"[OTP] Expires at: {expiry.isoformat()}")
+        print(f"{'='*50}\n")
 
-    # Send OTP via email
-    success = await send_otp_email(identifier, otp)
-    if not success:
-        # Remove stored OTP if sending failed
-        del _otp_store[key]
-        return False, "Failed to send OTP email. Please try again."
-    return True, "OTP sent to email"
+        success = await send_whatsapp_otp(identifier, otp)
+        if not success:
+            del _otp_store[key]
+            return False, "Failed to send OTP via WhatsApp. Please try again."
+        return True, "OTP sent to WhatsApp"
+    else:
+        # Email OTP
+        print(f"\n{'='*50}")
+        print(f"[OTP] EMAIL OTP for {identifier}: {otp}")
+        print(f"[OTP] Expires at: {expiry.isoformat()}")
+        print(f"{'='*50}\n")
+
+        success = await send_otp_email(identifier, otp)
+        if not success:
+            del _otp_store[key]
+            return False, "Failed to send OTP email. Please try again."
+        return True, "OTP sent to email"
 
 
 def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
@@ -75,9 +102,9 @@ def verify_otp(identifier: str, otp: str, otp_type: str) -> bool:
     Verify an OTP for the given identifier.
 
     Args:
-        identifier: Email address
+        identifier: Email address or full phone number
         otp: The OTP to verify
-        otp_type: Type of OTP ('email')
+        otp_type: Type of OTP ('email' or 'whatsapp')
 
     Returns:
         True if OTP is valid and not expired, False otherwise

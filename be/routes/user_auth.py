@@ -15,6 +15,8 @@ from schemas.user import (
     UserTokenResponse,
     VerifyWhatsAppOTPRequest,
     WhatsAppStatusResponse,
+    SendChangeWhatsAppOTPRequest,
+    VerifyChangeWhatsAppRequest,
 )
 from utils.otp import store_otp, verify_otp, get_otp_expiry_seconds
 from utils.auth import create_access_token, decode_access_token
@@ -36,6 +38,7 @@ def build_user_response(user: User) -> UserResponse:
         is_email_verified=user.is_email_verified,
         is_active=user.is_active,
         whatsapp_number=user.whatsapp_number,
+        country_code=user.country_code,
         is_whatsapp_verified=user.is_whatsapp_verified,
         whatsapp_otp_sent=user.whatsapp_otp is not None,
         address=user.address,
@@ -149,6 +152,21 @@ async def register_user(
             detail="User with this email already exists"
         )
 
+    # Check for existing user with same WhatsApp number (if provided)
+    if payload.whatsapp_number:
+        result = await db.execute(
+            select(User).where(
+                User.whatsapp_number == payload.whatsapp_number,
+                User.whatsapp_number.isnot(None)
+            )
+        )
+        existing_wa_user = result.scalar_one_or_none()
+        if existing_wa_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this WhatsApp number already exists"
+            )
+
     # Validate age - user must be at least 13 years and 1 day old
     if not is_eligible_for_registration(payload.birth_date):
         raise HTTPException(
@@ -162,6 +180,7 @@ async def register_user(
         email=payload.email.lower(),
         birth_date=payload.birth_date,
         whatsapp_number=payload.whatsapp_number,
+        country_code=payload.country_code,
     )
 
     db.add(user)
@@ -177,30 +196,53 @@ async def send_otp(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Send OTP to user's email.
-
-    The OTP will be logged to the FastAPI console (simulated sending).
+    Send OTP to user's email or WhatsApp.
     """
     identifier = payload.identifier.lower()
 
-    # Find user by email
-    result = await db.execute(select(User).where(User.email == identifier))
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found with this email"
+    if payload.otp_type == "whatsapp":
+        # Find user by WhatsApp number
+        result = await db.execute(
+            select(User).where(
+                User.whatsapp_number == identifier,
+                User.whatsapp_number.isnot(None)
+            )
         )
+        user = result.scalar_one_or_none()
 
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is deleted, contact support for help."
-        )
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found with this WhatsApp number"
+            )
 
-    # Generate and store OTP
-    success, message = await store_otp(identifier, payload.otp_type)
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deleted, contact support for help."
+            )
+
+        # Use full phone number (country_code + number) for OTP sending
+        full_phone = f"{user.country_code}{user.whatsapp_number}"
+        success, message = await store_otp(full_phone, payload.otp_type)
+    else:
+        # Find user by email
+        result = await db.execute(select(User).where(User.email == identifier))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found with this email"
+            )
+
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deleted, contact support for help."
+            )
+
+        success, message = await store_otp(identifier, payload.otp_type)
 
     if not success:
         raise HTTPException(
@@ -224,28 +266,58 @@ async def verify_otp_endpoint(
     """
     identifier = payload.identifier.lower()
 
-    # Verify OTP
-    if not verify_otp(identifier, payload.otp, payload.otp_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OTP"
+    if payload.otp_type == "whatsapp":
+        # Find user by WhatsApp number
+        result = await db.execute(
+            select(User).where(
+                User.whatsapp_number == identifier,
+                User.whatsapp_number.isnot(None)
+            )
         )
+        user = result.scalar_one_or_none()
 
-    # Find user by email
-    result = await db.execute(select(User).where(User.email == identifier))
-    user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        # Verify OTP using full phone number
+        full_phone = f"{user.country_code}{user.whatsapp_number}"
+        if not verify_otp(full_phone, payload.otp, payload.otp_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OTP"
+            )
 
-    # Mark email as verified
-    if not user.is_email_verified:
-        user.is_email_verified = True
-        await db.commit()
-        await db.refresh(user)
+        # Mark WhatsApp as verified
+        if not user.is_whatsapp_verified:
+            user.is_whatsapp_verified = True
+            await db.commit()
+            await db.refresh(user)
+    else:
+        # Verify OTP for email
+        if not verify_otp(identifier, payload.otp, payload.otp_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OTP"
+            )
+
+        # Find user by email
+        result = await db.execute(select(User).where(User.email == identifier))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Mark email as verified
+        if not user.is_email_verified:
+            user.is_email_verified = True
+            await db.commit()
+            await db.refresh(user)
 
     # Create JWT token with user type
     access_token = create_access_token(
@@ -315,6 +387,76 @@ async def verify_whatsapp_otp(
 
     current_user.is_whatsapp_verified = True
     current_user.whatsapp_otp = None
+    await db.commit()
+    await db.refresh(current_user)
+
+    return build_user_response(current_user)
+
+
+@router.post("/send-change-whatsapp-otp", response_model=SendOTPResponse)
+async def send_change_whatsapp_otp(
+    payload: SendChangeWhatsAppOTPRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Send OTP to a new WhatsApp number for changing/verifying.
+    Does NOT update user record yet - that happens after verification.
+    """
+    full_phone = f"{payload.country_code}{payload.whatsapp_number}"
+
+    success, message = await store_otp(full_phone, "whatsapp")
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
+
+    return SendOTPResponse(
+        message=message,
+        expires_in=get_otp_expiry_seconds()
+    )
+
+
+@router.post("/verify-change-whatsapp", response_model=UserResponse)
+async def verify_change_whatsapp(
+    payload: VerifyChangeWhatsAppRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verify OTP for a new WhatsApp number and update user record.
+    """
+    full_phone = f"{payload.country_code}{payload.whatsapp_number}"
+
+    # Verify the OTP
+    if not verify_otp(full_phone, payload.otp, "whatsapp"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+
+    # Check uniqueness of new number (skip if same user already has it)
+    if payload.whatsapp_number != current_user.whatsapp_number:
+        result = await db.execute(
+            select(User).where(
+                User.whatsapp_number == payload.whatsapp_number,
+                User.whatsapp_number.isnot(None),
+                User.id != current_user.id,
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This WhatsApp number is already registered to another user"
+            )
+
+    # Update user record
+    current_user.whatsapp_number = payload.whatsapp_number
+    current_user.country_code = payload.country_code
+    current_user.is_whatsapp_verified = True
     await db.commit()
     await db.refresh(current_user)
 

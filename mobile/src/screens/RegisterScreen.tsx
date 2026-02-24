@@ -21,6 +21,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
 import { APP_LINKS, SUPPORT_CONTACT } from '../constants/links';
+import { CountryCodePicker, DEFAULT_COUNTRY_CODE } from '../components/CountryCodePicker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -92,6 +93,7 @@ export function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [birthDateText, setBirthDateText] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +103,6 @@ export function RegisterScreen() {
   const hasWhatsApp = whatsappNumber.length === 10;
   const hasBirthDate = birthDateText.trim().length === 10;
   const canRegister = hasEmail && hasWhatsApp && hasBirthDate && termsAccepted;
-  const identifier = email.trim();
 
   const handleDateChange = (text: string) => {
     const formatted = formatDateInput(text);
@@ -119,13 +120,13 @@ export function RegisterScreen() {
       return;
     }
 
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+    if (!hasWhatsApp) {
+      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
 
-    if (!hasWhatsApp) {
-      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
       return;
     }
 
@@ -157,17 +158,19 @@ export function RegisterScreen() {
         email: email.trim(),
         birth_date: `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`,
         whatsapp_number: whatsappNumber.trim(),
+        country_code: countryCode,
       });
 
-      // Send OTP
+      // Send OTP via WhatsApp
       await sendOTP({
-        identifier: identifier.toLowerCase(),
-        otp_type: 'email',
+        identifier: whatsappNumber.trim(),
+        otp_type: 'whatsapp',
       });
 
       // Navigate to OTP verification
       navigation.navigate('OTPVerification', {
-        identifier: identifier.toLowerCase(),
+        identifier: whatsappNumber.trim(),
+        otp_type: 'whatsapp',
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Registration failed';
@@ -232,6 +235,38 @@ export function RegisterScreen() {
               />
             </View>
 
+            {/* WhatsApp Number Input */}
+            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
+            <View style={styles.phoneRow}>
+              <CountryCodePicker
+                value={countryCode}
+                onChange={setCountryCode}
+              />
+              <View
+                style={[
+                  styles.inputContainer,
+                  styles.phoneInput,
+                  { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                ]}
+              >
+                <Ionicons
+                  name="logo-whatsapp"
+                  size={24}
+                  color="#25D366"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="WhatsApp number"
+                  placeholderTextColor={colors.placeholder}
+                  value={whatsappNumber}
+                  onChangeText={(text) => setWhatsappNumber(text.replace(/\D/g, '').slice(0, 10))}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                />
+              </View>
+            </View>
+
             {/* Email Input */}
             <Text style={[styles.label, { color: colors.text }]}>Email *</Text>
             <View
@@ -254,31 +289,6 @@ export function RegisterScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-              />
-            </View>
-
-            {/* WhatsApp Number Input */}
-            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
-            <View
-              style={[
-                styles.inputContainer,
-                { backgroundColor: colors.inputBackground, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons
-                name="logo-whatsapp"
-                size={24}
-                color={colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="WhatsApp number"
-                placeholderTextColor={colors.placeholder}
-                value={whatsappNumber}
-                onChangeText={(text) => setWhatsappNumber(text.replace(/\D/g, '').slice(0, 10))}
-                keyboardType="number-pad"
-                maxLength={10}
               />
             </View>
 
@@ -443,6 +453,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
   },
   inputContainer: {
     flexDirection: 'row',

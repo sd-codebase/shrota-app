@@ -28,8 +28,9 @@ import { useAuth } from '../context/AuthContext';
 import { RootStackParamList, ProfileStackParamList, Genre, Language, UpdateProfilePayload } from '../types';
 import { getUserPreferences, UserPreferences } from '../services/preferencesService';
 import { fetchGenres, fetchLanguages } from '../services/api';
-import { deactivateAccount, updateProfile, verifyWhatsAppOTP } from '../services/authApi';
+import { deactivateAccount, updateProfile, verifyWhatsAppOTP, sendChangeWhatsAppOTP, verifyChangeWhatsApp } from '../services/authApi';
 import { APP_LINKS, SOCIAL_LINKS, SUPPORT_CONTACT } from '../constants/links';
+import { CountryCodePicker } from '../components/CountryCodePicker';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -67,8 +68,10 @@ export function ProfileScreen() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
   const [editingWhatsApp, setEditingWhatsApp] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState('');
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState(user?.country_code || '91');
   const [savingWhatsApp, setSavingWhatsApp] = useState(false);
 
   // Handle action param from reminder alert navigation
@@ -78,10 +81,12 @@ export function ProfileScreen() {
       if (!action) return;
 
       if (action === 'verify-whatsapp') {
-        setOtpInput('');
-        setShowOtpModal(true);
-      } else if (action === 'change-whatsapp') {
         setWhatsappInput(user?.whatsapp_number || '');
+        setWhatsappCountryCode(user?.country_code || '91');
+        handleSendVerifyOtp();
+      } else if (action === 'change-whatsapp') {
+        setWhatsappInput('');
+        setWhatsappCountryCode(user?.country_code || '91');
         setEditingWhatsApp(true);
       }
 
@@ -192,6 +197,31 @@ export function ProfileScreen() {
     }
   };
 
+  const handleSendVerifyOtp = async () => {
+    const number = whatsappInput || user?.whatsapp_number;
+    const cc = whatsappCountryCode || user?.country_code || '91';
+    if (!number || number.length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
+      return;
+    }
+    if (!token) return;
+
+    setSendingOtp(true);
+    try {
+      await sendChangeWhatsAppOTP(token, {
+        whatsapp_number: number,
+        country_code: cc,
+      });
+      setOtpInput('');
+      setShowOtpModal(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to send OTP';
+      Alert.alert('Error', message);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
   const handleVerifyOtp = async () => {
     if (otpInput.length !== 6) {
       Alert.alert('Error', 'Please enter a 6-digit OTP');
@@ -199,11 +229,19 @@ export function ProfileScreen() {
     }
     if (!token) return;
 
+    const number = whatsappInput || user?.whatsapp_number || '';
+    const cc = whatsappCountryCode || user?.country_code || '91';
+
     setVerifyingOtp(true);
     try {
-      await verifyWhatsAppOTP(token, { otp: otpInput });
+      await verifyChangeWhatsApp(token, {
+        whatsapp_number: number,
+        country_code: cc,
+        otp: otpInput,
+      });
       await refreshUser();
       setShowOtpModal(false);
+      setEditingWhatsApp(false);
       setOtpInput('');
       Alert.alert('Success', 'WhatsApp number verified successfully!');
     } catch (error: unknown) {
@@ -221,17 +259,8 @@ export function ProfileScreen() {
     }
     if (!token) return;
 
-    setSavingWhatsApp(true);
-    try {
-      await updateProfile(token, { whatsapp_number: whatsappInput.trim() });
-      await refreshUser();
-      setEditingWhatsApp(false);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Failed to update WhatsApp number';
-      Alert.alert('Error', msg);
-    } finally {
-      setSavingWhatsApp(false);
-    }
+    // Send OTP to the new number for verification
+    await handleSendVerifyOtp();
   };
 
   const getFormattedAddress = () => {
@@ -368,36 +397,42 @@ export function ProfileScreen() {
             <View style={styles.profileRow}>
               <Ionicons name="logo-whatsapp" size={18} color={colors.textSecondary} />
               {editingWhatsApp ? (
-                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <TextInput
-                    style={[
-                      styles.profileDetail,
-                      {
-                        color: colors.text,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.brand.orange,
-                        flex: 1,
-                        paddingVertical: 2,
-                      },
-                    ]}
-                    value={whatsappInput}
-                    onChangeText={(text) => setWhatsappInput(text.replace(/\D/g, '').slice(0, 10))}
-                    keyboardType="number-pad"
-                    placeholder="WhatsApp number"
-                    placeholderTextColor={colors.placeholder}
-                    maxLength={10}
-                    autoFocus
-                  />
-                  <TouchableOpacity onPress={handleSaveWhatsApp} disabled={savingWhatsApp}>
-                    {savingWhatsApp ? (
-                      <ActivityIndicator size="small" color={colors.brand.orange} />
-                    ) : (
-                      <Ionicons name="checkmark-circle" size={24} color={colors.brand.green} />
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setEditingWhatsApp(false)}>
-                    <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                <View style={{ flex: 1, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <CountryCodePicker
+                      value={whatsappCountryCode}
+                      onChange={setWhatsappCountryCode}
+                    />
+                    <TextInput
+                      style={[
+                        styles.profileDetail,
+                        {
+                          color: colors.text,
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.brand.orange,
+                          flex: 1,
+                          paddingVertical: 2,
+                        },
+                      ]}
+                      value={whatsappInput}
+                      onChangeText={(text) => setWhatsappInput(text.replace(/\D/g, '').slice(0, 10))}
+                      keyboardType="number-pad"
+                      placeholder="WhatsApp number"
+                      placeholderTextColor={colors.placeholder}
+                      maxLength={10}
+                      autoFocus
+                    />
+                    <TouchableOpacity onPress={handleSaveWhatsApp} disabled={savingWhatsApp || sendingOtp}>
+                      {savingWhatsApp || sendingOtp ? (
+                        <ActivityIndicator size="small" color={colors.brand.orange} />
+                      ) : (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.brand.green} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setEditingWhatsApp(false)}>
+                      <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
                 <>
@@ -405,34 +440,48 @@ export function ProfileScreen() {
                     {user?.whatsapp_number || 'Not set'}
                   </Text>
                   {user?.is_whatsapp_verified ? (
-                    <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
-                    </View>
-                  ) : user?.whatsapp_otp_sent ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setOtpInput('');
-                        setShowOtpModal(true);
-                      }}
-                      style={[styles.verifyButton, { backgroundColor: colors.brand.orange }]}
-                    >
-                      <Text style={styles.verifyButtonText}>Verify</Text>
-                    </TouchableOpacity>
+                    <>
+                      <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
+                        <Ionicons name="checkmark" size={12} color="#fff" />
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setWhatsappInput('');
+                          setWhatsappCountryCode(user.country_code || '91');
+                          setEditingWhatsApp(true);
+                        }}
+                      >
+                        <Text style={[{ color: colors.brand.orange, fontSize: 13, fontWeight: '600' }]}>Change</Text>
+                      </TouchableOpacity>
+                    </>
                   ) : user?.whatsapp_number ? (
-                    <View style={[styles.pendingBadge, { backgroundColor: colors.border }]}>
-                      <Text style={[styles.pendingBadgeText, { color: colors.textSecondary }]}>Pending</Text>
-                    </View>
+                    <>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setWhatsappInput(user.whatsapp_number || '');
+                          setWhatsappCountryCode(user.country_code || '91');
+                          handleSendVerifyOtp();
+                        }}
+                        disabled={sendingOtp}
+                        style={[styles.verifyButton, { backgroundColor: colors.brand.orange }]}
+                      >
+                        {sendingOtp ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.verifyButtonText}>Verify Now</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setWhatsappInput(user.whatsapp_number || '');
+                          setWhatsappCountryCode(user.country_code || '91');
+                          setEditingWhatsApp(true);
+                        }}
+                      >
+                        <Ionicons name="pencil" size={16} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </>
                   ) : null}
-                  {user && !user.is_whatsapp_verified && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setWhatsappInput(user.whatsapp_number || '');
-                        setEditingWhatsApp(true);
-                      }}
-                    >
-                      <Ionicons name="pencil" size={16} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  )}
                 </>
               )}
             </View>

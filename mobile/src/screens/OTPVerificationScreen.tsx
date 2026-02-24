@@ -35,7 +35,8 @@ export function OTPVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { login, sendOTP } = useAuth();
 
-  const { identifier } = route.params;
+  const { identifier, otp_type } = route.params;
+  const isWhatsApp = otp_type === 'whatsapp';
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -151,7 +152,7 @@ export function OTPVerificationScreen() {
       await login({
         identifier,
         otp: otpString,
-        otp_type: 'email',
+        otp_type,
       });
 
       navigation.reset({
@@ -172,7 +173,7 @@ export function OTPVerificationScreen() {
   const handleResendOTP = async () => {
     setIsResending(true);
     try {
-      await sendOTP({ identifier, otp_type: 'email' });
+      await sendOTP({ identifier, otp_type });
       setCountdown(60); // 60 seconds cooldown
       Alert.alert('Success', 'OTP has been resent');
     } catch (error: unknown) {
@@ -183,7 +184,9 @@ export function OTPVerificationScreen() {
     }
   };
 
-  const maskedIdentifier = identifier.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+  const maskedIdentifier = isWhatsApp
+    ? `+XX ${identifier.slice(0, 2)}****${identifier.slice(-2)}`
+    : identifier.replace(/(.{2})(.*)(@.*)/, '$1***$3');
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -218,14 +221,16 @@ export function OTPVerificationScreen() {
             <View style={styles.header}>
               <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
                 <Ionicons
-                  name="mail"
+                  name={isWhatsApp ? 'logo-whatsapp' : 'mail'}
                   size={48}
-                  color={colors.brand.orange}
+                  color={isWhatsApp ? '#25D366' : colors.brand.orange}
                 />
               </View>
               <Text style={[styles.title, { color: colors.text }]}>Verify OTP</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Enter the 6-digit code sent to{'\n'}
+                {isWhatsApp
+                  ? `Enter the 6-digit code sent to your WhatsApp\n`
+                  : `Enter the 6-digit code sent to\n`}
                 <Text style={{ color: colors.text, fontWeight: '600' }}>
                   {maskedIdentifier}
                 </Text>
@@ -333,7 +338,7 @@ export function OTPVerificationScreen() {
               </View>
             </View>
 
-            {/* Email OTP Instructions */}
+            {/* Help Instructions */}
             <View style={styles.instructionsContainer}>
                 <TouchableOpacity
                   style={styles.instructionsHeader}
@@ -352,71 +357,127 @@ export function OTPVerificationScreen() {
 
                 {instructionsExpanded && (
                   <View style={[styles.instructionsContent, { backgroundColor: colors.card }]}>
-                    {/* English Instructions */}
-                    <View style={styles.languageSection}>
-                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
-                        English
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
-                        Didn't receive OTP in Inbox?{'\n'}
-                        Please check your Spam / Junk / Promotions folder.
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
-                        Steps:{'\n'}
-                        1. Open your Email app or website.{'\n'}
-                        2. Go to Spam / Junk / Promotions.{'\n'}
-                        3. Find the email with subject "Shrota Verification Code".{'\n'}
-                        4. Open it and copy the OTP.{'\n'}
-                        5. Enter the OTP in the app to continue.
-                      </Text>
-                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-                        Tip: Mark the email as "Not Spam" to receive future emails in Inbox.
-                      </Text>
-                    </View>
+                    {isWhatsApp ? (
+                      <>
+                        {/* WhatsApp Instructions */}
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            English
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            Didn't receive OTP on WhatsApp?{'\n'}
+                            Please check the following:
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            1. Make sure WhatsApp is installed and active.{'\n'}
+                            2. Check if the number you entered is correct.{'\n'}
+                            3. Check your WhatsApp messages from Shrota.{'\n'}
+                            4. Wait a few seconds - the message may be delayed.{'\n'}
+                            5. Try "Resend OTP" if you don't receive it.
+                          </Text>
+                        </View>
 
-                    {/* Hindi Instructions */}
-                    <View style={styles.languageSection}>
-                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
-                        हिंदी
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
-                        इनबॉक्स में OTP नहीं मिला?{'\n'}
-                        कृपया Spam / Junk / Promotions फोल्डर जांचें।
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
-                        कदम:{'\n'}
-                        1. अपना ईमेल खोलें।{'\n'}
-                        2. Spam / Junk / Promotions फोल्डर में जाएँ।{'\n'}
-                        3. "Shrota Verification Code" विषय वाला मेल ढूंढें।{'\n'}
-                        4. OTP कॉपी करें।{'\n'}
-                        5. ऐप में OTP डालकर आगे बढ़ें।
-                      </Text>
-                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-                        सलाह: मेल को "Not Spam" मार्क करें ताकि आगे मेल इनबॉक्स में आए।
-                      </Text>
-                    </View>
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            हिंदी
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            WhatsApp पर OTP नहीं मिला?{'\n'}
+                            कृपया निम्नलिखित जांचें:
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            1. सुनिश्चित करें कि WhatsApp इंस्टॉल और एक्टिव है।{'\n'}
+                            2. जांचें कि आपने सही नंबर दर्ज किया है।{'\n'}
+                            3. Shrota से WhatsApp संदेश जांचें।{'\n'}
+                            4. कुछ सेकंड इंतज़ार करें।{'\n'}
+                            5. "Resend OTP" दबाएं अगर मैसेज नहीं आए।
+                          </Text>
+                        </View>
 
-                    {/* Marathi Instructions */}
-                    <View style={styles.languageSection}>
-                      <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
-                        मराठी
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
-                        इनबॉक्समध्ये OTP दिसत नाही?{'\n'}
-                        कृपया Spam / Junk / Promotions फोल्डर तपासा.
-                      </Text>
-                      <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
-                        स्टेप्स:{'\n'}
-                        1. तुमचे ईमेल उघडा.{'\n'}
-                        2. Spam / Junk / Promotions मध्ये जा.{'\n'}
-                        3. "Shrota Verification Code" असा विषय असलेला मेल शोधा.{'\n'}
-                        4. OTP कॉपी करा.{'\n'}
-                        5. अॅपमध्ये OTP टाकून पुढे जा.
-                      </Text>
-                      <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-                        टीप: मेलला "Not Spam" करा म्हणजे पुढील मेल इनबॉक्समध्ये मिळतील.
-                      </Text>
-                    </View>
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            मराठी
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            WhatsApp वर OTP आला नाही?{'\n'}
+                            कृपया खालील तपासा:
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            1. WhatsApp इन्स्टॉल आणि अॅक्टिव्ह आहे का ते तपासा.{'\n'}
+                            2. तुम्ही योग्य नंबर टाकला आहे का ते तपासा.{'\n'}
+                            3. Shrota कडून WhatsApp संदेश तपासा.{'\n'}
+                            4. काही सेकंद प्रतीक्षा करा.{'\n'}
+                            5. संदेश आला नाही तर "Resend OTP" दाबा.
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        {/* Email Instructions */}
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            English
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            Didn't receive OTP in Inbox?{'\n'}
+                            Please check your Spam / Junk / Promotions folder.
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            Steps:{'\n'}
+                            1. Open your Email app or website.{'\n'}
+                            2. Go to Spam / Junk / Promotions.{'\n'}
+                            3. Find the email with subject "Shrota Verification Code".{'\n'}
+                            4. Open it and copy the OTP.{'\n'}
+                            5. Enter the OTP in the app to continue.
+                          </Text>
+                          <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                            Tip: Mark the email as "Not Spam" to receive future emails in Inbox.
+                          </Text>
+                        </View>
+
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            हिंदी
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            इनबॉक्स में OTP नहीं मिला?{'\n'}
+                            कृपया Spam / Junk / Promotions फोल्डर जांचें।
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            कदम:{'\n'}
+                            1. अपना ईमेल खोलें।{'\n'}
+                            2. Spam / Junk / Promotions फोल्डर में जाएँ।{'\n'}
+                            3. "Shrota Verification Code" विषय वाला मेल ढूंढें।{'\n'}
+                            4. OTP कॉपी करें।{'\n'}
+                            5. ऐप में OTP डालकर आगे बढ़ें।
+                          </Text>
+                          <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                            सलाह: मेल को "Not Spam" मार्क करें ताकि आगे मेल इनबॉक्स में आए।
+                          </Text>
+                        </View>
+
+                        <View style={styles.languageSection}>
+                          <Text style={[styles.languageTitle, { color: colors.brand.orange }]}>
+                            मराठी
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+                            इनबॉक्समध्ये OTP दिसत नाही?{'\n'}
+                            कृपया Spam / Junk / Promotions फोल्डर तपासा.
+                          </Text>
+                          <Text style={[styles.instructionText, { color: colors.textSecondary, marginTop: 8 }]}>
+                            स्टेप्स:{'\n'}
+                            1. तुमचे ईमेल उघडा.{'\n'}
+                            2. Spam / Junk / Promotions मध्ये जा.{'\n'}
+                            3. "Shrota Verification Code" असा विषय असलेला मेल शोधा.{'\n'}
+                            4. OTP कॉपी करा.{'\n'}
+                            5. अॅपमध्ये OTP टाकून पुढे जा.
+                          </Text>
+                          <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+                            टीप: मेलला "Not Spam" करा म्हणजे पुढील मेल इनबॉक्समध्ये मिळतील.
+                          </Text>
+                        </View>
+                      </>
+                    )}
 
                     {/* Support Contact Section */}
                     <View style={[styles.supportSection, { borderTopColor: colors.border }]}>

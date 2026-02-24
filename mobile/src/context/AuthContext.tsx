@@ -112,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const handleSendOTP = useCallback(async (payload: SendOTPPayload): Promise<void> => {
     await sendOTP(payload);
     Analytics.track(AnalyticsEvents.OTP_SENT, {
-      identifier_type: payload.identifier.includes('@') ? 'email' : 'phone',
+      otp_type: payload.otp_type,
     });
   }, []);
 
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Track successful login and identify user
       Analytics.identify(response.user.id);
-      Analytics.track(AnalyticsEvents.LOGIN_SUCCESS, { method: 'otp' });
+      Analytics.track(AnalyticsEvents.LOGIN_SUCCESS, { method: 'otp', otp_type: payload.otp_type });
     } catch (error) {
       Analytics.track(AnalyticsEvents.LOGIN_FAILED, {
         error_reason: error instanceof Error ? error.message : 'unknown',
