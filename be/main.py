@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from config import CORS_ORIGINS
 from database import init_db, close_db
@@ -60,6 +62,24 @@ app.include_router(user_preferences_router)
 app.include_router(mobile_router)
 app.include_router(admin_users_router)
 app.include_router(notifications_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    body = None
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    print(f"\n{'='*50}")
+    print(f"[VALIDATION ERROR] {request.method} {request.url.path}")
+    print(f"[VALIDATION ERROR] Body: {body}")
+    print(f"[VALIDATION ERROR] Errors: {exc.errors()}")
+    print(f"{'='*50}\n")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 
 @app.get("/")

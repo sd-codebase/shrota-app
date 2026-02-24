@@ -102,27 +102,27 @@ export function OTPVerificationScreen() {
   }, [otp, isOtpComplete]);
 
   const handleOtpChange = (value: string, index: number) => {
-    if (value.length > 1) {
-      // Handle paste
-      const pastedOtp = value.slice(0, OTP_LENGTH).split('');
-      const newOtp = [...otp];
-      pastedOtp.forEach((char, i) => {
-        if (i < OTP_LENGTH) {
-          newOtp[i] = char;
-        }
-      });
+    // Strip non-digits and get clean value
+    const digits = value.replace(/[^0-9]/g, '');
+
+    if (digits.length > 1) {
+      // Handle paste / autofill — always fill from box 0
+      const newOtp = Array(OTP_LENGTH).fill('');
+      for (let i = 0; i < Math.min(digits.length, OTP_LENGTH); i++) {
+        newOtp[i] = digits[i];
+      }
       setOtp(newOtp);
-      const lastFilledIndex = Math.min(pastedOtp.length - 1, OTP_LENGTH - 1);
+      const lastFilledIndex = Math.min(digits.length, OTP_LENGTH) - 1;
       inputRefs.current[lastFilledIndex]?.focus();
       return;
     }
 
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = digits;
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value && index < OTP_LENGTH - 1) {
+    if (digits && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -251,11 +251,13 @@ export function OTPVerificationScreen() {
                     },
                   ]}
                   value={digit}
-                  onChangeText={(value) => handleOtpChange(value.replace(/[^0-9]/g, ''), index)}
+                  onChangeText={(value) => handleOtpChange(value, index)}
                   onKeyPress={(e) => handleKeyPress(e, index)}
                   keyboardType="number-pad"
                   maxLength={OTP_LENGTH}
                   selectTextOnFocus
+                  autoComplete={index === 0 ? 'sms-otp' : 'off'}
+                  textContentType={index === 0 ? 'oneTimeCode' : 'none'}
                 />
               ))}
             </View>

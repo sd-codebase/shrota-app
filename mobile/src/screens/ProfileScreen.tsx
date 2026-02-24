@@ -441,9 +441,6 @@ export function ProfileScreen() {
                   </Text>
                   {user?.is_whatsapp_verified ? (
                     <>
-                      <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
-                        <Ionicons name="checkmark" size={12} color="#fff" />
-                      </View>
                       <TouchableOpacity
                         onPress={() => {
                           setWhatsappInput('');
@@ -451,8 +448,11 @@ export function ProfileScreen() {
                           setEditingWhatsApp(true);
                         }}
                       >
-                        <Text style={[{ color: colors.brand.orange, fontSize: 13, fontWeight: '600' }]}>Change</Text>
+                        <Ionicons name="pencil" size={16} color={colors.textSecondary} />
                       </TouchableOpacity>
+                      <View style={[styles.verifiedBadge, { backgroundColor: colors.brand.green }]}>
+                        <Ionicons name="checkmark" size={12} color="#fff" />
+                      </View>
                     </>
                   ) : user?.whatsapp_number ? (
                     <>
@@ -1024,6 +1024,8 @@ export function ProfileScreen() {
               placeholder="000000"
               placeholderTextColor={colors.textSecondary}
               autoFocus
+              autoComplete="sms-otp"
+              textContentType="oneTimeCode"
             />
 
             <TouchableOpacity
