@@ -20,7 +20,15 @@ async function parseErrorResponse(response: Response): Promise<string> {
   if (contentType && contentType.includes('application/json')) {
     try {
       const error = await response.json();
-      return error.detail || error.message || `Request failed (${response.status})`;
+      // Handle 422 validation errors (array of error objects)
+      if (Array.isArray(error.detail)) {
+        return error.detail
+          .map((e: any) => e.msg || e.message || JSON.stringify(e))
+          .join('. ');
+      }
+      if (typeof error.detail === 'string') return error.detail;
+      if (typeof error.message === 'string') return error.message;
+      return `Request failed (${response.status})`;
     } catch {
       return `Request failed (${response.status})`;
     }
