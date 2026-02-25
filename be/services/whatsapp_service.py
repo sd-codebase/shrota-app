@@ -40,21 +40,16 @@ async def send_whatsapp_otp(phone_number: str, otp: str) -> bool:
             "to": phone_number,
             "type": "template",
             "template": {
-                "name": "otp",
-                "language": {"code": "en"},
+                "name": "template_with_contact_number",
+                "language": {"code": "en_US"},
                 "components": [
                     {
                         "type": "body",
                         "parameters": [
-                            {"type": "text", "text": otp}
-                        ],
-                    },
-                    {
-                        "type": "button",
-                        "sub_type": "url",
-                        "index": 0,
-                        "parameters": [
-                            {"type": "text", "text": otp}
+                            {"type": "text", "text": otp},
+                            {"type": "text", "text": "verifying Shrota Audiobook app account"},
+                            {"type": "text", "text": "10 Minutes"},
+                            {"type": "text", "text": "+91-9422215658"},
                         ],
                     },
                 ],
