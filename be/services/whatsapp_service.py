@@ -52,6 +52,14 @@ async def send_whatsapp_otp(phone_number: str, otp: str) -> bool:
                             {"type": "text", "text": "+91-9422215658"},
                         ],
                     },
+                    {
+                        "type": "button",
+                        "sub_type": "url",
+                        "index": 0,
+                        "parameters": [
+                            {"type": "text", "text": otp}
+                        ],
+                    },
                 ],
             },
         }
