@@ -47,7 +47,7 @@ async def send_whatsapp_otp(phone_number: str, otp: str) -> bool:
                         "type": "body",
                         "parameters": [
                             {"type": "text", "text": otp},
-                            {"type": "text", "text": "verifying Shrota Audiobook app account"},
+                            {"type": "text", "text": "Shrota Audiobook verification"},
                             {"type": "text", "text": "10 Minutes"},
                             {"type": "text", "text": "+91-9422215658"},
                         ],
