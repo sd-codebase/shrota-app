@@ -624,26 +624,6 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* About Section */}
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          ABOUT
-        </Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <Ionicons name="information-circle-outline" size={20} color={colors.brand.blue} />
-              </View>
-              <View>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>Version</Text>
-                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                  {Application.nativeApplicationVersion || '1.0.0'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* Support Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           SUPPORT
@@ -807,6 +787,11 @@ export function ProfileScreen() {
             Logout
           </Text>
         </TouchableOpacity>
+
+        {/* App Version */}
+        <Text style={[styles.appVersionText, { color: colors.textSecondary }]}>
+          App Version: {Application.nativeApplicationVersion || '1.0.0'}
+        </Text>
 
         {/* Delete Account Link */}
         <TouchableOpacity
@@ -1210,9 +1195,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  appVersionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 32,
+    marginBottom: 16,
+  },
   deleteAccountLink: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 12,
     marginBottom: 16,
   },
   deleteAccountLinkText: {
