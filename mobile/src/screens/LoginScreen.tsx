@@ -47,14 +47,17 @@ export function LoginScreen() {
 
       setIsLoading(true);
       try {
-        await sendOTP({
+        const { user_exists } = await sendOTP({
           identifier: identifier.trim(),
           otp_type: 'whatsapp',
+          country_code: countryCode,
         });
 
         navigation.navigate('OTPVerification', {
           identifier: identifier.trim(),
           otp_type: 'whatsapp',
+          user_exists,
+          country_code: countryCode,
         });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to send OTP';
@@ -78,6 +81,7 @@ export function LoginScreen() {
         navigation.navigate('OTPVerification', {
           identifier: identifier.trim().toLowerCase(),
           otp_type: 'email',
+          user_exists: true,
         });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to send OTP';
@@ -201,17 +205,6 @@ export function LoginScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <View style={styles.registerContainer}>
-                <Text style={[styles.registerText, { color: colors.textSecondary }]}>
-                  Don't have an account?{' '}
-                </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                  <Text style={[styles.registerLink, { color: colors.brand.orange }]}>
-                    Register
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Support Contact Section */}
               <View style={styles.supportContainer}>
                 <Text style={[styles.supportText, { color: colors.textSecondary }]}>
@@ -328,18 +321,6 @@ const styles = StyleSheet.create({
   },
   switchModeText: {
     fontSize: 15,
-    fontWeight: '600',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  registerText: {
-    fontSize: 16,
-  },
-  registerLink: {
-    fontSize: 16,
     fontWeight: '600',
   },
   supportContainer: {

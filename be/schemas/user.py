@@ -92,17 +92,26 @@ class SendOTPRequest(BaseModel):
     """Schema for sending OTP."""
     identifier: str = Field(..., min_length=1, description="Email address or WhatsApp number")
     otp_type: Literal['email', 'whatsapp'] = Field(..., description="Type of OTP to send")
+    country_code: str = Field("91", max_length=4, description="Country code for WhatsApp OTP (1-4 digits, default 91)")
 
     @field_validator('identifier')
     @classmethod
     def validate_identifier(cls, v: str) -> str:
         return v.strip().lower()
 
+    @field_validator('country_code')
+    @classmethod
+    def validate_country_code(cls, v: str) -> str:
+        if not re.match(r'^\d{1,4}$', v):
+            raise ValueError('Country code must be 1-4 digits')
+        return v
+
 
 class SendOTPResponse(BaseModel):
     """Schema for send OTP response."""
     message: str
     expires_in: int = Field(..., description="OTP expiry time in seconds")
+    user_exists: bool = Field(..., description="Whether the user already exists")
 
 
 class VerifyOTPRequest(BaseModel):
@@ -110,6 +119,7 @@ class VerifyOTPRequest(BaseModel):
     identifier: str = Field(..., min_length=1, description="Email address or WhatsApp number")
     otp: str = Field(..., min_length=6, max_length=6, description="6-digit OTP")
     otp_type: Literal['email', 'whatsapp'] = Field(..., description="Type of OTP")
+    country_code: str = Field("91", max_length=4, description="Country code for WhatsApp OTP (1-4 digits, default 91)")
 
     @field_validator('identifier')
     @classmethod
@@ -123,6 +133,13 @@ class VerifyOTPRequest(BaseModel):
             raise ValueError('OTP must contain only digits')
         return v
 
+    @field_validator('country_code')
+    @classmethod
+    def validate_country_code(cls, v: str) -> str:
+        if not re.match(r'^\d{1,4}$', v):
+            raise ValueError('Country code must be 1-4 digits')
+        return v
+
 
 class UserTokenResponse(BaseModel):
     """Schema for user authentication token response."""
@@ -130,6 +147,36 @@ class UserTokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserResponse
+
+
+class RegisterVerifiedRequest(BaseModel):
+    """Schema for registering a user who has already verified their WhatsApp via OTP."""
+    name: str = Field(..., min_length=1, max_length=200)
+    email: EmailStr = Field(..., description="User's email address")
+    birth_date: date = Field(..., description="User's birth date")
+    whatsapp_number: str = Field(..., max_length=10, description="WhatsApp number (exactly 10 digits)")
+    country_code: str = Field("91", max_length=4, description="Country code (1-4 digits, default 91)")
+
+    @field_validator('birth_date')
+    @classmethod
+    def validate_birth_date(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError('Birth date cannot be in the future')
+        return v
+
+    @field_validator('whatsapp_number')
+    @classmethod
+    def validate_whatsapp_number(cls, v: str) -> str:
+        if not re.match(r'^\d{10}$', v):
+            raise ValueError('WhatsApp number must be exactly 10 digits')
+        return v
+
+    @field_validator('country_code')
+    @classmethod
+    def validate_country_code(cls, v: str) -> str:
+        if not re.match(r'^\d{1,4}$', v):
+            raise ValueError('Country code must be 1-4 digits')
+        return v
 
 
 class SendChangeWhatsAppOTPRequest(BaseModel):

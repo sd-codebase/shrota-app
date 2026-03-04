@@ -14,16 +14,16 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
 import { APP_LINKS, SUPPORT_CONTACT } from '../constants/links';
-import { CountryCodePicker, DEFAULT_COUNTRY_CODE } from '../components/CountryCodePicker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type RegisterRouteProp = RouteProp<RootStackParamList, 'Register'>;
 
 // Validate and parse date string in DD/MM/YYYY format
 function parseDate(dateStr: string): { valid: boolean; date?: Date; error?: string } {
@@ -87,22 +87,22 @@ function formatDateInput(text: string): string {
 
 export function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RegisterRouteProp>();
   const { colors, isDark } = useTheme();
-  const { register, sendOTP } = useAuth();
+  const { registerAndLogin } = useAuth();
+
+  const { whatsapp_number, country_code } = route.params;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [birthDateText, setBirthDateText] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const hasEmail = email.trim().length > 0;
-  const hasWhatsApp = whatsappNumber.length === 10;
   const hasBirthDate = birthDateText.trim().length === 10;
-  const canRegister = hasEmail && hasWhatsApp && hasBirthDate && termsAccepted;
+  const canRegister = hasEmail && hasBirthDate && termsAccepted;
 
   const handleDateChange = (text: string) => {
     const formatted = formatDateInput(text);
@@ -117,11 +117,6 @@ export function RegisterScreen() {
   const handleRegister = async () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter your name');
-      return;
-    }
-
-    if (!hasWhatsApp) {
-      Alert.alert('Error', 'Please enter a valid 10-digit WhatsApp number');
       return;
     }
 
@@ -152,25 +147,19 @@ export function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      // Register user
-      await register({
+      // Register and login (WhatsApp already verified via OTP)
+      await registerAndLogin({
         name: name.trim(),
         email: email.trim(),
         birth_date: `${dateResult.date.getFullYear()}-${String(dateResult.date.getMonth() + 1).padStart(2, '0')}-${String(dateResult.date.getDate()).padStart(2, '0')}`,
-        whatsapp_number: whatsappNumber.trim(),
-        country_code: countryCode,
+        whatsapp_number: whatsapp_number,
+        country_code: country_code,
       });
 
-      // Send OTP via WhatsApp
-      await sendOTP({
-        identifier: whatsappNumber.trim(),
-        otp_type: 'whatsapp',
-      });
-
-      // Navigate to OTP verification
-      navigation.navigate('OTPVerification', {
-        identifier: whatsappNumber.trim(),
-        otp_type: 'whatsapp',
+      // Navigate directly to main app (already logged in)
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Registration failed';
@@ -211,6 +200,15 @@ export function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
+            {/* Verified WhatsApp Number (read-only) */}
+            <View style={[styles.verifiedBadge, { backgroundColor: colors.card }]}>
+              <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+              <Text style={[styles.verifiedNumber, { color: colors.text }]}>
+                +{country_code} {whatsapp_number}
+              </Text>
+              <Ionicons name="checkmark-circle" size={18} color="#25D366" />
+            </View>
+
             {/* Name Input */}
             <Text style={[styles.label, { color: colors.text }]}>Name *</Text>
             <View
@@ -233,38 +231,6 @@ export function RegisterScreen() {
                 onChangeText={setName}
                 autoCapitalize="words"
               />
-            </View>
-
-            {/* WhatsApp Number Input */}
-            <Text style={[styles.label, { color: colors.text }]}>WhatsApp Number *</Text>
-            <View style={styles.phoneRow}>
-              <CountryCodePicker
-                value={countryCode}
-                onChange={setCountryCode}
-              />
-              <View
-                style={[
-                  styles.inputContainer,
-                  styles.phoneInput,
-                  { backgroundColor: colors.inputBackground, borderColor: colors.border },
-                ]}
-              >
-                <Ionicons
-                  name="logo-whatsapp"
-                  size={24}
-                  color="#25D366"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="WhatsApp number"
-                  placeholderTextColor={colors.placeholder}
-                  value={whatsappNumber}
-                  onChangeText={(text) => setWhatsappNumber(text.replace(/\D/g, '').slice(0, 10))}
-                  keyboardType="number-pad"
-                  maxLength={10}
-                />
-              </View>
             </View>
 
             {/* Email Input */}
@@ -372,17 +338,6 @@ export function RegisterScreen() {
               )}
             </TouchableOpacity>
 
-            <View style={styles.loginContainer}>
-              <Text style={[styles.loginText, { color: colors.textSecondary }]}>
-                Already have an account?{' '}
-              </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={[styles.loginLink, { color: colors.brand.orange }]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Support Contact Section */}
             <View style={styles.supportContainer}>
               <Text style={[styles.supportText, { color: colors.textSecondary }]}>
@@ -449,19 +404,23 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  verifiedNumber: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+  },
   label: {
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 4,
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  phoneInput: {
-    flex: 1,
-    marginBottom: 0,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -521,18 +480,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  loginText: {
-    fontSize: 16,
-  },
-  loginLink: {
     fontSize: 16,
     fontWeight: '600',
   },

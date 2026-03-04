@@ -5,12 +5,16 @@ import {
   RegisterPayload,
   SendOTPPayload,
   VerifyOTPPayload,
+  RegisterVerifiedPayload,
+  VerifyOTPOnlyPayload,
 } from '../types';
 import {
   registerUser,
   sendOTP,
   verifyOTP,
   getCurrentUser,
+  registerVerified,
+  verifyOTPOnly,
 } from '../services/authApi';
 import { apiClient } from '../services/apiClient';
 import { clearUserPreferences } from '../services/preferencesService';
@@ -25,8 +29,10 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   register: (payload: RegisterPayload) => Promise<User>;
-  sendOTP: (payload: SendOTPPayload) => Promise<void>;
+  sendOTP: (payload: SendOTPPayload) => Promise<{ user_exists: boolean }>;
+  verifyOTPOnly: (payload: VerifyOTPOnlyPayload) => Promise<void>;
   login: (payload: VerifyOTPPayload) => Promise<void>;
+  registerAndLogin: (payload: RegisterVerifiedPayload) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   refreshUser: () => Promise<void>;
@@ -109,11 +115,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // Send OTP
-  const handleSendOTP = useCallback(async (payload: SendOTPPayload): Promise<void> => {
-    await sendOTP(payload);
+  const handleSendOTP = useCallback(async (payload: SendOTPPayload): Promise<{ user_exists: boolean }> => {
+    const response = await sendOTP(payload);
     Analytics.track(AnalyticsEvents.OTP_SENT, {
       otp_type: payload.otp_type,
     });
+    return { user_exists: response.user_exists };
+  }, []);
+
+  // Verify OTP only (without login — for unregistered WhatsApp users)
+  const handleVerifyOTPOnly = useCallback(async (payload: VerifyOTPOnlyPayload): Promise<void> => {
+    await verifyOTPOnly(payload);
+  }, []);
+
+  // Register a WhatsApp-verified user and login
+  const handleRegisterAndLogin = useCallback(async (payload: RegisterVerifiedPayload): Promise<void> => {
+    try {
+      const response = await registerVerified(payload);
+
+      await Promise.all([
+        AsyncStorage.setItem(AUTH_TOKEN_KEY, response.access_token),
+        AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user)),
+      ]);
+
+      setToken(response.access_token);
+      setUser(response.user);
+
+      Analytics.identify(response.user.id);
+      Analytics.track(AnalyticsEvents.USER_REGISTERED, { method: 'whatsapp_verified' });
+    } catch (error) {
+      throw error;
+    }
   }, []);
 
   // Login (verify OTP)
@@ -176,7 +208,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: !!token && !!user,
     register: handleRegister,
     sendOTP: handleSendOTP,
+    verifyOTPOnly: handleVerifyOTPOnly,
     login: handleLogin,
+    registerAndLogin: handleRegisterAndLogin,
     logout,
     checkAuth,
     refreshUser,

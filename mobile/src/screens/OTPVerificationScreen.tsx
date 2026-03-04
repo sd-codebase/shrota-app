@@ -33,9 +33,9 @@ export function OTPVerificationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<OTPRouteProp>();
   const { colors, isDark } = useTheme();
-  const { login, sendOTP } = useAuth();
+  const { login, sendOTP, verifyOTPOnly } = useAuth();
 
-  const { identifier, otp_type } = route.params;
+  const { identifier, otp_type, user_exists, country_code } = route.params;
   const isWhatsApp = otp_type === 'whatsapp';
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
@@ -149,16 +149,33 @@ export function OTPVerificationScreen() {
 
     setIsLoading(true);
     try {
-      await login({
-        identifier,
-        otp: otpString,
-        otp_type,
-      });
+      if (user_exists) {
+        // Existing user — verify OTP and login
+        await login({
+          identifier,
+          otp: otpString,
+          otp_type,
+          country_code: country_code || '91',
+        });
 
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      } else {
+        // New user — verify OTP only, then navigate to registration
+        await verifyOTPOnly({
+          identifier,
+          otp: otpString,
+          otp_type,
+          country_code: country_code || '91',
+        });
+
+        navigation.replace('Register', {
+          whatsapp_number: identifier,
+          country_code: country_code || '91',
+        });
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Invalid OTP';
       Alert.alert('Error', message);
@@ -173,7 +190,7 @@ export function OTPVerificationScreen() {
   const handleResendOTP = async () => {
     setIsResending(true);
     try {
-      await sendOTP({ identifier, otp_type });
+      await sendOTP({ identifier, otp_type, country_code: country_code || '91' });
       setCountdown(60); // 60 seconds cooldown
       Alert.alert('Success', 'OTP has been resent');
     } catch (error: unknown) {

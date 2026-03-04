@@ -11,6 +11,8 @@ import {
   VerifyWhatsAppOTPPayload,
   SendChangeWhatsAppOTPPayload,
   VerifyChangeWhatsAppPayload,
+  RegisterVerifiedPayload,
+  VerifyOTPOnlyPayload,
 } from '../types';
 
 const AUTH_BASE_URL = `${API_URL}/v1/auth`;
@@ -225,6 +227,46 @@ export async function verifyChangeWhatsApp(token: string, payload: VerifyChangeW
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Register a WhatsApp-verified user and get authentication token
+ */
+export async function registerVerified(payload: RegisterVerifiedPayload): Promise<AuthTokenResponse> {
+  const response = await fetch(`${AUTH_BASE_URL}/register-verified`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseErrorResponse(response);
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Verify OTP without requiring an existing user account (for registration flow)
+ */
+export async function verifyOTPOnly(payload: VerifyOTPOnlyPayload): Promise<{ verified: boolean }> {
+  const response = await fetch(`${AUTH_BASE_URL}/verify-otp-only`, {
+    method: 'POST',
+    headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),

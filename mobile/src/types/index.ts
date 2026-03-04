@@ -188,12 +188,14 @@ export interface VerifyWhatsAppOTPPayload {
 export interface SendOTPPayload {
   identifier: string;
   otp_type: 'email' | 'whatsapp';
+  country_code?: string;
 }
 
 export interface VerifyOTPPayload {
   identifier: string;
   otp: string;
   otp_type: 'email' | 'whatsapp';
+  country_code?: string;
 }
 
 export interface SendChangeWhatsAppOTPPayload {
@@ -217,6 +219,22 @@ export interface AuthTokenResponse {
 export interface SendOTPResponse {
   message: string;
   expires_in: number;
+  user_exists: boolean;
+}
+
+export interface RegisterVerifiedPayload {
+  name: string;
+  email: string;
+  birth_date: string;
+  whatsapp_number: string;
+  country_code: string;
+}
+
+export interface VerifyOTPOnlyPayload {
+  identifier: string;
+  otp: string;
+  otp_type: 'email' | 'whatsapp';
+  country_code?: string;
 }
 
 // User Activity Types
@@ -269,8 +287,8 @@ export type RootStackParamList = {
   // Auth screens
   Splash: undefined;
   Login: undefined;
-  Register: undefined;
-  OTPVerification: { identifier: string; otp_type: 'email' | 'whatsapp' };
+  Register: { whatsapp_number: string; country_code: string };
+  OTPVerification: { identifier: string; otp_type: 'email' | 'whatsapp'; user_exists: boolean; country_code?: string };
   // Main app (tab navigator)
   MainTabs: undefined;
   // Modal screens
