@@ -357,7 +357,7 @@ export function BooksScreen() {
             data={featured}
             onBookPress={handleBookPress}
             onSeeAllPress={() => handleSeeAll('featured', 'Featured')}
-            cardType="banner"
+            cardType="standard"
           />
 
           {/* Latest Releases Section */}
@@ -366,7 +366,7 @@ export function BooksScreen() {
             data={newReleases}
             onBookPress={handleBookPress}
             onSeeAllPress={() => handleSeeAll('new-releases', 'Latest Releases')}
-            cardType="large"
+            cardType="standard"
           />
 
           {/* Continue Listening Section - Only show if user has progress */}

@@ -38,20 +38,19 @@ export function PreferencesModal({
   const [genres, setGenres] = useState<Genre[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialGenreIds);
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(initialLanguageIds);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'genres' | 'languages'>('genres');
 
   useEffect(() => {
     if (visible) {
-      loadData();
-      // Reset to initial values when opening
       setSelectedGenres(initialGenreIds);
-      setSelectedLanguages(initialLanguageIds);
+      setSelectedLanguages([]); // clear old selection before loadData sets Marathi
       setStep(initialStep);
+      loadData();
     }
-  }, [visible, initialGenreIds, initialLanguageIds, initialStep]);
+  }, [visible, initialGenreIds, initialStep]);
 
   const loadData = async () => {
     try {
@@ -61,36 +60,31 @@ export function PreferencesModal({
         fetchLanguages(),
       ]);
       setGenres(genresData);
-      setLanguages(languagesData);
-    } catch {
-      // Ignore load errors
+      const marathiOnly = languagesData.filter(l => l.code === 'mr');
+      setLanguages(marathiOnly);
+      if (marathiOnly.length > 0) setSelectedLanguages([marathiOnly[0].id]);
+    } catch (e) {
+      console.error('PreferencesModal loadData error:', e);
     } finally {
       setLoading(false);
     }
   };
 
   const toggleGenre = (genreId: string) => {
-    setSelectedGenres((prev) => {
-      if (prev.includes(genreId)) {
-        return prev.filter((id) => id !== genreId);
-      }
-      return [...prev, genreId];
-    });
+    setSelectedGenres((prev) =>
+      prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]
+    );
   };
 
   const toggleLanguage = (languageId: string) => {
-    setSelectedLanguages((prev) => {
-      if (prev.includes(languageId)) {
-        return prev.filter((id) => id !== languageId);
-      }
-      return [...prev, languageId];
-    });
+    setSelectedLanguages((prev) =>
+      prev.includes(languageId) ? prev.filter((id) => id !== languageId) : [...prev, languageId]
+    );
   };
 
   const handleNext = () => {
-    if (step === 'genres' && selectedGenres.length > 0) {
+    if (step === 'genres' && selectedGenres.length >= PREFERENCES_CONFIG.MIN_GENRES) {
       if (isEditing) {
-        // In editing mode, save directly from genres step
         handleSave();
       } else {
         setStep('languages');
@@ -99,16 +93,11 @@ export function PreferencesModal({
   };
 
   const handleBack = () => {
-    if (step === 'languages') {
-      setStep('genres');
-    }
+    if (step === 'languages') setStep('genres');
   };
 
   const handleSave = async () => {
-    if (selectedGenres.length === 0 || selectedLanguages.length === 0) {
-      return;
-    }
-
+    if (selectedGenres.length === 0 || selectedLanguages.length === 0) return;
     try {
       setSaving(true);
       await saveUserPreferences(selectedGenres, selectedLanguages);
@@ -146,7 +135,7 @@ export function PreferencesModal({
               <Text style={[styles.title, { color: colors.text }]}>
                 {step === 'genres'
                   ? isEditing ? 'Edit Your Genres' : 'Select Your Favorite Genres'
-                  : isEditing ? 'Edit Your Languages' : 'Select Your Languages'}
+                  : isEditing ? 'Edit Your Language' : 'Select Your Language'}
               </Text>
               {isEditing && onClose && (
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -157,9 +146,8 @@ export function PreferencesModal({
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {step === 'genres'
                 ? `Select at least ${PREFERENCES_CONFIG.MIN_GENRES} genres you enjoy`
-                : `Select at least ${PREFERENCES_CONFIG.MIN_LANGUAGES} language you prefer`}
+                : 'Select your preferred language'}
             </Text>
-            {/* Selection counter */}
             <Text style={[styles.counter, { color: colors.brand.orange }]}>
               {step === 'genres'
                 ? `${selectedGenres.length} selected`
@@ -286,21 +274,11 @@ export function PreferencesModal({
             </TouchableOpacity>
           </View>
 
-          {/* Progress indicator - only show in onboarding mode */}
+          {/* Progress indicator - only in onboarding */}
           {!isEditing && (
             <View style={styles.progressContainer}>
-              <View
-                style={[
-                  styles.progressDot,
-                  { backgroundColor: step === 'genres' ? colors.brand.orange : colors.border },
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressDot,
-                  { backgroundColor: step === 'languages' ? colors.brand.orange : colors.border },
-                ]}
-              />
+              <View style={[styles.progressDot, { backgroundColor: step === 'genres' ? colors.brand.orange : colors.border }]} />
+              <View style={[styles.progressDot, { backgroundColor: step === 'languages' ? colors.brand.orange : colors.border }]} />
             </View>
           )}
         </View>
