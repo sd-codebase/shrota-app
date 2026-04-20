@@ -14,7 +14,7 @@ const testimonials = [
   },
   {
     quote:
-      "The regional content selection is incredible. Finally, quality audiobooks in my mother tongue.",
+      "The Marathi audiobook collection is incredible. Finally, quality audiobooks in Marathi.",
     author: "Rajesh Kharat",
     role: "Marathi Literature Fan",
     avatar: "RK",
@@ -102,7 +102,7 @@ export function Testimonials() {
               {[
                 { value: "10K+", label: "Happy Listeners" },
                 { value: "100+", label: "Audiobooks" },
-                { value: "3", label: "Languages" },
+                { value: "Marathi", label: "Language" },
               ].map((stat, index) => (
                 <div key={index} className="text-center">
                   <p className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange">

@@ -21,27 +21,27 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Shrota - Premium Audiobooks & Stories",
   description:
-    "Discover thousands of audiobooks, stories, and original content in multiple languages. Download the Shrota app and start listening today.",
+    "Discover thousands of Marathi audiobooks, stories, and original content. Download the Shrota app and start listening today.",
   keywords: [
     "audiobooks",
     "audio stories",
     "podcast",
-    "hindi audiobooks",
-    "regional audiobooks",
+    "marathi audiobooks",
+    "marathi stories",
     "shrota",
   ],
   openGraph: {
     title: "Shrota - Premium Audiobooks & Stories",
     description:
-      "Discover thousands of audiobooks, stories, and original content in multiple languages.",
+      "Discover thousands of Marathi audiobooks, stories, and original content.",
     type: "website",
-    locale: "en_US",
+    locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
     title: "Shrota - Premium Audiobooks & Stories",
     description:
-      "Discover thousands of audiobooks, stories, and original content in multiple languages.",
+      "Discover thousands of Marathi audiobooks, stories, and original content.",
   },
 };
 

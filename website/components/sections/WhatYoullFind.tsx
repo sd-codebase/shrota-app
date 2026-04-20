@@ -48,9 +48,9 @@ const features = [
     gradient: "from-purple-500 to-pink-500",
   },
   {
-    title: "Regional Content",
+    title: "Marathi Content",
     description:
-      "Content in Hindi, Tamil, Telugu, Marathi, and more. Experience stories in your mother tongue.",
+      "Exclusively in Marathi language. Experience stories in your mother tongue.",
     icon: (
       <svg
         className="w-8 h-8"
@@ -100,8 +100,8 @@ export function WhatYoullFind() {
             What You&apos;ll Find
           </h2>
           <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-            A world of audio content awaits. From bestselling novels to regional
-            treasures, there&apos;s something for everyone.
+            A world of Marathi audio content awaits. From bestselling novels to timeless
+            classics, there&apos;s something for every Marathi listener.
           </p>
         </FadeIn>
 

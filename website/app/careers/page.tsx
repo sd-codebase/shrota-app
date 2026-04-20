@@ -66,7 +66,7 @@ export default function CareersPage() {
               </div>
 
               <p className="text-text-secondary text-center mb-8">
-                Whether you are a <strong className="text-text-primary">storyteller</strong>, <strong className="text-text-primary">narrator</strong>, <strong className="text-text-primary">translator</strong>, <strong className="text-text-primary">editor</strong>, or <strong className="text-text-primary">technology enthusiast</strong>, Shrota offers an opportunity to collaborate, learn, and grow while contributing to meaningful content for listeners across India and beyond.
+                Whether you are a <strong className="text-text-primary">storyteller</strong>, <strong className="text-text-primary">narrator</strong>, <strong className="text-text-primary">translator</strong>, <strong className="text-text-primary">editor</strong>, or <strong className="text-text-primary">technology enthusiast</strong>, Shrota offers an opportunity to collaborate, learn, and grow while contributing to meaningful Marathi content for listeners across Maharashtra and beyond.
               </p>
 
               <div className="bg-gradient-to-br from-brand-blue/10 to-brand-orange/10 rounded-xl p-6 border border-white/5 text-center">

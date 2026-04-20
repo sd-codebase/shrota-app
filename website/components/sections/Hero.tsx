@@ -34,7 +34,7 @@ export function Hero() {
             <FadeIn delay={0.2}>
               <p className="text-lg sm:text-xl text-text-secondary mb-8 max-w-xl mx-auto lg:mx-0">
                 Discover thousands of audiobooks, stories, and original content
-                in multiple languages. Your next favorite story is just a tap away.
+                in Marathi language. Your next favorite story is just a tap away.
               </p>
             </FadeIn>
 
@@ -55,8 +55,8 @@ export function Hero() {
                 </div>
                 <div className="w-px h-12 bg-white/10" />
                 <div>
-                  <p className="text-3xl font-bold text-text-primary">3</p>
-                  <p className="text-text-secondary text-sm">Languages</p>
+                  <p className="text-3xl font-bold text-text-primary">Marathi</p>
+                  <p className="text-text-secondary text-sm">Language</p>
                 </div>
               </div>
             </FadeIn>

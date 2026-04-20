@@ -85,8 +85,8 @@ export function Footer() {
                 </div>
               </Link>
               <p className="text-text-secondary mb-6 max-w-sm">
-                Discover the joy of listening. Thousands of audiobooks, stories,
-                and original content in multiple languages - all in one app.
+                Discover the joy of listening. Thousands of Marathi audiobooks, stories,
+                and original content — all in one app.
               </p>
               <AppStoreButtons />
             </div>
