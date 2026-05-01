@@ -59,7 +59,7 @@ export interface Event {
 export async function fetchHomeEvents(): Promise<Event[]> {
   try {
     const response = await fetch(`${API_URL}/events/home`, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     if (!response.ok) return [];
     return response.json();
@@ -71,7 +71,7 @@ export async function fetchHomeEvents(): Promise<Event[]> {
 export async function fetchAllEvents(): Promise<Event[]> {
   try {
     const response = await fetch(`${SERVER_API_URL}/events`, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     if (!response.ok) return [];
     return response.json();

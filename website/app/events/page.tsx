@@ -4,6 +4,8 @@ import { FadeIn } from "@/components/animations/FadeIn";
 import { EventsTimeline } from "@/components/sections/EventsTimeline";
 import { fetchAllEvents } from "@/lib/api";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Events | Shrota",
   description: "Latest events and updates from Shrota Audiobooks.",
