@@ -28,6 +28,19 @@ def event_to_response(event: Event) -> dict:
 
 @router.get("", response_model=list[EventResponse])
 async def get_events(db: AsyncSession = Depends(get_db)):
+    """Admin: all non-deleted events regardless of active status."""
+    result = await db.execute(
+        select(Event)
+        .where(Event.is_deleted == False)
+        .order_by(Event.created_at.desc())
+    )
+    events = result.scalars().all()
+    return [event_to_response(e) for e in events]
+
+
+@router.get("/public", response_model=list[EventResponse])
+async def get_public_events(db: AsyncSession = Depends(get_db)):
+    """Website events page: active events only, descending."""
     result = await db.execute(
         select(Event)
         .where(Event.is_deleted == False, Event.is_active == True)
@@ -39,6 +52,7 @@ async def get_events(db: AsyncSession = Depends(get_db)):
 
 @router.get("/home", response_model=list[EventResponse])
 async def get_home_events(db: AsyncSession = Depends(get_db)):
+    """Homepage carousel: active events with show_on_home, descending."""
     result = await db.execute(
         select(Event)
         .where(Event.is_deleted == False, Event.is_active == True, Event.show_on_home == True)

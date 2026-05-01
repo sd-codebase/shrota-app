@@ -70,7 +70,7 @@ export async function fetchHomeEvents(): Promise<Event[]> {
 
 export async function fetchAllEvents(): Promise<Event[]> {
   try {
-    const response = await fetch(`${SERVER_API_URL}/events`, {
+    const response = await fetch(`${SERVER_API_URL}/events/public`, {
       cache: 'no-store',
     });
     if (!response.ok) return [];
