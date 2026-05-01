@@ -12,6 +12,7 @@ import {
   StarOutlined,
   TeamOutlined,
   NotificationOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -22,6 +23,7 @@ import Books from './pages/Books';
 import ContentPromotion from './pages/ContentPromotion';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
+import Events from './pages/Events';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
@@ -81,6 +83,11 @@ function App() {
       key: '/notifications',
       icon: <NotificationOutlined />,
       label: <Link to="/notifications">Notifications</Link>,
+    },
+    {
+      key: '/events',
+      icon: <CalendarOutlined />,
+      label: <Link to="/events">Events</Link>,
     },
   ];
 
@@ -151,6 +158,7 @@ function App() {
                 <Route path="/content" element={<ContentPromotion />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/events" element={<Events />} />
               </Routes>
             </div>
           </Content>

@@ -57,6 +57,8 @@ ARTIST_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "artist-photos")
 Path(ARTIST_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
 PUBLICATION_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "publication-photos")
 Path(PUBLICATION_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
+EVENT_COVERS_DIR = os.path.join(UPLOAD_DIR, "event-covers")
+Path(EVENT_COVERS_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -436,6 +438,52 @@ async def get_publication_photo(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Publication photo not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/event-cover", status_code=status.HTTP_201_CREATED)
+async def upload_event_cover(
+    file: UploadFile = File(...),
+    event_title: str = Form(...)
+):
+    """Upload an event cover image. Filename format: {event-title}-{uuid}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
+
+    safe_name = sanitize_filename(event_title)
+    file_name = f"{safe_name}-{uuid4().hex[:8]}{file_extension}"
+    file_path = os.path.join(EVENT_COVERS_DIR, file_name)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save event cover: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "event_title": event_title,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/event-cover/{filename}")
+async def get_event_cover(filename: str):
+    """Get an event cover image by filename."""
+    validate_path_traversal(filename)
+    file_path = os.path.join(EVENT_COVERS_DIR, filename)
+    validate_resolved_path(file_path, EVENT_COVERS_DIR)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Event cover not found")
 
     return FileResponse(path=file_path, filename=filename)
 

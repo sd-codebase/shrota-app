@@ -10,6 +10,7 @@ from models.user import User
 from models.user_activity import UserBookProgress, UserLikedBook
 from models.content_promotion import NewRelease, FeaturedBook, PromotedBook
 from models.user_preferences import UserPreferences, user_preferred_languages, user_preferred_genres
+from models.event import Event
 
 __all__ = [
     "Base",
@@ -35,4 +36,5 @@ __all__ = [
     "UserPreferences",
     "user_preferred_languages",
     "user_preferred_genres",
+    "Event",
 ]

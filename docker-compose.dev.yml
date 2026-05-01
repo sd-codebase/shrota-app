@@ -75,6 +75,9 @@ services:
       context: ./website
       dockerfile: Dockerfile.dev
     container_name: shrota-website-dev
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      INTERNAL_API_URL: http://backend:8000
     ports:
       - "3001:3001"
     volumes:

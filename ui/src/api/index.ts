@@ -37,6 +37,9 @@ import type {
   Notification,
   NotificationSend,
   NotificationSendResponse,
+  Event,
+  EventCreate,
+  EventCoverUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -598,3 +601,42 @@ export const sendNotification = (data: NotificationSend) =>
     method: 'POST',
     body: JSON.stringify(data),
   });
+
+// Events
+export const getEvents = () => request<Event[]>('/events');
+
+export const createEvent = (data: EventCreate) =>
+  request<Event>('/events', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateEvent = (id: string, data: Partial<EventCreate>) =>
+  request<Event>(`/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deleteEvent = (id: string) =>
+  request<void>(`/events/${id}`, { method: 'DELETE' });
+
+export const uploadEventCover = async (file: File, eventTitle: string): Promise<EventCoverUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('event_title', eventTitle);
+
+  const response = await fetch(`${API_URL}/files/upload/event-cover`, {
+    method: 'POST',
+    body: formData,
+    headers: getAuthHeader(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Event cover upload failed' }));
+    throw new Error(error.detail || 'Event cover upload failed');
+  }
+
+  return response.json();
+};
+
+export const getEventCoverUrl = (filename: string) => `${API_URL}/files/event-cover/${filename}`;

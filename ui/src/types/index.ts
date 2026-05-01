@@ -357,3 +357,29 @@ export interface NotificationSendResponse {
   notification: Notification;
   message: string;
 }
+
+// Event types
+export interface Event {
+  id: string;
+  title: string;
+  text: string;
+  cover_image?: string;
+  show_on_home: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventCreate {
+  title: string;
+  text: string;
+  cover_image?: string;
+  show_on_home: boolean;
+  is_active: boolean;
+}
+
+export interface EventCoverUploadResponse {
+  filename: string;
+  event_title: string;
+  content_type: string;
+}
