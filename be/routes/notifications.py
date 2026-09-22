@@ -6,7 +6,7 @@ from database import get_db
 from models.admin import Admin
 from models.notification import Notification
 from schemas.notification import NotificationSend, NotificationResponse, NotificationSendResponse
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 from services.firebase_service import send_notification_to_all_users, ALL_USERS_TOPIC
 
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 @router.post("/send", response_model=NotificationSendResponse)
 async def send_notification(
     notification_data: NotificationSend,
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -86,7 +86,7 @@ async def send_notification(
 
 @router.get("", response_model=list[NotificationResponse])
 async def list_notifications(
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
     db: AsyncSession = Depends(get_db),
     skip: int = 0,
     limit: int = 50
@@ -124,7 +124,7 @@ async def list_notifications(
 @router.get("/{notification_id}", response_model=NotificationResponse)
 async def get_notification(
     notification_id: str,
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """

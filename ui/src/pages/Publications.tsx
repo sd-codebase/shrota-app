@@ -23,8 +23,10 @@ import {
   uploadPublicationPhoto,
   getPublicationPhotoUrl,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function Publications() {
+  const { isFullAdmin } = useAuth();
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -210,16 +212,18 @@ function Publications() {
     <div>
       <div className="page-header">
         <h1>Publications</h1>
-        <div className="header-actions">
-          <Button onClick={handleBulkAdd}>Bulk Add</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Publication
-          </Button>
-        </div>
+        {isFullAdmin && (
+          <div className="header-actions">
+            <Button onClick={handleBulkAdd}>Bulk Add</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Publication
+            </Button>
+          </div>
+        )}
       </div>
 
       <Table
-        columns={columns}
+        columns={isFullAdmin ? columns : columns.filter((c) => c.key !== 'actions')}
         dataSource={publications}
         rowKey="id"
         loading={loading}

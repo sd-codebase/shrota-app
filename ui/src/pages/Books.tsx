@@ -60,8 +60,10 @@ import {
   getChapterImageUrl,
   type BookFilters,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function Books() {
+  const { isFullAdmin } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
@@ -949,20 +951,22 @@ function Books() {
               <Button icon={<EditOutlined />} onClick={() => handleEditBook(viewingBook)}>
                 Edit
               </Button>
-              <Tooltip title={viewingBook.is_published ? "Unpublish book before deleting" : ""}>
-                <Popconfirm
-                  title="Delete this book?"
-                  description="This action cannot be undone."
-                  onConfirm={() => handleDeleteBook(viewingBook.id)}
-                  okText="Delete"
-                  okButtonProps={{ danger: true }}
-                  disabled={viewingBook.is_published}
-                >
-                  <Button icon={<DeleteOutlined />} danger disabled={viewingBook.is_published}>
-                    Delete
-                  </Button>
-                </Popconfirm>
-              </Tooltip>
+              {isFullAdmin && (
+                <Tooltip title={viewingBook.is_published ? "Unpublish book before deleting" : ""}>
+                  <Popconfirm
+                    title="Delete this book?"
+                    description="This action cannot be undone."
+                    onConfirm={() => handleDeleteBook(viewingBook.id)}
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    disabled={viewingBook.is_published}
+                  >
+                    <Button icon={<DeleteOutlined />} danger disabled={viewingBook.is_published}>
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                </Tooltip>
+              )}
             </Space>
           )
         }

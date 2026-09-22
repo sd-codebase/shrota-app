@@ -12,7 +12,7 @@ from schemas.language import (
     LanguageResponse,
     LanguageBulkCreate,
 )
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/languages", tags=["Languages"])
 
@@ -54,7 +54,7 @@ async def get_language(language_id: str, db: AsyncSession = Depends(get_db)):
 async def create_language(
     language: LanguageCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_language = Language(
         name=language.name,
@@ -70,7 +70,7 @@ async def create_language(
 async def bulk_create_languages(
     data: LanguageBulkCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_languages = [
         Language(name=lang.name, code=lang.code)
@@ -88,7 +88,7 @@ async def update_language(
     language_id: str,
     language: LanguageUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     try:
         uuid_id = UUID(language_id)
@@ -116,7 +116,7 @@ async def update_language(
 async def delete_language(
     language_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     """Soft delete a language by setting is_deleted to true."""
     try:

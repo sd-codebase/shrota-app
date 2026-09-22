@@ -12,7 +12,7 @@ from schemas.artist import (
     ArtistResponse,
     ArtistBulkCreate,
 )
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/artists", tags=["Artists"])
 
@@ -56,7 +56,7 @@ async def get_artist(artist_id: str, db: AsyncSession = Depends(get_db)):
 async def create_artist(
     artist: ArtistCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_artist = Artist(
         name=artist.name,
@@ -74,7 +74,7 @@ async def create_artist(
 async def bulk_create_artists(
     data: ArtistBulkCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_artists = [
         Artist(
@@ -97,7 +97,7 @@ async def update_artist(
     artist_id: str,
     artist: ArtistUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     try:
         uuid_id = UUID(artist_id)
@@ -128,7 +128,7 @@ async def update_artist(
 async def delete_artist(
     artist_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     """Soft delete an artist by setting is_deleted to true."""
     try:

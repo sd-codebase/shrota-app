@@ -25,8 +25,10 @@ import {
   uploadGenreThumbnail,
   getGenreThumbnailUrl,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function Genres() {
+  const { isFullAdmin } = useAuth();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -221,16 +223,18 @@ function Genres() {
     <div>
       <div className="page-header">
         <h1>Genres</h1>
-        <div className="header-actions">
-          <Button onClick={handleBulkAdd}>Bulk Add</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Genre
-          </Button>
-        </div>
+        {isFullAdmin && (
+          <div className="header-actions">
+            <Button onClick={handleBulkAdd}>Bulk Add</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Genre
+            </Button>
+          </div>
+        )}
       </div>
 
       <Table
-        columns={columns}
+        columns={isFullAdmin ? columns : columns.filter((c) => c.key !== 'actions')}
         dataSource={genres}
         rowKey="id"
         loading={loading}

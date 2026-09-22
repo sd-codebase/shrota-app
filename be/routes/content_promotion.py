@@ -21,7 +21,9 @@ from schemas.content_promotion import (
     PromotedBookResponse,
     ReorderRequest,
 )
+from models.admin import Admin
 from utils.age import is_adult as user_is_adult
+from utils.auth import require_full_admin
 from routes.user_auth import get_current_user
 
 router = APIRouter(prefix="/content", tags=["Content Promotion"])
@@ -99,7 +101,7 @@ def promoted_book_to_response(entry: PromotedBook) -> dict:
 # ==================== NEW RELEASES ====================
 
 @router.get("/new-releases", response_model=list[NewReleaseResponse])
-async def get_new_releases(db: AsyncSession = Depends(get_db)):
+async def get_new_releases(db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get all new releases (admin view)."""
     result = await db.execute(
         select(NewRelease)
@@ -111,7 +113,7 @@ async def get_new_releases(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/new-releases/language/{language_id}", response_model=list[NewReleaseResponse])
-async def get_new_releases_by_language(language_id: str, db: AsyncSession = Depends(get_db)):
+async def get_new_releases_by_language(language_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get active new releases for a specific language, ordered by display_order."""
     try:
         uuid_id = UUID(language_id)
@@ -132,7 +134,7 @@ async def get_new_releases_by_language(language_id: str, db: AsyncSession = Depe
 
 
 @router.post("/new-releases", response_model=NewReleaseResponse, status_code=status.HTTP_201_CREATED)
-async def create_new_release(data: NewReleaseCreate, db: AsyncSession = Depends(get_db)):
+async def create_new_release(data: NewReleaseCreate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Add a book as a new release for a language."""
     try:
         book_uuid = UUID(data.book_id)
@@ -182,7 +184,7 @@ async def create_new_release(data: NewReleaseCreate, db: AsyncSession = Depends(
 
 
 @router.put("/new-releases/{entry_id}", response_model=NewReleaseResponse)
-async def update_new_release(entry_id: str, data: NewReleaseUpdate, db: AsyncSession = Depends(get_db)):
+async def update_new_release(entry_id: str, data: NewReleaseUpdate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Update a new release entry."""
     try:
         uuid_id = UUID(entry_id)
@@ -212,7 +214,7 @@ async def update_new_release(entry_id: str, data: NewReleaseUpdate, db: AsyncSes
 
 
 @router.delete("/new-releases/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_new_release(entry_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_new_release(entry_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Remove a book from new releases."""
     try:
         uuid_id = UUID(entry_id)
@@ -229,7 +231,7 @@ async def delete_new_release(entry_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/new-releases/reorder", response_model=list[NewReleaseResponse])
-async def reorder_new_releases(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
+async def reorder_new_releases(data: ReorderRequest, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Bulk reorder new releases."""
     updated_entries = []
 
@@ -263,7 +265,7 @@ async def reorder_new_releases(data: ReorderRequest, db: AsyncSession = Depends(
 # ==================== FEATURED BOOKS ====================
 
 @router.get("/featured", response_model=list[FeaturedBookResponse])
-async def get_featured_books(db: AsyncSession = Depends(get_db)):
+async def get_featured_books(db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get all featured books (admin view)."""
     result = await db.execute(
         select(FeaturedBook)
@@ -275,7 +277,7 @@ async def get_featured_books(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/featured/language/{language_id}", response_model=list[FeaturedBookResponse])
-async def get_featured_books_by_language(language_id: str, db: AsyncSession = Depends(get_db)):
+async def get_featured_books_by_language(language_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get active featured books for a specific language, ordered by display_order."""
     try:
         uuid_id = UUID(language_id)
@@ -296,7 +298,7 @@ async def get_featured_books_by_language(language_id: str, db: AsyncSession = De
 
 
 @router.post("/featured", response_model=FeaturedBookResponse, status_code=status.HTTP_201_CREATED)
-async def create_featured_book(data: FeaturedBookCreate, db: AsyncSession = Depends(get_db)):
+async def create_featured_book(data: FeaturedBookCreate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Add a book as featured for a language."""
     try:
         book_uuid = UUID(data.book_id)
@@ -346,7 +348,7 @@ async def create_featured_book(data: FeaturedBookCreate, db: AsyncSession = Depe
 
 
 @router.put("/featured/{entry_id}", response_model=FeaturedBookResponse)
-async def update_featured_book(entry_id: str, data: FeaturedBookUpdate, db: AsyncSession = Depends(get_db)):
+async def update_featured_book(entry_id: str, data: FeaturedBookUpdate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Update a featured book entry."""
     try:
         uuid_id = UUID(entry_id)
@@ -376,7 +378,7 @@ async def update_featured_book(entry_id: str, data: FeaturedBookUpdate, db: Asyn
 
 
 @router.delete("/featured/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_featured_book(entry_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_featured_book(entry_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Remove a book from featured."""
     try:
         uuid_id = UUID(entry_id)
@@ -393,7 +395,7 @@ async def delete_featured_book(entry_id: str, db: AsyncSession = Depends(get_db)
 
 
 @router.put("/featured/reorder", response_model=list[FeaturedBookResponse])
-async def reorder_featured_books(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
+async def reorder_featured_books(data: ReorderRequest, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Bulk reorder featured books."""
     updated_entries = []
 
@@ -427,7 +429,7 @@ async def reorder_featured_books(data: ReorderRequest, db: AsyncSession = Depend
 # ==================== PROMOTED BOOKS ====================
 
 @router.get("/promoted", response_model=list[PromotedBookResponse])
-async def get_promoted_books(db: AsyncSession = Depends(get_db)):
+async def get_promoted_books(db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get all promoted books (admin view)."""
     result = await db.execute(
         select(PromotedBook)
@@ -439,7 +441,7 @@ async def get_promoted_books(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/promoted/genre/{genre_id}", response_model=list[PromotedBookResponse])
-async def get_promoted_books_by_genre(genre_id: str, db: AsyncSession = Depends(get_db)):
+async def get_promoted_books_by_genre(genre_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Get active promoted books for a specific genre, ordered by display_order."""
     try:
         uuid_id = UUID(genre_id)
@@ -460,7 +462,7 @@ async def get_promoted_books_by_genre(genre_id: str, db: AsyncSession = Depends(
 
 
 @router.post("/promoted", response_model=PromotedBookResponse, status_code=status.HTTP_201_CREATED)
-async def create_promoted_book(data: PromotedBookCreate, db: AsyncSession = Depends(get_db)):
+async def create_promoted_book(data: PromotedBookCreate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Add a book as promoted for a genre."""
     try:
         book_uuid = UUID(data.book_id)
@@ -510,7 +512,7 @@ async def create_promoted_book(data: PromotedBookCreate, db: AsyncSession = Depe
 
 
 @router.put("/promoted/{entry_id}", response_model=PromotedBookResponse)
-async def update_promoted_book(entry_id: str, data: PromotedBookUpdate, db: AsyncSession = Depends(get_db)):
+async def update_promoted_book(entry_id: str, data: PromotedBookUpdate, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Update a promoted book entry."""
     try:
         uuid_id = UUID(entry_id)
@@ -540,7 +542,7 @@ async def update_promoted_book(entry_id: str, data: PromotedBookUpdate, db: Asyn
 
 
 @router.delete("/promoted/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_promoted_book(entry_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_promoted_book(entry_id: str, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Remove a book from promoted."""
     try:
         uuid_id = UUID(entry_id)
@@ -557,7 +559,7 @@ async def delete_promoted_book(entry_id: str, db: AsyncSession = Depends(get_db)
 
 
 @router.put("/promoted/reorder", response_model=list[PromotedBookResponse])
-async def reorder_promoted_books(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
+async def reorder_promoted_books(data: ReorderRequest, db: AsyncSession = Depends(get_db), admin: Admin = Depends(require_full_admin)):
     """Bulk reorder promoted books."""
     updated_entries = []
 

@@ -7,6 +7,7 @@ interface AuthContextType {
   admin: Admin | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isFullAdmin: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
 }
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         admin,
         isAuthenticated: !!token && !!admin,
         isLoading,
+        isFullAdmin: admin?.role === 'admin',
         login,
         logout,
       }}

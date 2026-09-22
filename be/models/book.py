@@ -53,6 +53,10 @@ class Book(Base, TimestampMixin, SoftDeleteMixin):
     # Foreign keys
     publisher_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("publications.id"), nullable=True)
     language_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("languages.id"), nullable=True)
+    # Which admin/publisher account created this book. Nullable so existing
+    # books stay "unowned" (visible only to full Admins, never claimable by
+    # a Publisher). Set automatically on create, never editable afterward.
+    owner_admin_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("admins.id"), nullable=True)
 
     # Relationships
     publisher = relationship("Publication", back_populates="books")

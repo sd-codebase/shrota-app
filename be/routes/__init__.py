@@ -17,3 +17,4 @@ from routes.admin_users import router as admin_users_router
 from routes.notifications import router as notifications_router
 from routes.events import router as events_router
 from routes.news import router as news_router
+from routes.admin_team import router as admin_team_router

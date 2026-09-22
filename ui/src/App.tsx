@@ -14,6 +14,7 @@ import {
   NotificationOutlined,
   CalendarOutlined,
   ReadOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -26,8 +27,10 @@ import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Events from './pages/Events';
 import NewsPage from './pages/News';
+import Team from './pages/Team';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminOnlyRoute from './components/AdminOnlyRoute';
 import { useAuth } from './context/AuthContext';
 import './App.css';
 
@@ -35,11 +38,14 @@ const { Header, Content, Sider } = Layout;
 
 function App() {
   const location = useLocation();
-  const { admin, logout, isAuthenticated } = useAuth();
+  const { admin, logout, isAuthenticated, isFullAdmin } = useAuth();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  // Publishers only see Books plus read-only reference data (Languages,
+  // Genres, Authors, Artists, Publications). Everything else — Content
+  // Promotion, Users, Notifications, Events, News, Team — is admin-only.
   const menuItems = [
     {
       key: '/languages',
@@ -71,31 +77,40 @@ function App() {
       icon: <BookOutlined />,
       label: <Link to="/books">Books</Link>,
     },
-    {
-      key: '/content',
-      icon: <StarOutlined />,
-      label: <Link to="/content">Content Promotion</Link>,
-    },
-    {
-      key: '/users',
-      icon: <TeamOutlined />,
-      label: <Link to="/users">Users</Link>,
-    },
-    {
-      key: '/notifications',
-      icon: <NotificationOutlined />,
-      label: <Link to="/notifications">Notifications</Link>,
-    },
-    {
-      key: '/events',
-      icon: <CalendarOutlined />,
-      label: <Link to="/events">Events</Link>,
-    },
-    {
-      key: '/news',
-      icon: <ReadOutlined />,
-      label: <Link to="/news">News</Link>,
-    },
+    ...(isFullAdmin
+      ? [
+          {
+            key: '/content',
+            icon: <StarOutlined />,
+            label: <Link to="/content">Content Promotion</Link>,
+          },
+          {
+            key: '/users',
+            icon: <TeamOutlined />,
+            label: <Link to="/users">Users</Link>,
+          },
+          {
+            key: '/notifications',
+            icon: <NotificationOutlined />,
+            label: <Link to="/notifications">Notifications</Link>,
+          },
+          {
+            key: '/events',
+            icon: <CalendarOutlined />,
+            label: <Link to="/events">Events</Link>,
+          },
+          {
+            key: '/news',
+            icon: <ReadOutlined />,
+            label: <Link to="/news">News</Link>,
+          },
+          {
+            key: '/team',
+            icon: <IdcardOutlined />,
+            label: <Link to="/team">Team</Link>,
+          },
+        ]
+      : []),
   ];
 
   const userMenuItems: MenuProps['items'] = [
@@ -162,11 +177,12 @@ function App() {
                 <Route path="/artists" element={<Artists />} />
                 <Route path="/publications" element={<Publications />} />
                 <Route path="/books" element={<Books />} />
-                <Route path="/content" element={<ContentPromotion />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/news" element={<NewsPage />} />
+                <Route path="/content" element={<AdminOnlyRoute><ContentPromotion /></AdminOnlyRoute>} />
+                <Route path="/users" element={<AdminOnlyRoute><Users /></AdminOnlyRoute>} />
+                <Route path="/notifications" element={<AdminOnlyRoute><Notifications /></AdminOnlyRoute>} />
+                <Route path="/events" element={<AdminOnlyRoute><Events /></AdminOnlyRoute>} />
+                <Route path="/news" element={<AdminOnlyRoute><NewsPage /></AdminOnlyRoute>} />
+                <Route path="/team" element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
               </Routes>
             </div>
           </Content>

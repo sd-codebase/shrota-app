@@ -7,7 +7,7 @@ from database import get_db
 from models import Event
 from models.admin import Admin
 from schemas.event import EventCreate, EventUpdate, EventResponse
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -27,7 +27,10 @@ def event_to_response(event: Event) -> dict:
 
 
 @router.get("", response_model=list[EventResponse])
-async def get_events(db: AsyncSession = Depends(get_db)):
+async def get_events(
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(require_full_admin),
+):
     """Admin: all non-deleted events regardless of active status."""
     result = await db.execute(
         select(Event)
@@ -79,7 +82,7 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
 async def create_event(
     event: EventCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     new_event = Event(
         title=event.title,
@@ -99,7 +102,7 @@ async def update_event(
     event_id: str,
     event: EventUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     try:
         uuid_id = UUID(event_id)
@@ -127,7 +130,7 @@ async def update_event(
 async def delete_event(
     event_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     try:
         uuid_id = UUID(event_id)

@@ -14,7 +14,7 @@ from schemas.genre import (
     GenreResponse,
     GenreBulkCreate,
 )
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 from utils.age import is_adult as user_is_adult
 from routes.user_auth import get_optional_current_user
 
@@ -79,7 +79,7 @@ async def get_genre(genre_id: str, db: AsyncSession = Depends(get_db)):
 async def create_genre(
     genre: GenreCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_genre = Genre(
         name=genre.name,
@@ -97,7 +97,7 @@ async def create_genre(
 async def bulk_create_genres(
     data: GenreBulkCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_genres = [
         Genre(name=g.name, description=g.description, thumbnail=g.thumbnail, is_adult=g.is_adult)
@@ -115,7 +115,7 @@ async def update_genre(
     genre_id: str,
     genre: GenreUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     try:
         uuid_id = UUID(genre_id)
@@ -143,7 +143,7 @@ async def update_genre(
 async def delete_genre(
     genre_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     """Soft delete a genre by setting is_deleted to true."""
     try:

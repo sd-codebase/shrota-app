@@ -23,8 +23,10 @@ import {
   uploadArtistPhoto,
   getArtistPhotoUrl,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function Artists() {
+  const { isFullAdmin } = useAuth();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -217,16 +219,18 @@ function Artists() {
     <div>
       <div className="page-header">
         <h1>Artists</h1>
-        <div className="header-actions">
-          <Button onClick={handleBulkAdd}>Bulk Add</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Artist
-          </Button>
-        </div>
+        {isFullAdmin && (
+          <div className="header-actions">
+            <Button onClick={handleBulkAdd}>Bulk Add</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Artist
+            </Button>
+          </div>
+        )}
       </div>
 
       <Table
-        columns={columns}
+        columns={isFullAdmin ? columns : columns.filter((c) => c.key !== 'actions')}
         dataSource={artists}
         rowKey="id"
         loading={loading}

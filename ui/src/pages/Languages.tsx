@@ -18,8 +18,10 @@ import {
   deleteLanguage,
   bulkCreateLanguages,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 function Languages() {
+  const { isFullAdmin } = useAuth();
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -145,16 +147,18 @@ function Languages() {
     <div>
       <div className="page-header">
         <h1>Languages</h1>
-        <div className="header-actions">
-          <Button onClick={handleBulkAdd}>Bulk Add</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Language
-          </Button>
-        </div>
+        {isFullAdmin && (
+          <div className="header-actions">
+            <Button onClick={handleBulkAdd}>Bulk Add</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Language
+            </Button>
+          </div>
+        )}
       </div>
 
       <Table
-        columns={columns}
+        columns={isFullAdmin ? columns : columns.filter((c) => c.key !== 'actions')}
         dataSource={languages}
         rowKey="id"
         loading={loading}
