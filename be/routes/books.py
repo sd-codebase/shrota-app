@@ -69,6 +69,8 @@ def book_to_response(book: Book) -> dict:
         "is_published": book.is_published,
         "is_adult": book.is_adult,
         "is_deleted": book.is_deleted,
+        "access_type": book.access_type,
+        "prime_price": book.prime_price,
         "chapters": chapters,
         "created_at": book.created_at,
         "updated_at": book.updated_at,
@@ -312,6 +314,8 @@ async def get_public_books_catalog(db: AsyncSession = Depends(get_db)):
             "genre_names": [g.name for g in book.genres],
             "language_name": languages.get(book.language_id) if book.language_id else None,
             "chapter_count": chapter_count,
+            "access_type": book.access_type,
+            "prime_price": book.prime_price,
             "updated_at": book.updated_at,
         })
     return catalog
@@ -372,6 +376,8 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
             for ch in published_chapters
         ],
         "is_adult": book.is_adult,
+        "access_type": book.access_type,
+        "prime_price": book.prime_price,
     }
 
 
@@ -462,6 +468,12 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
         if not publisher:
             raise HTTPException(status_code=404, detail="Publisher not found")
 
+    if book.access_type == "prime_only" and not book.prime_price:
+        raise HTTPException(
+            status_code=400,
+            detail="prime_price is required when access_type is prime_only",
+        )
+
     # Create the book
     slug = await generate_unique_slug(
         book.title, lambda candidate: _book_slug_exists(db, candidate)
@@ -474,6 +486,8 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
         total_duration=0,
         is_published=False,
         is_adult=book.is_adult,
+        access_type=book.access_type,
+        prime_price=book.prime_price if book.access_type == "prime_only" else None,
         publisher_id=publisher_uuid,
         language_id=language_uuid,
     )
@@ -589,6 +603,21 @@ async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends
                 status_code=400,
                 detail="Cannot publish book: at least one chapter must be published first"
             )
+
+    # Validate access_type / prime_price together, using whichever value
+    # (incoming or existing) will actually apply after this update.
+    resulting_access_type = update_data.get("access_type", existing.access_type)
+    if resulting_access_type == "prime_only":
+        resulting_prime_price = update_data.get("prime_price", existing.prime_price)
+        if not resulting_prime_price:
+            raise HTTPException(
+                status_code=400,
+                detail="prime_price is required when access_type is prime_only",
+            )
+    elif "access_type" in update_data:
+        # Switched away from prime_only — clear a stale price unless a new
+        # one was explicitly sent in the same request.
+        update_data.setdefault("prime_price", None)
 
     # Regenerate the slug if the title changed, keeping it unique
     if "title" in update_data and update_data["title"] != existing.title:

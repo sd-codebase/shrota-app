@@ -58,6 +58,10 @@ def book_to_response(book: Book) -> dict:
         "publisher_name": book.publisher.name if book.publisher else None,
         "language_id": str(book.language_id) if book.language_id else None,
         "language_name": book.language.name if book.language else None,
+        # TODO(mobile): access_type/prime_price are exposed but not yet
+        # enforced client-side. See mobile/TODO_BOOK_ACCESS.md.
+        "access_type": book.access_type,
+        "prime_price": book.prime_price,
         "chapters": chapters,
     }
 
