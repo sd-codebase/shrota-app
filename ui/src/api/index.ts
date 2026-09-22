@@ -40,6 +40,9 @@ import type {
   Event,
   EventCreate,
   EventCoverUploadResponse,
+  News,
+  NewsCreate,
+  NewsCoverUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -640,3 +643,42 @@ export const uploadEventCover = async (file: File, eventTitle: string): Promise<
 };
 
 export const getEventCoverUrl = (filename: string) => `${API_URL}/files/event-cover/${filename}`;
+
+// News
+export const getNews = () => request<News[]>('/news');
+
+export const createNews = (data: NewsCreate) =>
+  request<News>('/news', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateNews = (id: string, data: Partial<NewsCreate>) =>
+  request<News>(`/news/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deleteNews = (id: string) =>
+  request<void>(`/news/${id}`, { method: 'DELETE' });
+
+export const uploadNewsCover = async (file: File, newsTitle: string): Promise<NewsCoverUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('news_title', newsTitle);
+
+  const response = await fetch(`${API_URL}/files/upload/news-cover`, {
+    method: 'POST',
+    body: formData,
+    headers: getAuthHeader(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'News cover upload failed' }));
+    throw new Error(error.detail || 'News cover upload failed');
+  }
+
+  return response.json();
+};
+
+export const getNewsCoverUrl = (filename: string) => `${API_URL}/files/news-cover/${filename}`;

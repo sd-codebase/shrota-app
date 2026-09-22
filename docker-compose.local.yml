@@ -63,6 +63,8 @@ services:
   website:
     build: ./website
     container_name: shrota-website
+    environment:
+      INTERNAL_API_URL: http://backend:8000
     ports:
       - "3001:3001"
     depends_on:

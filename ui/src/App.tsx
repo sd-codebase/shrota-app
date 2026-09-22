@@ -13,6 +13,7 @@ import {
   TeamOutlined,
   NotificationOutlined,
   CalendarOutlined,
+  ReadOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -24,6 +25,7 @@ import ContentPromotion from './pages/ContentPromotion';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Events from './pages/Events';
+import NewsPage from './pages/News';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
@@ -88,6 +90,11 @@ function App() {
       key: '/events',
       icon: <CalendarOutlined />,
       label: <Link to="/events">Events</Link>,
+    },
+    {
+      key: '/news',
+      icon: <ReadOutlined />,
+      label: <Link to="/news">News</Link>,
     },
   ];
 
@@ -159,6 +166,7 @@ function App() {
                 <Route path="/users" element={<Users />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/events" element={<Events />} />
+                <Route path="/news" element={<NewsPage />} />
               </Routes>
             </div>
           </Content>

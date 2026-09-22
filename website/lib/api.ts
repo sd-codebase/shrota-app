@@ -86,6 +86,46 @@ export function getEventCoverUrl(filename?: string): string {
   return `${API_URL}/files/event-cover/${filename}`;
 }
 
+export interface News {
+  id: string;
+  title: string;
+  slug: string;
+  text: string;
+  cover_image?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export async function fetchAllNews(): Promise<News[]> {
+  try {
+    const response = await fetch(`${SERVER_API_URL}/news/public`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    return response.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchNewsBySlug(slug: string): Promise<News | null> {
+  try {
+    const response = await fetch(`${SERVER_API_URL}/news/${slug}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+export function getNewsCoverUrl(filename?: string): string {
+  if (!filename) return '';
+  if (filename.startsWith('http')) return filename;
+  return `${API_URL}/files/news-cover/${filename}`;
+}
+
 export function formatDuration(seconds?: number): string {
   if (!seconds) return '';
   const hours = Math.floor(seconds / 3600);

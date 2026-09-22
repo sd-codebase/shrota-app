@@ -383,3 +383,28 @@ export interface EventCoverUploadResponse {
   event_title: string;
   content_type: string;
 }
+
+// News types
+export interface News {
+  id: string;
+  title: string;
+  slug: string;
+  text: string;
+  cover_image?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewsCreate {
+  title: string;
+  text: string;
+  cover_image?: string;
+  is_active: boolean;
+}
+
+export interface NewsCoverUploadResponse {
+  filename: string;
+  news_title: string;
+  content_type: string;
+}
