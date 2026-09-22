@@ -12,7 +12,7 @@ test.describe('Books catalog', () => {
 
   test('nav link goes to /books', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Books' }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Books' }).click();
     await expect(page).toHaveURL(/\/books$/);
   });
 });

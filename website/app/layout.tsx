@@ -3,6 +3,7 @@ import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
+import { CookieConsent } from "@/components/ui/CookieConsent";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -59,6 +60,7 @@ export default function RootLayout({
         <Navbar />
         <main className="flex-grow">{children}</main>
         <ConditionalFooter />
+        <CookieConsent />
       </body>
     </html>
   );

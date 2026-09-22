@@ -8,7 +8,7 @@ test.describe('News', () => {
 
   test('nav link goes to /news', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'News' }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'News' }).click();
     await expect(page).toHaveURL(/\/news$/);
   });
 });
