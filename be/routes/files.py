@@ -59,6 +59,8 @@ PUBLICATION_PHOTOS_DIR = os.path.join(UPLOAD_DIR, "publication-photos")
 Path(PUBLICATION_PHOTOS_DIR).mkdir(parents=True, exist_ok=True)
 EVENT_COVERS_DIR = os.path.join(UPLOAD_DIR, "event-covers")
 Path(EVENT_COVERS_DIR).mkdir(parents=True, exist_ok=True)
+NEWS_COVERS_DIR = os.path.join(UPLOAD_DIR, "news-covers")
+Path(NEWS_COVERS_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -484,6 +486,52 @@ async def get_event_cover(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Event cover not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/news-cover", status_code=status.HTTP_201_CREATED)
+async def upload_news_cover(
+    file: UploadFile = File(...),
+    news_title: str = Form(...)
+):
+    """Upload a news cover image. Filename format: {news-title}-{uuid}.{ext}"""
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(ALLOWED_IMAGE_EXTENSIONS)})"
+        )
+
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
+
+    safe_name = sanitize_filename(news_title)
+    file_name = f"{safe_name}-{uuid4().hex[:8]}{file_extension}"
+    file_path = os.path.join(NEWS_COVERS_DIR, file_name)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save news cover: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "news_title": news_title,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/news-cover/{filename}")
+async def get_news_cover(filename: str):
+    """Get a news cover image by filename."""
+    validate_path_traversal(filename)
+    file_path = os.path.join(NEWS_COVERS_DIR, filename)
+    validate_resolved_path(file_path, NEWS_COVERS_DIR)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="News cover not found")
 
     return FileResponse(path=file_path, filename=filename)
 

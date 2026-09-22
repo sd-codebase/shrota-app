@@ -25,6 +25,7 @@ from routes import (
     admin_users_router,
     notifications_router,
     events_router,
+    news_router,
 )
 
 
@@ -64,6 +65,7 @@ app.include_router(mobile_router)
 app.include_router(admin_users_router)
 app.include_router(notifications_router)
 app.include_router(events_router)
+app.include_router(news_router)
 
 
 @app.exception_handler(RequestValidationError)
