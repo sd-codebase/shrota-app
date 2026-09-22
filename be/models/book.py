@@ -41,6 +41,15 @@ class Book(Base, TimestampMixin, SoftDeleteMixin):
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_adult: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Access tier: "free" | "subscriber_only" | "prime_only". Chosen when
+    # publishing a book. Enforcement of the paywall itself happens in the
+    # mobile app (see mobile/TODO_BOOK_ACCESS.md) — this is just the admin
+    # side of the feature for now.
+    access_type: Mapped[str] = mapped_column(String(20), default="free", nullable=False)
+    # Only set (and only meaningful) when access_type == "prime_only".
+    # Whole rupees (₹), not paise.
+    prime_price: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
     # Foreign keys
     publisher_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("publications.id"), nullable=True)
     language_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("languages.id"), nullable=True)

@@ -106,6 +106,13 @@ export interface ChapterCreate {
   is_published?: boolean;
 }
 
+// "free" - anyone can listen.
+// "subscriber_only" - shown to everyone, but listening requires a subscription.
+// "prime_only" - shown to everyone, but listening requires buying this book
+//   at `prime_price` (pay-per-title, like Amazon Prime's Digital Rentals).
+// Enforcement is mobile-app work, tracked separately — see mobile/TODO_BOOK_ACCESS.md.
+export type BookAccessType = 'free' | 'subscriber_only' | 'prime_only';
+
 export interface Book {
   id: string;
   title: string;
@@ -120,6 +127,8 @@ export interface Book {
   total_duration?: number;  // Auto-calculated sum of chapter durations
   is_published: boolean;  // Publish status
   is_adult: boolean;  // Adult content flag
+  access_type: BookAccessType;
+  prime_price?: number;  // ₹, set when access_type is prime_only
   chapters: Chapter[];
   created_at: string;
   updated_at: string;
@@ -135,6 +144,8 @@ export interface BookCreate {
   language_id?: string;
   thumbnail?: string;
   is_adult?: boolean;  // Adult content flag
+  access_type?: BookAccessType;
+  prime_price?: number;  // ₹, required when access_type is prime_only
 }
 
 export interface ThumbnailUploadResponse {

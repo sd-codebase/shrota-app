@@ -2,6 +2,14 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
+# "free" — anyone can listen.
+# "subscriber_only" — visible to everyone, but listening requires an active
+#   subscription (subscribe prompt shown).
+# "prime_only" — visible to everyone, but listening requires purchasing this
+#   specific book at `prime_price` (pay-per-title, like Amazon Prime's
+#   Digital Rentals/Purchases).
+BOOK_ACCESS_TYPES = ("free", "subscriber_only", "prime_only")
+
 
 class ChapterCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
@@ -46,6 +54,8 @@ class BookCreate(BaseModel):
     language_id: Optional[str] = None
     thumbnail: Optional[str] = None
     is_adult: bool = False  # Adult content flag
+    access_type: str = Field("free", description=f"One of: {', '.join(BOOK_ACCESS_TYPES)}")
+    prime_price: Optional[int] = Field(None, ge=0, description="₹, required when access_type is prime_only")
 
     @field_validator("information")
     @classmethod
@@ -53,6 +63,13 @@ class BookCreate(BaseModel):
         word_count = len(v.split())
         if word_count > 100:
             raise ValueError("Information must not exceed 100 words")
+        return v
+
+    @field_validator("access_type")
+    @classmethod
+    def validate_access_type(cls, v: str) -> str:
+        if v not in BOOK_ACCESS_TYPES:
+            raise ValueError(f"access_type must be one of: {', '.join(BOOK_ACCESS_TYPES)}")
         return v
 
 
@@ -67,6 +84,8 @@ class BookUpdate(BaseModel):
     thumbnail: Optional[str] = None
     is_published: Optional[bool] = None  # Publish status
     is_adult: Optional[bool] = None  # Adult content flag
+    access_type: Optional[str] = Field(None, description=f"One of: {', '.join(BOOK_ACCESS_TYPES)}")
+    prime_price: Optional[int] = Field(None, ge=0, description="₹, required when access_type is prime_only")
 
     @field_validator("information")
     @classmethod
@@ -75,6 +94,13 @@ class BookUpdate(BaseModel):
             word_count = len(v.split())
             if word_count > 100:
                 raise ValueError("Information must not exceed 100 words")
+        return v
+
+    @field_validator("access_type")
+    @classmethod
+    def validate_access_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in BOOK_ACCESS_TYPES:
+            raise ValueError(f"access_type must be one of: {', '.join(BOOK_ACCESS_TYPES)}")
         return v
 
 
@@ -93,6 +119,8 @@ class BookResponse(BaseModel):
     is_published: bool = False  # Publish status
     is_adult: bool = False  # Adult content flag
     is_deleted: bool = False  # Soft delete flag
+    access_type: str = "free"
+    prime_price: Optional[int] = None  # ₹, set when access_type is prime_only
     chapters: list[ChapterResponse] = []
     created_at: datetime
     updated_at: datetime

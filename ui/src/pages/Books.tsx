@@ -11,6 +11,7 @@ import {
   Upload,
   InputNumber,
   Switch,
+  Radio,
   Tag,
   Tooltip,
   Progress,
@@ -107,6 +108,7 @@ function Books() {
   const [isUploading, setIsUploading] = useState(false);
   const [bookForm] = Form.useForm();
   const [chapterForm] = Form.useForm();
+  const accessType = Form.useWatch('access_type', bookForm);
 
   const fetchBooks = async (bookFilters?: BookFilters) => {
     setLoading(true);
@@ -224,6 +226,7 @@ function Books() {
   const handleAddBook = () => {
     setEditingBook(null);
     bookForm.resetFields();
+    bookForm.setFieldsValue({ access_type: 'free' });
     setThumbnailFileList([]);
     setBookModalOpen(true);
   };
@@ -501,6 +504,16 @@ function Books() {
     return `${minutes}m`;
   };
 
+  const renderAccessTag = (accessType: Book['access_type'], primePrice?: number) => {
+    if (accessType === 'prime_only') {
+      return <Tag color="gold">Prime{primePrice != null ? ` ₹${primePrice}` : ''}</Tag>;
+    }
+    if (accessType === 'subscriber_only') {
+      return <Tag color="blue">Subscriber</Tag>;
+    }
+    return <Tag>Free</Tag>;
+  };
+
   const handleToggleBookPublish = async (book: Book) => {
     try {
       await updateBook(book.id, { is_published: !book.is_published });
@@ -626,6 +639,13 @@ function Books() {
           <Tag color="orange">Draft</Tag>
         )
       ),
+    },
+    {
+      title: 'Access',
+      dataIndex: 'access_type',
+      key: 'access_type',
+      width: 110,
+      render: (_: string, record: Book) => renderAccessTag(record.access_type, record.prime_price),
     },
     {
       title: 'Adult',
@@ -968,6 +988,9 @@ function Books() {
               <Descriptions.Item label="Language">{getLanguageName(viewingBook.language_id)}</Descriptions.Item>
               <Descriptions.Item label="Publisher">{getPublicationName(viewingBook.publisher_id)}</Descriptions.Item>
               <Descriptions.Item label="Duration">{formatDuration(viewingBook.total_duration)}</Descriptions.Item>
+              <Descriptions.Item label="Access">
+                {renderAccessTag(viewingBook.access_type, viewingBook.prime_price)}
+              </Descriptions.Item>
               <Descriptions.Item label="Information">
                 {viewingBook.information || '-'}
               </Descriptions.Item>
@@ -1101,6 +1124,29 @@ function Books() {
           <Form.Item name="is_adult" label="Adult Content" valuePropName="checked">
             <Switch />
           </Form.Item>
+          <Form.Item
+            name="access_type"
+            label="Access Type"
+            rules={[{ required: true, message: 'Please select an access type' }]}
+            tooltip="How listeners will be able to access this book once published"
+          >
+            <Radio.Group>
+              <Space direction="vertical">
+                <Radio value="free">Free Book — anyone can listen</Radio>
+                <Radio value="subscriber_only">For Subscriber Only — requires an active subscription</Radio>
+                <Radio value="prime_only">For Prime Books Only — requires buying this book</Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+          {accessType === 'prime_only' && (
+            <Form.Item
+              name="prime_price"
+              label="Prime Price (₹)"
+              rules={[{ required: true, message: 'Please enter a price for this Prime book' }]}
+            >
+              <InputNumber min={0} step={1} style={{ width: '100%' }} prefix="₹" placeholder="e.g. 49" />
+            </Form.Item>
+          )}
         </Form>
       </Drawer>
 
