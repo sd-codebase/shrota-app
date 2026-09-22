@@ -2,8 +2,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // Server-side fetches use the internal Docker service name; falls back to API_URL outside Docker
 const SERVER_API_URL = process.env.INTERNAL_API_URL || API_URL;
 
+export interface BookShareChapter {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+  image?: string;
+  duration?: number;
+}
+
 export interface BookShareData {
   id: string;
+  slug: string;
   title: string;
   information: string;
   thumbnail?: string;
@@ -13,6 +23,7 @@ export interface BookShareData {
   genre_names: string[];
   language_name?: string;
   chapter_count: number;
+  chapters: BookShareChapter[];
   is_adult: boolean;
 }
 
@@ -21,8 +32,10 @@ export interface BookShareError {
   detail: string;
 }
 
-export async function fetchBookForShare(bookId: string): Promise<BookShareData> {
-  const response = await fetch(`${API_URL}/books/${bookId}/share`, {
+// `identifier` may be either a book UUID (app deep/share links) or a slug
+// (website catalog links) — the backend resolves whichever it matches.
+export async function fetchBookForShare(identifier: string): Promise<BookShareData> {
+  const response = await fetch(`${SERVER_API_URL}/books/${identifier}/share`, {
     next: { revalidate: 60 }, // Cache for 60 seconds
   });
 
@@ -41,10 +54,43 @@ export async function fetchBookForShare(bookId: string): Promise<BookShareData> 
   return response.json();
 }
 
+export interface BookCatalogItem {
+  id: string;
+  slug: string;
+  title: string;
+  information: string;
+  thumbnail?: string;
+  total_duration?: number;
+  author_names: string[];
+  artist_names: string[];
+  genre_names: string[];
+  language_name?: string;
+  chapter_count: number;
+  updated_at: string;
+}
+
+export async function fetchBookCatalog(): Promise<BookCatalogItem[]> {
+  try {
+    const response = await fetch(`${SERVER_API_URL}/books/public`, {
+      next: { revalidate: 300 }, // Cache for 5 minutes
+    });
+    if (!response.ok) return [];
+    return response.json();
+  } catch {
+    return [];
+  }
+}
+
 export function getThumbnailUrl(thumbnailPath?: string): string {
   if (!thumbnailPath) return '';
   if (thumbnailPath.startsWith('http')) return thumbnailPath;
   return `${API_URL}/files/thumbnail/${thumbnailPath}`;
+}
+
+export function getChapterImageUrl(imagePath?: string): string {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${API_URL}/files/chapter-image/${imagePath}`;
 }
 
 export interface Event {

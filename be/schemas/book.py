@@ -81,6 +81,7 @@ class BookUpdate(BaseModel):
 class BookResponse(BaseModel):
     id: str
     title: str
+    slug: str
     genre_ids: list[str]  # Multiple genres
     information: str
     author_ids: list[str]  # Multiple authors

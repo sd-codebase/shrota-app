@@ -34,6 +34,7 @@ class Book(Base, TimestampMixin, SoftDeleteMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
+    slug: Mapped[str] = mapped_column(String(250), nullable=False, unique=True, index=True)
     information: Mapped[str] = mapped_column(String(1000), nullable=False)
     thumbnail: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     total_duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

@@ -19,6 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shrota.in"),
   title: "Shrota - Premium Audiobooks & Stories",
   description:
     "Discover thousands of Marathi audiobooks, stories, and original content. Download the Shrota app and start listening today.",

@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import async_session, init_db, close_db
 from models import Language, Genre, Author, Artist, Publication, Book, Chapter
+from utils.slugify import slugify
 
 
 # =============================================================================
@@ -685,11 +686,21 @@ async def seed():
         book_count = 0
         chapter_count = 0
         audio_index = 0  # Track which audio file to use
+        seen_slugs = set()  # Guarantee unique slugs even if titles collide
 
         for book_data in BOOKS:
             # Create book
+            base_slug = slugify(book_data["title"])
+            slug = base_slug
+            suffix = 2
+            while slug in seen_slugs:
+                slug = f"{base_slug}-{suffix}"
+                suffix += 1
+            seen_slugs.add(slug)
+
             book = Book(
                 title=book_data["title"],
+                slug=slug,
                 information=book_data["information"],
                 is_published=True,
                 is_adult=False,
