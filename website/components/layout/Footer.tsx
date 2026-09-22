@@ -4,10 +4,20 @@ import { Container } from "@/components/ui/Container";
 import { AppStoreButtons } from "@/components/ui/AppStoreButtons";
 
 const footerLinks = {
-  product: [
+  // Every top-level content page lives here — the main navbar only has
+  // room for a handful of links, but the footer has no such limit, so
+  // this is the canonical, complete list of site pages.
+  explore: [
+    { href: "/", label: "Home" },
+    { href: "/books", label: "Books" },
+    { href: "/news", label: "News" },
+    { href: "/events", label: "Events" },
+  ],
+  company: [
     { href: "/about", label: "About Us" },
     { href: "/contact", label: "Contact" },
     { href: "/careers", label: "Careers" },
+    { href: "/write-with-us", label: "Write With Us" },
   ],
   legal: [
     { href: "/privacy", label: "Privacy Policy" },
@@ -70,7 +80,7 @@ export function Footer() {
     <footer className="bg-bg-secondary border-t border-white/5">
       <Container>
         <div className="py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             {/* Brand Column */}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-block mb-6">
@@ -91,11 +101,28 @@ export function Footer() {
               <AppStoreButtons />
             </div>
 
-            {/* Product Links */}
+            {/* Explore Links */}
+            <div>
+              <h3 className="text-text-primary font-semibold mb-4">Explore</h3>
+              <ul className="space-y-3">
+                {footerLinks.explore.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Company Links */}
             <div>
               <h3 className="text-text-primary font-semibold mb-4">Company</h3>
               <ul className="space-y-3">
-                {footerLinks.product.map((link) => (
+                {footerLinks.company.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
