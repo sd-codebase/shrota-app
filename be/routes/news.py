@@ -7,7 +7,7 @@ from database import get_db
 from models import News
 from models.admin import Admin
 from schemas.news import NewsCreate, NewsUpdate, NewsResponse
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 from utils.slugify import generate_unique_slug
 
 router = APIRouter(prefix="/news", tags=["News"])
@@ -36,7 +36,10 @@ async def _slug_exists(db: AsyncSession, slug: str, exclude_id: UUID | None = No
 
 
 @router.get("", response_model=list[NewsResponse])
-async def get_news_list(db: AsyncSession = Depends(get_db)):
+async def get_news_list(
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(require_full_admin),
+):
     """Admin: all non-deleted news regardless of active status."""
     result = await db.execute(
         select(News)
@@ -79,7 +82,7 @@ async def get_news_item(slug: str, db: AsyncSession = Depends(get_db)):
 async def create_news(
     news: NewsCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     slug = await generate_unique_slug(
         news.title, lambda candidate: _slug_exists(db, candidate)
@@ -103,7 +106,7 @@ async def update_news(
     news_id: str,
     news: NewsUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     try:
         uuid_id = UUID(news_id)
@@ -137,7 +140,7 @@ async def update_news(
 async def delete_news(
     news_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     try:
         uuid_id = UUID(news_id)

@@ -10,7 +10,7 @@ from database import get_db
 from models.user import User
 from models.admin import Admin
 from schemas.user import UserResponse, UserAdminUpdate, UserListResponse, SendWhatsAppOTPResponse
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/admin/users", tags=["Admin Users"])
 
@@ -37,7 +37,7 @@ async def get_users(
     per_page: int = Query(20, ge=1, le=100),
     search: str = Query(None),
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """Get paginated list of users with optional search."""
     query = select(User)
@@ -79,7 +79,7 @@ async def get_users(
 async def get_user(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """Get a single user by ID."""
     try:
@@ -99,7 +99,7 @@ async def update_user(
     user_id: str,
     user_data: UserAdminUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """Update user information."""
     try:
@@ -136,7 +136,7 @@ async def update_user(
 async def toggle_user_status(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """Toggle user's active status."""
     try:
@@ -160,7 +160,7 @@ async def toggle_user_status(
 async def delete_user(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """Delete a user. Only disabled users can be deleted."""
     try:
@@ -187,7 +187,7 @@ async def delete_user(
 async def send_whatsapp_otp(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_full_admin),
 ):
     """
     Generate a WhatsApp OTP for a user. Stores OTP in DB and returns

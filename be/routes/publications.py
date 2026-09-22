@@ -12,7 +12,7 @@ from schemas.publication import (
     PublicationResponse,
     PublicationBulkCreate,
 )
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/publications", tags=["Publications"])
 
@@ -55,7 +55,7 @@ async def get_publication(publication_id: str, db: AsyncSession = Depends(get_db
 async def create_publication(
     publication: PublicationCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_publication = Publication(
         name=publication.name,
@@ -72,7 +72,7 @@ async def create_publication(
 async def bulk_create_publications(
     data: PublicationBulkCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_publications = [
         Publication(name=p.name, description=p.description, photo=p.photo)
@@ -90,7 +90,7 @@ async def update_publication(
     publication_id: str,
     publication: PublicationUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     try:
         uuid_id = UUID(publication_id)
@@ -118,7 +118,7 @@ async def update_publication(
 async def delete_publication(
     publication_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     """Soft delete a publication by setting is_deleted to true."""
     try:

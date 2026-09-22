@@ -193,14 +193,31 @@ export interface FileUploadResponse {
 }
 
 // Auth types
+export type AdminRole = 'admin' | 'publisher';
+
 export interface Admin {
   id: string;
   email: string;
   username: string;
   name: string;
   is_active: boolean;
+  role: AdminRole;
   created_at: string;
   updated_at: string;
+}
+
+export interface AdminCreate {
+  email: string;
+  username: string;
+  password: string;
+  name: string;
+  role: AdminRole;
+}
+
+export interface AdminTeamUpdate {
+  name?: string;
+  role?: AdminRole;
+  is_active?: boolean;
 }
 
 export interface LoginRequest {

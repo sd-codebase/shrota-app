@@ -23,6 +23,8 @@ import type {
   LoginRequest,
   LoginResponse,
   Admin,
+  AdminCreate,
+  AdminTeamUpdate,
   NewRelease,
   NewReleaseCreate,
   FeaturedBook,
@@ -480,6 +482,21 @@ export const getCurrentAdmin = (token: string) =>
     headers: {
       'Authorization': `Bearer ${token}`,
     },
+  });
+
+// Team (admin/publisher accounts) — full admins only
+export const getTeam = () => request<Admin[]>('/admin/team');
+
+export const createTeamMember = (data: AdminCreate) =>
+  request<Admin>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateTeamMember = (id: string, data: AdminTeamUpdate) =>
+  request<Admin>(`/admin/team/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
   });
 
 // Content Promotion - New Releases

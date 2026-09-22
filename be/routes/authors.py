@@ -12,7 +12,7 @@ from schemas.author import (
     AuthorResponse,
     AuthorBulkCreate,
 )
-from utils.auth import get_current_admin
+from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/authors", tags=["Authors"])
 
@@ -56,7 +56,7 @@ async def get_author(author_id: str, db: AsyncSession = Depends(get_db)):
 async def create_author(
     author: AuthorCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_author = Author(
         name=author.name,
@@ -74,7 +74,7 @@ async def create_author(
 async def bulk_create_authors(
     data: AuthorBulkCreate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     new_authors = [
         Author(
@@ -97,7 +97,7 @@ async def update_author(
     author_id: str,
     author: AuthorUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     try:
         uuid_id = UUID(author_id)
@@ -128,7 +128,7 @@ async def update_author(
 async def delete_author(
     author_id: str,
     db: AsyncSession = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_full_admin)
 ):
     """Soft delete an author by setting is_deleted to true."""
     try:

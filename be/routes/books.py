@@ -12,6 +12,7 @@ from database import get_db
 from config import UPLOAD_DIR, AUDIO_LIBRARY_DIR
 from models import Book, Chapter, Genre, Author, Artist, Language, Publication
 from models.user import User
+from models.admin import Admin
 from models.book import book_authors, book_artists, book_genres
 from schemas.book import (
     BookCreate,
@@ -24,6 +25,7 @@ from schemas.book import (
 from utils.hls_converter import convert_to_hls, HLSConversionError
 from utils.age import is_adult as user_is_adult
 from utils.slugify import generate_unique_slug
+from utils.auth import get_current_admin, require_full_admin
 from routes.user_auth import get_optional_current_user
 
 router = APIRouter(prefix="/books", tags=["Books"])
@@ -131,6 +133,12 @@ async def _book_slug_exists(db: AsyncSession, slug: str, exclude_id: Optional[UU
     return result.scalar_one_or_none() is not None
 
 
+def _require_book_owner(book: Book, admin: Admin) -> None:
+    """Publishers may only touch books (and their chapters) they created."""
+    if admin.role == "publisher" and book.owner_admin_id != admin.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only manage your own books")
+
+
 @router.get("", response_model=list[BookResponse])
 async def get_books(
     search: Optional[str] = Query(None, description="Search books by title"),
@@ -140,9 +148,12 @@ async def get_books(
     artist_ids: Optional[str] = Query(None, description="Comma-separated artist IDs"),
     publisher_ids: Optional[str] = Query(None, description="Comma-separated publisher IDs"),
     is_adult: Optional[bool] = Query(None, description="Filter by adult content"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     """Get all non-deleted books, sorted by updated_at DESC (latest first).
+
+    Publishers only see books they created; full Admins see everything.
 
     Filters:
     - Multiple IDs within a filter use OR logic (book matches any)
@@ -158,6 +169,9 @@ async def get_books(
         )
         .where(Book.is_deleted == False)
     )
+
+    if admin.role == "publisher":
+        query = query.where(Book.owner_admin_id == admin.id)
 
     if search:
         query = query.where(Book.title.ilike(f"%{search}%"))
@@ -409,7 +423,11 @@ async def get_book(
 
 
 @router.post("", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
-async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
+async def create_book(
+    book: BookCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
     # Validate all genres exist
     genres = []
     for genre_id in book.genre_ids:
@@ -490,6 +508,7 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
         prime_price=book.prime_price if book.access_type == "prime_only" else None,
         publisher_id=publisher_uuid,
         language_id=language_uuid,
+        owner_admin_id=admin.id,
     )
 
     # Add relationships
@@ -506,7 +525,12 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{book_id}", response_model=BookResponse)
-async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends(get_db)):
+async def update_book(
+    book_id: str,
+    book: BookUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
     try:
         uuid_id = UUID(book_id)
     except ValueError:
@@ -515,6 +539,9 @@ async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends
     existing = await get_book_with_relations(db, uuid_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    if admin.role == "publisher" and existing.owner_admin_id != admin.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own books")
 
     update_data = book.model_dump(exclude_unset=True)
     if not update_data:
@@ -640,8 +667,16 @@ async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_book(book_id: str, db: AsyncSession = Depends(get_db)):
-    """Soft delete a book by setting is_deleted to true."""
+async def delete_book(
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(require_full_admin),
+):
+    """Soft delete a book by setting is_deleted to true.
+
+    Full admins only — Publishers can never delete a book, only
+    unpublish/disable it via PUT (is_published=False).
+    """
     try:
         uuid_id = UUID(book_id)
     except ValueError:
@@ -659,7 +694,12 @@ async def delete_book(book_id: str, db: AsyncSession = Depends(get_db)):
 
 # Chapter endpoints
 @router.post("/{book_id}/chapters", response_model=ChapterResponse, status_code=status.HTTP_201_CREATED)
-async def add_chapter(book_id: str, chapter: ChapterCreate, db: AsyncSession = Depends(get_db)):
+async def add_chapter(
+    book_id: str,
+    chapter: ChapterCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
     try:
         uuid_id = UUID(book_id)
     except ValueError:
@@ -668,6 +708,8 @@ async def add_chapter(book_id: str, chapter: ChapterCreate, db: AsyncSession = D
     book = await db.get(Book, uuid_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    _require_book_owner(book, admin)
 
     new_chapter = Chapter(
         book_id=uuid_id,
@@ -692,7 +734,8 @@ async def update_chapter(
     book_id: str,
     chapter_id: str,
     chapter: ChapterUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     try:
         book_uuid = UUID(book_id)
@@ -703,6 +746,8 @@ async def update_chapter(
     book = await get_book_with_relations(db, book_uuid)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    _require_book_owner(book, admin)
 
     # Find the chapter
     existing_chapter = await db.get(Chapter, chapter_uuid)
@@ -744,7 +789,12 @@ async def update_chapter(
 
 
 @router.delete("/{book_id}/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_chapter(
+    book_id: str,
+    chapter_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
     """Soft delete a chapter by setting is_deleted to true."""
     try:
         book_uuid = UUID(book_id)
@@ -755,6 +805,8 @@ async def delete_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depen
     book = await db.get(Book, book_uuid)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    _require_book_owner(book, admin)
 
     chapter = await db.get(Chapter, chapter_uuid)
     if not chapter or chapter.book_id != book_uuid or chapter.is_deleted:
@@ -778,7 +830,12 @@ def sanitize_filename(name: str) -> str:
 
 
 @router.post("/{book_id}/chapters/{chapter_id}/process")
-async def process_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depends(get_db)):
+async def process_chapter(
+    book_id: str,
+    chapter_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
     """
     Process a chapter's audio file to HLS format.
 
@@ -793,6 +850,8 @@ async def process_chapter(book_id: str, chapter_id: str, db: AsyncSession = Depe
     book = await db.get(Book, book_uuid)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    _require_book_owner(book, admin)
 
     chapter = await db.get(Chapter, chapter_uuid)
     if not chapter or chapter.book_id != book_uuid:

@@ -14,3 +14,6 @@ class Admin(Base, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # "admin" — full access. "publisher" — scoped to their own books/chapters
+    # only, plus read-only reference data. See utils/auth.require_full_admin.
+    role: Mapped[str] = mapped_column(String(20), default="admin", nullable=False)
