@@ -2,24 +2,30 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { FadeIn } from "@/components/animations/FadeIn";
-import { BookShareData, getThumbnailUrl, formatDuration } from "@/lib/api";
+import { BookShareData, getThumbnailUrl, getChapterImageUrl, formatDuration } from "@/lib/api";
 import { AppStoreButtons } from "@/components/ui/AppStoreButtons";
 
 interface BookDetailsProps {
   book: BookShareData | null;
-  bookId: string;
 }
 
-export function BookDetails({ book, bookId }: BookDetailsProps) {
+export function BookDetails({ book }: BookDetailsProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
+  // Deep links always use the book's real ID (not the slug) — the mobile
+  // app's link handler expects a UUID regardless of which URL (UUID or
+  // slug) the visitor landed on.
+  const deepLinkId = book?.id;
+
   const handleListenNow = () => {
+    if (!deepLinkId) return;
     setIsRedirecting(true);
 
     // Try to open the app with deep link
-    window.location.href = `shrota://book/${bookId}`;
+    window.location.href = `shrota://book/${deepLinkId}`;
 
     // Fallback to app store after timeout
     setTimeout(() => {
@@ -42,14 +48,14 @@ export function BookDetails({ book, bookId }: BookDetailsProps) {
   // Auto-attempt deep link on mobile
   useEffect(() => {
     const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
-    if (isMobile && book) {
+    if (isMobile && deepLinkId) {
       // Small delay to ensure page is loaded
       const timer = setTimeout(() => {
-        window.location.href = `shrota://book/${bookId}`;
+        window.location.href = `shrota://book/${deepLinkId}`;
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [bookId, book]);
+  }, [deepLinkId]);
 
   if (!book) {
     return null;
@@ -62,6 +68,26 @@ export function BookDetails({ book, bookId }: BookDetailsProps) {
       <section className="py-12 sm:py-24 bg-bg-primary">
         <Container>
           <FadeIn className="max-w-3xl mx-auto">
+            <nav aria-label="Breadcrumb" className="mb-8">
+              <ol className="flex items-center flex-wrap gap-2 text-sm text-text-secondary">
+                <li>
+                  <Link href="/" className="hover:text-text-primary transition-colors">
+                    Shrota
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li>
+                  <Link href="/books" className="hover:text-text-primary transition-colors">
+                    Books
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li className="text-text-primary truncate max-w-[240px] sm:max-w-md" aria-current="page">
+                  {book.title}
+                </li>
+              </ol>
+            </nav>
+
             <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start">
               {/* Book Cover */}
               <div className="flex-shrink-0">
@@ -71,7 +97,8 @@ export function BookDetails({ book, bookId }: BookDetailsProps) {
                     alt={book.title}
                     width={200}
                     height={200}
-                    className="rounded-2xl shadow-2xl"
+                    unoptimized
+                    className="rounded-2xl shadow-2xl object-cover"
                     priority
                   />
                 ) : (
@@ -108,17 +135,26 @@ export function BookDetails({ book, bookId }: BookDetailsProps) {
                 {/* Metadata Pills */}
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-6">
                   {book.language_name && (
-                    <span className="px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                      </svg>
                       {book.language_name}
                     </span>
                   )}
                   {book.total_duration && (
-                    <span className="px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       {formatDuration(book.total_duration)}
                     </span>
                   )}
                   {book.chapter_count > 0 && (
-                    <span className="px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-card text-text-secondary text-sm border border-white/10">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
                       {book.chapter_count}{" "}
                       {book.chapter_count === 1 ? "Chapter" : "Chapters"}
                     </span>
@@ -196,12 +232,63 @@ export function BookDetails({ book, bookId }: BookDetailsProps) {
               </div>
             )}
 
+            {/* Chapters */}
+            {book.chapters.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-xl font-bold text-text-primary mb-4">
+                  Chapters ({book.chapters.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {book.chapters.map((chapter, index) => {
+                    const chapterImageUrl = getChapterImageUrl(chapter.image);
+                    return (
+                      <div
+                        key={chapter.id}
+                        className="flex items-center gap-4 bg-bg-card rounded-xl p-3 sm:p-4 border border-white/5"
+                      >
+                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-lg overflow-hidden bg-bg-secondary">
+                          {chapterImageUrl ? (
+                            <Image
+                              src={chapterImageUrl}
+                              alt={chapter.title}
+                              fill
+                              unoptimized
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm font-semibold">
+                              {index + 1}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-text-primary font-medium truncate">
+                            {index + 1}. {chapter.title}
+                          </p>
+                          {chapter.description && (
+                            <p className="text-text-secondary text-sm truncate">
+                              {chapter.description}
+                            </p>
+                          )}
+                        </div>
+                        {chapter.duration ? (
+                          <span className="text-text-secondary text-sm flex-shrink-0">
+                            {formatDuration(chapter.duration)}
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Download App Section */}
             <div className="mt-12 text-center">
               <p className="text-text-secondary mb-6">
                 Don&apos;t have the app yet? Download Shrota to start listening.
               </p>
-              <AppStoreButtons />
+              <AppStoreButtons className="justify-center" />
             </div>
           </FadeIn>
         </Container>

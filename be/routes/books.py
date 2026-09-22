@@ -23,6 +23,7 @@ from schemas.book import (
 )
 from utils.hls_converter import convert_to_hls, HLSConversionError
 from utils.age import is_adult as user_is_adult
+from utils.slugify import generate_unique_slug
 from routes.user_auth import get_optional_current_user
 
 router = APIRouter(prefix="/books", tags=["Books"])
@@ -56,6 +57,7 @@ def book_to_response(book: Book) -> dict:
     return {
         "id": str(book.id),
         "title": book.title,
+        "slug": book.slug,
         "genre_ids": [str(g.id) for g in book.genres],
         "information": book.information,
         "author_ids": [str(a.id) for a in book.authors],
@@ -102,6 +104,29 @@ async def get_book_with_relations(db: AsyncSession, book_id: UUID) -> Optional[B
         .where(Book.id == book_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_book_with_relations_by_slug(db: AsyncSession, slug: str) -> Optional[Book]:
+    """Get a book with all its relationships eagerly loaded, looked up by slug."""
+    result = await db.execute(
+        select(Book)
+        .options(
+            selectinload(Book.authors),
+            selectinload(Book.artists),
+            selectinload(Book.genres),
+            selectinload(Book.chapters),
+        )
+        .where(Book.slug == slug)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _book_slug_exists(db: AsyncSession, slug: str, exclude_id: Optional[UUID] = None) -> bool:
+    query = select(Book.id).where(Book.slug == slug)
+    if exclude_id is not None:
+        query = query.where(Book.id != exclude_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none() is not None
 
 
 @router.get("", response_model=list[BookResponse])
@@ -244,18 +269,68 @@ async def get_published_books(
     return [book_to_response(book) for book in books]
 
 
+@router.get("/public")
+async def get_public_books_catalog(db: AsyncSession = Depends(get_db)):
+    """
+    Public, SEO-crawlable catalog for the website: published, non-deleted,
+    non-adult books with resolved author/genre names and slug URLs.
+    """
+    query = (
+        select(Book)
+        .options(
+            selectinload(Book.authors),
+            selectinload(Book.artists),
+            selectinload(Book.genres),
+            selectinload(Book.chapters),
+        )
+        .where(Book.is_published == True)
+        .where(Book.is_deleted == False)
+        .where(Book.is_adult == False)
+        .order_by(Book.updated_at.desc())
+    )
+    result = await db.execute(query)
+    books = result.scalars().all()
+
+    language_ids = {book.language_id for book in books if book.language_id}
+    languages: dict[UUID, str] = {}
+    if language_ids:
+        lang_result = await db.execute(select(Language).where(Language.id.in_(language_ids)))
+        languages = {lang.id: lang.name for lang in lang_result.scalars().all()}
+
+    catalog = []
+    for book in books:
+        chapter_count = len([ch for ch in book.chapters if ch.is_published and not ch.is_deleted])
+        catalog.append({
+            "id": str(book.id),
+            "slug": book.slug,
+            "title": book.title,
+            "information": book.information,
+            "thumbnail": book.thumbnail,
+            "total_duration": book.total_duration,
+            "author_names": [a.name for a in book.authors],
+            "artist_names": [a.name for a in book.artists],
+            "genre_names": [g.name for g in book.genres],
+            "language_name": languages.get(book.language_id) if book.language_id else None,
+            "chapter_count": chapter_count,
+            "updated_at": book.updated_at,
+        })
+    return catalog
+
+
 @router.get("/{book_id}/share")
 async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
     """
     Public endpoint returning enriched book data for sharing.
+    `book_id` may be either a UUID (app deep links) or a slug (website catalog
+    links) — resolved by whichever it matches.
     Returns resolved names for authors, artists, genres, and language.
     """
     try:
         uuid_id = UUID(book_id)
+        book = await get_book_with_relations(db, uuid_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid book ID")
+        book = await get_book_with_relations_by_slug(db, book_id)
 
-    book = await get_book_with_relations(db, uuid_id)
     if not book or book.is_deleted or not book.is_published:
         raise HTTPException(status_code=404, detail="Book not found")
 
@@ -266,11 +341,16 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
         if language:
             language_name = language.name
 
-    # Count published chapters
-    chapter_count = len([ch for ch in book.chapters if ch.is_published and not ch.is_deleted])
+    # Published chapters, in order
+    published_chapters = sorted(
+        [ch for ch in book.chapters if ch.is_published and not ch.is_deleted],
+        key=lambda ch: ch.order,
+    )
+    chapter_count = len(published_chapters)
 
     return {
         "id": str(book.id),
+        "slug": book.slug,
         "title": book.title,
         "information": book.information,
         "thumbnail": book.thumbnail,
@@ -280,6 +360,17 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
         "genre_names": [g.name for g in book.genres],
         "language_name": language_name,
         "chapter_count": chapter_count,
+        "chapters": [
+            {
+                "id": str(ch.id),
+                "title": ch.title,
+                "description": ch.description,
+                "order": ch.order,
+                "image": ch.image,
+                "duration": ch.duration,
+            }
+            for ch in published_chapters
+        ],
         "is_adult": book.is_adult,
     }
 
@@ -372,8 +463,12 @@ async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Publisher not found")
 
     # Create the book
+    slug = await generate_unique_slug(
+        book.title, lambda candidate: _book_slug_exists(db, candidate)
+    )
     new_book = Book(
         title=book.title,
+        slug=slug,
         information=book.information,
         thumbnail=book.thumbnail,
         total_duration=0,
@@ -494,6 +589,13 @@ async def update_book(book_id: str, book: BookUpdate, db: AsyncSession = Depends
                 status_code=400,
                 detail="Cannot publish book: at least one chapter must be published first"
             )
+
+    # Regenerate the slug if the title changed, keeping it unique
+    if "title" in update_data and update_data["title"] != existing.title:
+        update_data["slug"] = await generate_unique_slug(
+            update_data["title"],
+            lambda candidate: _book_slug_exists(db, candidate, exclude_id=uuid_id),
+        )
 
     # Update remaining fields
     for key, value in update_data.items():

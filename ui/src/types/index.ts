@@ -109,6 +109,7 @@ export interface ChapterCreate {
 export interface Book {
   id: string;
   title: string;
+  slug: string;
   genre_ids: string[];  // Multiple genres
   information: string;
   author_ids: string[];  // Multiple authors
