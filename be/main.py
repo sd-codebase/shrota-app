@@ -28,6 +28,7 @@ from routes import (
     news_router,
     admin_team_router,
     splash_router,
+    app_open_ad_router,
 )
 
 
@@ -70,6 +71,7 @@ app.include_router(events_router)
 app.include_router(news_router)
 app.include_router(admin_team_router)
 app.include_router(splash_router)
+app.include_router(app_open_ad_router)
 
 
 @app.exception_handler(RequestValidationError)

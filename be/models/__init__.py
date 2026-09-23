@@ -13,6 +13,7 @@ from models.user_preferences import UserPreferences, user_preferred_languages, u
 from models.event import Event
 from models.news import News
 from models.splash import SplashResource
+from models.app_open_ad import AppOpenAd
 
 __all__ = [
     "Base",
@@ -41,4 +42,5 @@ __all__ = [
     "Event",
     "News",
     "SplashResource",
+    "AppOpenAd",
 ]

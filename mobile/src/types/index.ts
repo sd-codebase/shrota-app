@@ -407,6 +407,17 @@ export interface SplashResource {
   updated_at: string;
 }
 
+// App-open ad image, set by admins in the dashboard — shown once per app
+// launch, after the splash screen. Image only — no video.
+export interface AppOpenAd {
+  id: string;
+  file: string;
+  is_active: boolean;
+  link?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Explore feature types
 export interface ExploreFilters {
   search?: string;

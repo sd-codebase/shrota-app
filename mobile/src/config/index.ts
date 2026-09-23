@@ -32,3 +32,11 @@ export const getSplashResourceUrl = (filePath: string): string => {
   if (filePath.startsWith('http')) return filePath;
   return `${API_URL}/files/splash/${filePath}`;
 };
+
+// Helper to get full API URL for the app-open ad image (separate from,
+// and shown after, the splash screen)
+export const getAppOpenAdUrl = (filePath: string): string => {
+  if (!filePath) return '';
+  if (filePath.startsWith('http')) return filePath;
+  return `${API_URL}/files/app-open-ad/${filePath}`;
+};

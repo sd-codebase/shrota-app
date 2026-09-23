@@ -15,6 +15,7 @@ import {
   PublicationDetailResponse,
   GenreDetailResponse,
   SplashResource,
+  AppOpenAd,
 } from '../types';
 
 // Helper to create authenticated fetch headers (for legacy endpoints)
@@ -34,6 +35,19 @@ function getAuthHeaders(token?: string): HeadersInit {
 export async function fetchActiveSplash(): Promise<SplashResource | null> {
   try {
     const response = await fetch(`${API_URL}/splash/active`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// Fetch the currently active app-open ad image, set by admins in the
+// dashboard. Shown once per app launch, after the splash screen. Returns
+// null if none is active — the caller should skip showing anything.
+export async function fetchActiveAppOpenAd(): Promise<AppOpenAd | null> {
+  try {
+    const response = await fetch(`${API_URL}/app-open-ad/active`);
     if (!response.ok) return null;
     return await response.json();
   } catch {

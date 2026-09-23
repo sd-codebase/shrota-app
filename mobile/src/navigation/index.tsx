@@ -1,4 +1,4 @@
-import React, { createRef, useRef } from 'react';
+import React, { createRef, useRef, useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer, NavigationContainerRef, LinkingOptions, NavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -22,9 +22,12 @@ import { ArtistDetailsScreen } from '../screens/ArtistDetailsScreen';
 import { PublicationDetailsScreen } from '../screens/PublicationDetailsScreen';
 import { GenreDetailsScreen } from '../screens/GenreDetailsScreen';
 import { DeepLinkHandlerScreen } from '../screens/DeepLinkHandlerScreen';
-import { RootStackParamList, MainTabParamList } from '../types';
+import { RootStackParamList, MainTabParamList, AppOpenAd } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { Analytics, AnalyticsEvents } from '../services/analytics';
+import { fetchActiveAppOpenAd } from '../services/api';
+import { getAppOpenAdUrl } from '../config';
+import { AppOpenAdOverlay } from '../components/AppOpenAdOverlay';
 
 // Helper to get the current route name from navigation state
 function getActiveRouteName(state: NavigationState | undefined): string | undefined {
@@ -194,6 +197,30 @@ export function AppNavigator() {
   const { colors } = useTheme();
   const routeNameRef = useRef<string | undefined>();
 
+  // App-open ad ("welcome image") — shown once per app launch, right after
+  // the splash screen hands off to Login/MainTabs. Rendered as an overlay
+  // on top of the navigator; does not touch SplashScreen at all.
+  const [appOpenAd, setAppOpenAd] = useState<AppOpenAd | null>(null);
+  const [showAppOpenAd, setShowAppOpenAd] = useState(false);
+  const hasLeftSplashRef = useRef(false);
+  const hasShownAdRef = useRef(false);
+
+  useEffect(() => {
+    fetchActiveAppOpenAd().then(setAppOpenAd);
+  }, []);
+
+  // The ad fetch is a network call and may resolve after we've already left
+  // Splash (Splash's own minimum display time can be shorter than the
+  // round-trip). If that happens, show it as soon as it arrives instead of
+  // silently missing the window — only the navigation-state-change handler
+  // below covers the case where the fetch was already done in time.
+  useEffect(() => {
+    if (appOpenAd && hasLeftSplashRef.current && !hasShownAdRef.current) {
+      hasShownAdRef.current = true;
+      setShowAppOpenAd(true);
+    }
+  }, [appOpenAd]);
+
   const onNavigationReady = () => {
     routeNameRef.current = getActiveRouteName(navigationRef.current?.getRootState());
   };
@@ -211,55 +238,78 @@ export function AppNavigator() {
       if (tabs.includes(currentRouteName)) {
         Analytics.track(AnalyticsEvents.TAB_SWITCHED, { tab_name: currentRouteName });
       }
+
+      // First time we leave Splash this app session — show the welcome
+      // image overlay (if an admin has one active).
+      if (!hasLeftSplashRef.current && previousRouteName === 'Splash' && currentRouteName !== 'Splash') {
+        hasLeftSplashRef.current = true;
+        if (appOpenAd && !hasShownAdRef.current) {
+          hasShownAdRef.current = true;
+          setShowAppOpenAd(true);
+        }
+      }
     }
 
     routeNameRef.current = currentRouteName;
   };
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      linking={linking}
-      onReady={onNavigationReady}
-      onStateChange={onNavigationStateChange}
-    >
-      <RootStack.Navigator
-        initialRouteName="Splash"
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}
+    <View style={styles.root}>
+      <NavigationContainer
+        ref={navigationRef}
+        linking={linking}
+        onReady={onNavigationReady}
+        onStateChange={onNavigationStateChange}
       >
-        {/* Auth Screens */}
-        <RootStack.Screen name="Splash" component={SplashScreen} />
-        <RootStack.Screen name="Login" component={LoginScreen} />
-        <RootStack.Screen name="Register" component={RegisterScreen} />
-        <RootStack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-
-        {/* Main App with Bottom Tabs */}
-        <RootStack.Screen name="MainTabs" component={MainTabNavigator} />
-
-        {/* Player as Modal - covers tabs */}
-        <RootStack.Screen
-          name="Player"
-          component={PlayerScreen}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
-            gestureEnabled: true,
-            gestureDirection: 'vertical',
+        <RootStack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'slide_from_right',
           }}
-        />
+        >
+          {/* Auth Screens */}
+          <RootStack.Screen name="Splash" component={SplashScreen} />
+          <RootStack.Screen name="Login" component={LoginScreen} />
+          <RootStack.Screen name="Register" component={RegisterScreen} />
+          <RootStack.Screen name="OTPVerification" component={OTPVerificationScreen} />
 
-        {/* Deep Link Handler */}
-        <RootStack.Screen name="DeepLinkHandler" component={DeepLinkHandlerScreen} />
-      </RootStack.Navigator>
-    </NavigationContainer>
+          {/* Main App with Bottom Tabs */}
+          <RootStack.Screen name="MainTabs" component={MainTabNavigator} />
+
+          {/* Player as Modal - covers tabs */}
+          <RootStack.Screen
+            name="Player"
+            component={PlayerScreen}
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
+            }}
+          />
+
+          {/* Deep Link Handler */}
+          <RootStack.Screen name="DeepLinkHandler" component={DeepLinkHandlerScreen} />
+        </RootStack.Navigator>
+      </NavigationContainer>
+
+      {showAppOpenAd && appOpenAd && (
+        <AppOpenAdOverlay
+          imageUrl={getAppOpenAdUrl(appOpenAd.file)}
+          link={appOpenAd.link}
+          onClose={() => setShowAppOpenAd(false)}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',

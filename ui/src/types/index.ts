@@ -462,3 +462,25 @@ export interface SplashUploadResponse {
   resource_type: SplashResourceType;
   content_type: string;
 }
+
+// App-open ad (image only, shown ~2s on app launch)
+export interface AppOpenAd {
+  id: string;
+  file: string;
+  is_active: boolean;
+  link?: string;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppOpenAdCreate {
+  file: string;
+  is_active: boolean;
+  link?: string;
+}
+
+export interface AppOpenAdUploadResponse {
+  filename: string;
+  content_type: string;
+}

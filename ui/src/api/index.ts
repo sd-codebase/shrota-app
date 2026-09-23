@@ -48,6 +48,9 @@ import type {
   SplashResource,
   SplashResourceCreate,
   SplashUploadResponse,
+  AppOpenAd,
+  AppOpenAdCreate,
+  AppOpenAdUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -740,3 +743,41 @@ export const uploadSplashFile = async (file: File): Promise<SplashUploadResponse
 };
 
 export const getSplashFileUrl = (filename: string) => `${API_URL}/files/splash/${filename}`;
+
+// App-open ad (image only, shown ~2s on app launch after the splash screen)
+export const getAppOpenAds = () => request<AppOpenAd[]>('/app-open-ad');
+
+export const createAppOpenAd = (data: AppOpenAdCreate) =>
+  request<AppOpenAd>('/app-open-ad', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateAppOpenAd = (id: string, is_active: boolean) =>
+  request<AppOpenAd>(`/app-open-ad/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ is_active }),
+  });
+
+export const deleteAppOpenAd = (id: string) =>
+  request<void>(`/app-open-ad/${id}`, { method: 'DELETE' });
+
+export const uploadAppOpenAdFile = async (file: File): Promise<AppOpenAdUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/files/upload/app-open-ad`, {
+    method: 'POST',
+    body: formData,
+    headers: getAuthHeader(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'App-open ad upload failed' }));
+    throw new Error(error.detail || 'App-open ad upload failed');
+  }
+
+  return response.json();
+};
+
+export const getAppOpenAdFileUrl = (filename: string) => `${API_URL}/files/app-open-ad/${filename}`;
