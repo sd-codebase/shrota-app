@@ -16,6 +16,7 @@ import {
   ReadOutlined,
   IdcardOutlined,
   PlaySquareOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -30,6 +31,7 @@ import Events from './pages/Events';
 import NewsPage from './pages/News';
 import Team from './pages/Team';
 import Splash from './pages/Splash';
+import AppOpenAd from './pages/AppOpenAd';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminOnlyRoute from './components/AdminOnlyRoute';
@@ -116,6 +118,11 @@ function App() {
             icon: <PlaySquareOutlined />,
             label: <Link to="/splash">Splash Screen</Link>,
           },
+          {
+            key: '/app-open-ad',
+            icon: <PictureOutlined />,
+            label: <Link to="/app-open-ad">App Open Ad</Link>,
+          },
         ]
       : []),
   ];
@@ -191,6 +198,7 @@ function App() {
                 <Route path="/news" element={<AdminOnlyRoute><NewsPage /></AdminOnlyRoute>} />
                 <Route path="/team" element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
                 <Route path="/splash" element={<AdminOnlyRoute><Splash /></AdminOnlyRoute>} />
+                <Route path="/app-open-ad" element={<AdminOnlyRoute><AppOpenAd /></AdminOnlyRoute>} />
               </Routes>
             </div>
           </Content>

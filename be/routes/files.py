@@ -64,6 +64,8 @@ NEWS_COVERS_DIR = os.path.join(UPLOAD_DIR, "news-covers")
 Path(NEWS_COVERS_DIR).mkdir(parents=True, exist_ok=True)
 SPLASH_DIR = os.path.join(UPLOAD_DIR, "splash")
 Path(SPLASH_DIR).mkdir(parents=True, exist_ok=True)
+APP_OPEN_AD_DIR = os.path.join(UPLOAD_DIR, "app-open-ad")
+Path(APP_OPEN_AD_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
@@ -588,6 +590,52 @@ async def get_splash_resource(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Splash resource not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/app-open-ad", status_code=status.HTTP_201_CREATED)
+async def upload_app_open_ad(
+    file: UploadFile = File(...),
+):
+    """
+    Upload an app-open ad image. Image only — no video.
+    Filename format: ad-{uuid}.{ext}
+    """
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image files are allowed ({', '.join(sorted(ALLOWED_IMAGE_EXTENSIONS))})"
+        )
+
+    await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
+
+    file_name = f"ad-{uuid4().hex[:12]}{file_extension}"
+    file_path = os.path.join(APP_OPEN_AD_DIR, file_name)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save app-open ad: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/app-open-ad/{filename}")
+async def get_app_open_ad_file(filename: str):
+    """Get an app-open ad image by filename."""
+    validate_path_traversal(filename)
+    file_path = os.path.join(APP_OPEN_AD_DIR, filename)
+    validate_resolved_path(file_path, APP_OPEN_AD_DIR)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="App-open ad not found")
 
     return FileResponse(path=file_path, filename=filename)
 
