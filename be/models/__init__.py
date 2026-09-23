@@ -12,6 +12,7 @@ from models.content_promotion import NewRelease, FeaturedBook, PromotedBook
 from models.user_preferences import UserPreferences, user_preferred_languages, user_preferred_genres
 from models.event import Event
 from models.news import News
+from models.splash import SplashResource
 
 __all__ = [
     "Base",
@@ -39,4 +40,5 @@ __all__ = [
     "user_preferred_genres",
     "Event",
     "News",
+    "SplashResource",
 ]

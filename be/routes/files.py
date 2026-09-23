@@ -12,6 +12,7 @@ router = APIRouter(prefix="/files", tags=["Files"])
 # File size limits (in bytes)
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_AUDIO_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50 MB — splash videos are a few seconds
 
 
 def validate_path_traversal(filename: str) -> None:
@@ -61,9 +62,12 @@ EVENT_COVERS_DIR = os.path.join(UPLOAD_DIR, "event-covers")
 Path(EVENT_COVERS_DIR).mkdir(parents=True, exist_ok=True)
 NEWS_COVERS_DIR = os.path.join(UPLOAD_DIR, "news-covers")
 Path(NEWS_COVERS_DIR).mkdir(parents=True, exist_ok=True)
+SPLASH_DIR = os.path.join(UPLOAD_DIR, "splash")
+Path(SPLASH_DIR).mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_AUDIO_EXTENSIONS = {".m4a", ".aac", ".wav"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v"}
 
 
 @router.post("/upload/chapter", status_code=status.HTTP_201_CREATED)
@@ -532,6 +536,58 @@ async def get_news_cover(filename: str):
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="News cover not found")
+
+    return FileResponse(path=file_path, filename=filename)
+
+
+@router.post("/upload/splash", status_code=status.HTTP_201_CREATED)
+async def upload_splash_resource(
+    file: UploadFile = File(...),
+):
+    """
+    Upload an app splash screen resource — an image or a short video.
+    Filename format: splash-{uuid}.{ext}
+    """
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ""
+
+    if file_extension in ALLOWED_IMAGE_EXTENSIONS:
+        resource_type = "image"
+        await validate_file_size(file, MAX_IMAGE_SIZE, "Image")
+    elif file_extension in ALLOWED_VIDEO_EXTENSIONS:
+        resource_type = "video"
+        await validate_file_size(file, MAX_VIDEO_SIZE, "Video")
+    else:
+        allowed = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only image or video files are allowed ({', '.join(sorted(allowed))})"
+        )
+
+    file_name = f"splash-{uuid4().hex[:12]}{file_extension}"
+    file_path = os.path.join(SPLASH_DIR, file_name)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save splash resource: {str(e)}")
+
+    return {
+        "filename": file_name,
+        "resource_type": resource_type,
+        "content_type": file.content_type,
+    }
+
+
+@router.get("/splash/{filename}")
+async def get_splash_resource(filename: str):
+    """Get an app splash screen resource (image or video) by filename."""
+    validate_path_traversal(filename)
+    file_path = os.path.join(SPLASH_DIR, filename)
+    validate_resolved_path(file_path, SPLASH_DIR)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Splash resource not found")
 
     return FileResponse(path=file_path, filename=filename)
 

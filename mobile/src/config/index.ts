@@ -25,3 +25,10 @@ export const getChapterImageUrl = (imagePath: string): string => {
   if (imagePath.startsWith('http')) return imagePath;
   return `${API_URL}/files/chapter-image/${imagePath}`;
 };
+
+// Helper to get full API URL for the splash screen resource (image/video)
+export const getSplashResourceUrl = (filePath: string): string => {
+  if (!filePath) return '';
+  if (filePath.startsWith('http')) return filePath;
+  return `${API_URL}/files/splash/${filePath}`;
+};

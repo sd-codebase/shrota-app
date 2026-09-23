@@ -14,6 +14,7 @@ import {
   ArtistDetailResponse,
   PublicationDetailResponse,
   GenreDetailResponse,
+  SplashResource,
 } from '../types';
 
 // Helper to create authenticated fetch headers (for legacy endpoints)
@@ -25,6 +26,19 @@ function getAuthHeaders(token?: string): HeadersInit {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
+}
+
+// Fetch the currently active splash screen resource (image or video), set
+// by admins in the dashboard. Returns null if none is active — the caller
+// should fall back to the app's built-in static splash in that case.
+export async function fetchActiveSplash(): Promise<SplashResource | null> {
+  try {
+    const response = await fetch(`${API_URL}/splash/active`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
 // Fetch all published books (legacy endpoint, not auth required)

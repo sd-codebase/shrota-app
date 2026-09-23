@@ -437,3 +437,28 @@ export interface NewsCoverUploadResponse {
   news_title: string;
   content_type: string;
 }
+
+// Splash resource types
+export type SplashResourceType = 'image' | 'video';
+
+export interface SplashResource {
+  id: string;
+  resource_type: SplashResourceType;
+  file: string;
+  is_active: boolean;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SplashResourceCreate {
+  resource_type: SplashResourceType;
+  file: string;
+  is_active: boolean;
+}
+
+export interface SplashUploadResponse {
+  filename: string;
+  resource_type: SplashResourceType;
+  content_type: string;
+}
