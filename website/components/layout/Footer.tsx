@@ -21,6 +21,10 @@ const footerLinks = {
   ],
   legal: [
     { href: "/privacy", label: "Privacy Policy" },
+    { href: "/cookie-policy", label: "Cookie Policy" },
+    { href: "/personnel-privacy-policy", label: "Personnel Privacy Policy" },
+    { href: "/security-advice", label: "Security Advice" },
+    { href: "/copyright-policy", label: "Copyright Policy" },
     { href: "/terms", label: "Terms & Conditions" },
     { href: "/vulnerability-disclosure", label: "Vulnerability Disclosure" },
     { href: "/delete-account", label: "Delete Account" },
