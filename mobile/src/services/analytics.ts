@@ -1,5 +1,6 @@
-import analytics from '@react-native-firebase/analytics';
 import crashlytics from '@react-native-firebase/crashlytics';
+
+import { ActivityLog } from './activityLog';
 
 // Event names for type safety
 export const AnalyticsEvents = {
@@ -54,8 +55,15 @@ class AnalyticsService {
    */
   setEnabled(enabled: boolean) {
     this.isEnabled = enabled;
-    analytics().setAnalyticsCollectionEnabled(enabled);
+    ActivityLog.setEnabled(enabled);
     crashlytics().setCrashlyticsCollectionEnabled(enabled);
+  }
+
+  /**
+   * Start the session. Safe to call more than once.
+   */
+  async init() {
+    await ActivityLog.init();
   }
 
   /**
@@ -63,24 +71,19 @@ class AnalyticsService {
    */
   async track(eventName: string, params?: Record<string, any>) {
     if (!this.isEnabled) return;
-
-    try {
-      // Firebase event names must be alphanumeric with underscores
-      const sanitizedName = eventName.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 40);
-      await analytics().logEvent(sanitizedName, params);
-    } catch (error) {
-      console.log('Analytics track error:', error);
-    }
+    ActivityLog.track(eventName, params);
   }
 
   /**
-   * Set user ID for analytics and crashlytics (call after login)
+   * Attribute the session to a user (call after login). Everything already
+   * logged anonymously in this session is claimed server-side too, so
+   * nothing from before sign-in is lost.
    */
   async identify(userId: string) {
     if (!this.isEnabled) return;
 
     try {
-      await analytics().setUserId(userId);
+      await ActivityLog.identify();
       await crashlytics().setUserId(userId);
     } catch (error) {
       console.log('Analytics identify error:', error);
@@ -92,8 +95,10 @@ class AnalyticsService {
    */
   async reset() {
     try {
-      await analytics().setUserId(null);
-      // Crashlytics doesn't have a reset method, but we can set to empty
+      // Flush while the token is still valid, so events from the
+      // just-ended signed-in period are attributed before it is cleared.
+      await ActivityLog.flush();
+      await crashlytics().setUserId('');
     } catch (error) {
       console.log('Analytics reset error:', error);
     }
@@ -106,7 +111,6 @@ class AnalyticsService {
     if (!this.isEnabled) return;
 
     try {
-      await analytics().setUserProperty(key, value);
       if (value) {
         await crashlytics().setAttribute(key, value);
       }
@@ -120,15 +124,10 @@ class AnalyticsService {
    */
   async screenView(screenName: string, screenClass?: string) {
     if (!this.isEnabled) return;
-
-    try {
-      await analytics().logScreenView({
-        screen_name: screenName,
-        screen_class: screenClass || screenName,
-      });
-    } catch (error) {
-      console.log('Analytics screenView error:', error);
-    }
+    ActivityLog.track(AnalyticsEvents.SCREEN_VIEW, {
+      screen_name: screenName,
+      screen_class: screenClass || screenName,
+    });
   }
 
   /**

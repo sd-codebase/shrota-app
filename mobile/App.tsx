@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { setupPlayer } from './src/services/trackPlayerService';
 import { Notifications } from './src/services/notifications';
 import { checkWhatsAppReminder } from './src/services/whatsappReminder';
+import { Analytics, AnalyticsEvents } from './src/services/analytics';
 
 // Component to handle notification press navigation
 function NotificationHandler() {
@@ -102,6 +103,13 @@ function LoadingScreen() {
 // Main app content wrapped with player setup
 function AppContent() {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+
+  // Opens the activity session before anything else, so what happens
+  // during setup — and before the user signs in — is still recorded.
+  useEffect(() => {
+    Analytics.init();
+    Analytics.track(AnalyticsEvents.APP_OPENED);
+  }, []);
 
   useEffect(() => {
     async function setup() {

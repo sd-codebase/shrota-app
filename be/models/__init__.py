@@ -14,6 +14,7 @@ from models.event import Event
 from models.news import News
 from models.splash import SplashResource
 from models.app_open_ad import AppOpenAd
+from models.activity import ActivitySession, ActivityEvent
 
 __all__ = [
     "Base",
@@ -43,4 +44,6 @@ __all__ = [
     "News",
     "SplashResource",
     "AppOpenAd",
+    "ActivitySession",
+    "ActivityEvent",
 ]

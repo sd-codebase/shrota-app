@@ -51,6 +51,11 @@ import type {
   AppOpenAd,
   AppOpenAdCreate,
   AppOpenAdUploadResponse,
+  ActivitySession,
+  ActivitySessionListResponse,
+  ActivitySessionFilters,
+  ActivityEvent,
+  ActivityFilterOptions,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -781,3 +786,23 @@ export const uploadAppOpenAdFile = async (file: File): Promise<AppOpenAdUploadRe
 };
 
 export const getAppOpenAdFileUrl = (filename: string) => `${API_URL}/files/app-open-ad/${filename}`;
+
+// Activity logs
+export const getActivitySessions = (filters: ActivitySessionFilters = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '' && value !== null) {
+      params.append(key, String(value));
+    }
+  });
+  const qs = params.toString();
+  return request<ActivitySessionListResponse>(`/activity/sessions${qs ? `?${qs}` : ''}`);
+};
+
+export const getActivitySessionEvents = (sessionId: string, eventName?: string) =>
+  request<ActivityEvent[]>(
+    `/activity/sessions/${sessionId}/events${eventName ? `?event_name=${encodeURIComponent(eventName)}` : ''}`
+  );
+
+export const getActivityFilterOptions = () =>
+  request<ActivityFilterOptions>('/activity/filter-options');
