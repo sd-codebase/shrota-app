@@ -397,6 +397,16 @@ export interface GenreDetailResponse {
   thumbnail?: string;
 }
 
+// Splash screen resource, set by admins in the dashboard
+export interface SplashResource {
+  id: string;
+  resource_type: 'image' | 'video';
+  file: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Explore feature types
 export interface ExploreFilters {
   search?: string;

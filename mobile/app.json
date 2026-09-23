@@ -16,7 +16,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.shrota.app",
-      "associatedDomains": ["applinks:shrota.in"],
+      "associatedDomains": [
+        "applinks:shrota.in"
+      ],
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -60,7 +62,10 @@
               "host": "book"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -89,7 +94,8 @@
             }
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "owner": "krishna.jsleet",
     "extra": {

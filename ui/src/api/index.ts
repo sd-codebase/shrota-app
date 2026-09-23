@@ -45,6 +45,9 @@ import type {
   News,
   NewsCreate,
   NewsCoverUploadResponse,
+  SplashResource,
+  SplashResourceCreate,
+  SplashUploadResponse,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -699,3 +702,41 @@ export const uploadNewsCover = async (file: File, newsTitle: string): Promise<Ne
 };
 
 export const getNewsCoverUrl = (filename: string) => `${API_URL}/files/news-cover/${filename}`;
+
+// Splash resources
+export const getSplashResources = () => request<SplashResource[]>('/splash');
+
+export const createSplashResource = (data: SplashResourceCreate) =>
+  request<SplashResource>('/splash', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateSplashResource = (id: string, is_active: boolean) =>
+  request<SplashResource>(`/splash/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ is_active }),
+  });
+
+export const deleteSplashResource = (id: string) =>
+  request<void>(`/splash/${id}`, { method: 'DELETE' });
+
+export const uploadSplashFile = async (file: File): Promise<SplashUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/files/upload/splash`, {
+    method: 'POST',
+    body: formData,
+    headers: getAuthHeader(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Splash upload failed' }));
+    throw new Error(error.detail || 'Splash upload failed');
+  }
+
+  return response.json();
+};
+
+export const getSplashFileUrl = (filename: string) => `${API_URL}/files/splash/${filename}`;

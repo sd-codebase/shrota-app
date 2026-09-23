@@ -15,6 +15,7 @@ import {
   CalendarOutlined,
   ReadOutlined,
   IdcardOutlined,
+  PlaySquareOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -28,6 +29,7 @@ import Notifications from './pages/Notifications';
 import Events from './pages/Events';
 import NewsPage from './pages/News';
 import Team from './pages/Team';
+import Splash from './pages/Splash';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminOnlyRoute from './components/AdminOnlyRoute';
@@ -109,6 +111,11 @@ function App() {
             icon: <IdcardOutlined />,
             label: <Link to="/team">Team</Link>,
           },
+          {
+            key: '/splash',
+            icon: <PlaySquareOutlined />,
+            label: <Link to="/splash">Splash Screen</Link>,
+          },
         ]
       : []),
   ];
@@ -183,6 +190,7 @@ function App() {
                 <Route path="/events" element={<AdminOnlyRoute><Events /></AdminOnlyRoute>} />
                 <Route path="/news" element={<AdminOnlyRoute><NewsPage /></AdminOnlyRoute>} />
                 <Route path="/team" element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
+                <Route path="/splash" element={<AdminOnlyRoute><Splash /></AdminOnlyRoute>} />
               </Routes>
             </div>
           </Content>
