@@ -13,6 +13,10 @@ const STATIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: Me
   { path: "/careers", priority: 0.3, changeFrequency: "monthly" },
   { path: "/write-with-us", priority: 0.5, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.2, changeFrequency: "yearly" },
+  { path: "/cookie-policy", priority: 0.2, changeFrequency: "yearly" },
+  { path: "/personnel-privacy-policy", priority: 0.1, changeFrequency: "yearly" },
+  { path: "/security-advice", priority: 0.2, changeFrequency: "yearly" },
+  { path: "/copyright-policy", priority: 0.2, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.2, changeFrequency: "yearly" },
 ];
 
