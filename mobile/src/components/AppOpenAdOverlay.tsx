@@ -94,7 +94,9 @@ export function AppOpenAdOverlay({ imageUrl, link, onClose }: AppOpenAdOverlayPr
             accessibilityRole="link"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.continueText}>Continue to Shrota</Text>
+            <Text style={[styles.continueText, { color: colors.brand.orange }]}>
+              Continue to Shrota
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -151,7 +153,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   continueText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
     textDecorationLine: 'underline',
