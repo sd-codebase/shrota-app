@@ -53,6 +53,8 @@ class ActivitySessionResponse(BaseModel):
     id: str
     install_id: str
     user_id: Optional[str] = None
+    user_name: Optional[str] = None
+    user_whatsapp: Optional[str] = None
     started_at: datetime
     ended_at: Optional[datetime] = None
     platform: Optional[str] = None
@@ -65,3 +67,17 @@ class ActivitySessionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ActivitySessionListResponse(BaseModel):
+    sessions: list[ActivitySessionResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class ActivityFilterOptions(BaseModel):
+    """Distinct values present in the data, for populating filter dropdowns."""
+    platforms: list[str]
+    app_versions: list[str]
+    event_names: list[str]

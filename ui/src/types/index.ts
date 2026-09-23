@@ -484,3 +484,56 @@ export interface AppOpenAdUploadResponse {
   filename: string;
   content_type: string;
 }
+
+// Activity logs (app usage sessions and their events)
+export interface ActivitySession {
+  id: string;
+  install_id: string;
+  user_id?: string;
+  user_name?: string;
+  user_whatsapp?: string;
+  started_at: string;
+  ended_at?: string;
+  platform?: string;
+  os_version?: string;
+  device_model?: string;
+  app_version?: string;
+  event_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActivitySessionListResponse {
+  sessions: ActivitySession[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ActivityEvent {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  event_name: string;
+  params?: Record<string, unknown>;
+  occurred_at: string;
+  received_at: string;
+}
+
+export interface ActivityFilterOptions {
+  platforms: string[];
+  app_versions: string[];
+  event_names: string[];
+}
+
+export interface ActivitySessionFilters {
+  limit?: number;
+  offset?: number;
+  identified?: boolean;
+  platform?: string;
+  app_version?: string;
+  event_name?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}

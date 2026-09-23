@@ -2,7 +2,8 @@ from uuid import UUID
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, update, func
+from datetime import datetime
+from sqlalchemy import select, update, func, or_, cast, String
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,8 @@ from schemas.activity import (
     ActivityIngestRequest,
     ActivityIngestResponse,
     ActivitySessionResponse,
+    ActivitySessionListResponse,
+    ActivityFilterOptions,
     ActivityEventResponse,
 )
 from utils.auth import require_full_admin
@@ -125,38 +128,91 @@ async def ingest_activity(
     )
 
 
-@router.get("/sessions", response_model=list[ActivitySessionResponse])
+@router.get("/sessions", response_model=ActivitySessionListResponse)
 async def list_activity_sessions(
-    limit: int = 50,
+    limit: int = 25,
     offset: int = 0,
     user_id: Optional[str] = None,
+    identified: Optional[bool] = None,
+    platform: Optional[str] = None,
+    app_version: Optional[str] = None,
+    event_name: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(require_full_admin),
 ):
-    """Admin: recent sessions, newest first, with their event counts."""
+    """Admin: sessions newest first, with filtering and a total for paging."""
     limit = max(1, min(limit, 200))
+    offset = max(0, offset)
 
-    count_sq = (
+    counts = (
         select(ActivityEvent.session_id, func.count().label("event_count"))
         .group_by(ActivityEvent.session_id)
         .subquery()
     )
-    query = (
-        select(ActivitySession, func.coalesce(count_sq.c.event_count, 0))
-        .outerjoin(count_sq, count_sq.c.session_id == ActivitySession.id)
-        .order_by(ActivitySession.started_at.desc())
-        .limit(limit)
-        .offset(max(0, offset))
-    )
-    if user_id:
-        query = query.where(ActivitySession.user_id == _uuid(user_id, "user_id"))
 
-    result = await db.execute(query)
-    return [
+    filters = []
+    if user_id:
+        filters.append(ActivitySession.user_id == _uuid(user_id, "user_id"))
+    if identified is True:
+        filters.append(ActivitySession.user_id.isnot(None))
+    elif identified is False:
+        filters.append(ActivitySession.user_id.is_(None))
+    if platform:
+        filters.append(ActivitySession.platform == platform)
+    if app_version:
+        filters.append(ActivitySession.app_version == app_version)
+    if date_from:
+        filters.append(ActivitySession.started_at >= date_from)
+    if date_to:
+        filters.append(ActivitySession.started_at <= date_to)
+    if event_name:
+        # Only sessions that actually contain this event.
+        filters.append(
+            select(ActivityEvent.id)
+            .where(
+                ActivityEvent.session_id == ActivitySession.id,
+                ActivityEvent.event_name == event_name,
+            )
+            .exists()
+        )
+    if search:
+        term = f"%{search.strip()}%"
+        filters.append(
+            or_(
+                User.name.ilike(term),
+                User.whatsapp_number.ilike(term),
+                cast(ActivitySession.id, String).ilike(term),
+                cast(ActivitySession.install_id, String).ilike(term),
+            )
+        )
+
+    base = (
+        select(ActivitySession, func.coalesce(counts.c.event_count, 0), User)
+        .outerjoin(counts, counts.c.session_id == ActivitySession.id)
+        .outerjoin(User, User.id == ActivitySession.user_id)
+    )
+    if filters:
+        base = base.where(*filters)
+
+    total_query = select(func.count()).select_from(
+        base.with_only_columns(ActivitySession.id).order_by(None).subquery()
+    )
+    total = (await db.execute(total_query)).scalar_one()
+
+    result = await db.execute(
+        base.order_by(ActivitySession.started_at.desc()).limit(limit).offset(offset)
+    )
+
+    sessions = [
         ActivitySessionResponse(
             id=str(s.id),
             install_id=str(s.install_id),
             user_id=str(s.user_id) if s.user_id else None,
+            user_name=u.name if u else None,
+            user_whatsapp=u.whatsapp_number if u else None,
             started_at=s.started_at,
             ended_at=s.ended_at,
             platform=s.platform,
@@ -167,20 +223,45 @@ async def list_activity_sessions(
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
-        for s, count in result.all()
+        for s, count, u in result.all()
     ]
+    return ActivitySessionListResponse(sessions=sessions, total=total, limit=limit, offset=offset)
+
+
+@router.get("/filter-options", response_model=ActivityFilterOptions)
+async def get_filter_options(
+    db: AsyncSession = Depends(get_db),
+    admin: Admin = Depends(require_full_admin),
+):
+    """Admin: the distinct values actually present, to populate dropdowns."""
+    platforms = await db.execute(
+        select(ActivitySession.platform).where(ActivitySession.platform.isnot(None)).distinct()
+    )
+    versions = await db.execute(
+        select(ActivitySession.app_version).where(ActivitySession.app_version.isnot(None)).distinct()
+    )
+    names = await db.execute(select(ActivityEvent.event_name).distinct())
+    return ActivityFilterOptions(
+        platforms=sorted(p for p in platforms.scalars().all()),
+        app_versions=sorted(v for v in versions.scalars().all()),
+        event_names=sorted(n for n in names.scalars().all()),
+    )
 
 
 @router.get("/sessions/{session_id}/events", response_model=list[ActivityEventResponse])
 async def list_session_events(
     session_id: str,
+    event_name: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(require_full_admin),
 ):
     """Admin: the full timeline for one session, in the order it happened."""
+    conditions = [ActivityEvent.session_id == _uuid(session_id, "session_id")]
+    if event_name:
+        conditions.append(ActivityEvent.event_name == event_name)
     result = await db.execute(
         select(ActivityEvent)
-        .where(ActivityEvent.session_id == _uuid(session_id, "session_id"))
+        .where(*conditions)
         .order_by(ActivityEvent.occurred_at.asc())
     )
     return [
