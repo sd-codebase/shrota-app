@@ -10,6 +10,13 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // guaranteed visibility before the user can act on it.
 const BUTTONS_DELAY_MS = 2000;
 
+// Bottom scrim so the buttons stay legible over bright or busy images.
+// Built from stacked bands rather than expo-linear-gradient, which is a
+// native module and would force a dev-client rebuild for one gradient.
+const SCRIM_HEIGHT = 300;
+const SCRIM_BANDS = 24;
+const SCRIM_MAX_ALPHA = 0.72;
+
 interface AppOpenAdOverlayProps {
   imageUrl: string;
   link?: string;
@@ -69,6 +76,20 @@ export function AppOpenAdOverlay({ imageUrl, link, onClose }: AppOpenAdOverlayPr
       />
 
       {showButtons && (
+        <Animated.View pointerEvents="none" style={[styles.scrim, { opacity: fadeAnim }]}>
+          {Array.from({ length: SCRIM_BANDS }, (_, i) => {
+            const t = (i + 1) / SCRIM_BANDS;
+            return (
+              <View
+                key={i}
+                style={{ flex: 1, backgroundColor: `rgba(0,0,0,${t * t * SCRIM_MAX_ALPHA})` }}
+              />
+            );
+          })}
+        </Animated.View>
+      )}
+
+      {showButtons && (
         <Animated.View
           style={[
             styles.buttonContainer,
@@ -118,6 +139,13 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  scrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: SCRIM_HEIGHT,
   },
   buttonContainer: {
     position: 'absolute',
