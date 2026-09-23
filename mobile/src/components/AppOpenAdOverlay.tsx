@@ -73,6 +73,9 @@ export function AppOpenAdOverlay({ imageUrl, link, onClose }: AppOpenAdOverlayPr
         source={{ uri: imageUrl }}
         style={styles.image}
         contentFit="cover"
+        // If the image can't be loaded there is nothing to advertise, so skip
+        // the overlay entirely rather than stranding the user on a black screen.
+        onError={onClose}
       />
 
       {showButtons && (
