@@ -18,6 +18,5 @@ from routes.notifications import router as notifications_router
 from routes.events import router as events_router
 from routes.news import router as news_router
 from routes.admin_team import router as admin_team_router
-from routes.splash import router as splash_router
 from routes.app_open_ad import router as app_open_ad_router
 from routes.activity import router as activity_router
