@@ -14,7 +14,6 @@ import {
   ArtistDetailResponse,
   PublicationDetailResponse,
   GenreDetailResponse,
-  SplashResource,
   AppOpenAd,
 } from '../types';
 
@@ -27,19 +26,6 @@ function getAuthHeaders(token?: string): HeadersInit {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
-}
-
-// Fetch the currently active splash screen resource (image or video), set
-// by admins in the dashboard. Returns null if none is active — the caller
-// should fall back to the app's built-in static splash in that case.
-export async function fetchActiveSplash(): Promise<SplashResource | null> {
-  try {
-    const response = await fetch(`${API_URL}/splash/active`);
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 // Fetch the currently active app-open ad image, set by admins in the

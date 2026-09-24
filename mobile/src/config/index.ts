@@ -26,15 +26,7 @@ export const getChapterImageUrl = (imagePath: string): string => {
   return `${API_URL}/files/chapter-image/${imagePath}`;
 };
 
-// Helper to get full API URL for the splash screen resource (image/video)
-export const getSplashResourceUrl = (filePath: string): string => {
-  if (!filePath) return '';
-  if (filePath.startsWith('http')) return filePath;
-  return `${API_URL}/files/splash/${filePath}`;
-};
-
-// Helper to get full API URL for the app-open ad image (separate from,
-// and shown after, the splash screen)
+// Helper to get full API URL for the app-open ad image
 export const getAppOpenAdUrl = (filePath: string): string => {
   if (!filePath) return '';
   if (filePath.startsWith('http')) return filePath;

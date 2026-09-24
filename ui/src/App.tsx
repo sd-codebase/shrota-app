@@ -31,7 +31,6 @@ import Notifications from './pages/Notifications';
 import Events from './pages/Events';
 import NewsPage from './pages/News';
 import Team from './pages/Team';
-import Splash from './pages/Splash';
 import AppOpenAd from './pages/AppOpenAd';
 import ActivityLogs from './pages/ActivityLogs';
 import Login from './pages/Login';
@@ -114,11 +113,6 @@ function App() {
             key: '/team',
             icon: <IdcardOutlined />,
             label: <Link to="/team">Team</Link>,
-          },
-          {
-            key: '/splash',
-            icon: <PlaySquareOutlined />,
-            label: <Link to="/splash">Splash Screen</Link>,
           },
           {
             key: '/app-open-ad',
@@ -204,7 +198,6 @@ function App() {
                 <Route path="/events" element={<AdminOnlyRoute><Events /></AdminOnlyRoute>} />
                 <Route path="/news" element={<AdminOnlyRoute><NewsPage /></AdminOnlyRoute>} />
                 <Route path="/team" element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
-                <Route path="/splash" element={<AdminOnlyRoute><Splash /></AdminOnlyRoute>} />
                 <Route path="/app-open-ad" element={<AdminOnlyRoute><AppOpenAd /></AdminOnlyRoute>} />
                 <Route path="/activity-logs" element={<AdminOnlyRoute><ActivityLogs /></AdminOnlyRoute>} />
               </Routes>

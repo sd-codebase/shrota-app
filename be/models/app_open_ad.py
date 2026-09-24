@@ -9,7 +9,7 @@ from models.base import Base, TimestampMixin, SoftDeleteMixin
 class AppOpenAd(Base, TimestampMixin, SoftDeleteMixin):
     """
     App-open ad image, managed by admins. Shown for ~2 seconds when the
-    mobile app launches (after the splash screen). Image only — no video.
+    mobile app launches, over the app's own splash screen. Image only.
 
     Self-served for now (admin uploads their own promo image); the slot
     is intended to be sold to advertisers once the app has enough
