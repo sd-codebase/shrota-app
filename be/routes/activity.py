@@ -20,6 +20,7 @@ from schemas.activity import (
     ActivityFilterOptions,
     ActivityEventResponse,
 )
+from services.listening_ledger import HEARTBEAT_EVENT, apply_entries, entry_from_event
 from utils.auth import require_full_admin
 
 router = APIRouter(prefix="/activity", tags=["Activity Logs"])
@@ -115,8 +116,31 @@ async def ingest_activity(
             .on_conflict_do_nothing(index_elements=[ActivityEvent.id])
             .returning(ActivityEvent.id)
         )
-        accepted = len(result.scalars().all())
+        accepted_ids = set(result.scalars().all())
+        accepted = len(accepted_ids)
         duplicates = len(rows) - accepted
+
+        # Fold listening into the royalty ledger — but only for events this
+        # call actually stored. A retried batch must not be paid for twice.
+        ledger_entries = []
+        for row in rows:
+            if row["id"] not in accepted_ids or row["event_name"] != HEARTBEAT_EVENT:
+                continue
+            entry = entry_from_event(row["params"], row["occurred_at"], install_id, user_id)
+            if entry is not None:
+                ledger_entries.append(entry)
+
+        if ledger_entries:
+            try:
+                # A savepoint, so a failure here discards only the ledger
+                # write: telemetry ingest must not fail because derived data
+                # did, and the raw events still need to land.
+                async with db.begin_nested():
+                    await apply_entries(db, ledger_entries)
+            except Exception as error:
+                # Recoverable by design — rebuild_ledger() reconstructs these
+                # rows from the events that were just stored.
+                print(f"[activity] ledger roll-up failed, events kept: {error}")
 
     await db.commit()
 

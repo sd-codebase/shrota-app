@@ -53,6 +53,15 @@ import type {
   ActivitySessionFilters,
   ActivityEvent,
   ActivityFilterOptions,
+  InsightsSummary,
+  BookInsightDetail,
+  BookInsightListResponse,
+  BookInsightFilters,
+  RoyaltyReport,
+  RoyaltySnapshot,
+  RoyaltySnapshotCreate,
+  RoyaltySnapshotDetail,
+  LedgerRebuildResult,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -765,3 +774,52 @@ export const getActivitySessionEvents = (sessionId: string, eventName?: string) 
 
 export const getActivityFilterOptions = () =>
   request<ActivityFilterOptions>('/activity/filter-options');
+
+// Book insights
+function toQuery(filters: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '' && value !== null) {
+      params.append(key, String(value));
+    }
+  });
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export const getInsightsSummary = (dateFrom?: string, dateTo?: string) =>
+  request<InsightsSummary>(`/insights/summary${toQuery({ date_from: dateFrom, date_to: dateTo })}`);
+
+export const getBookInsights = (filters: BookInsightFilters = {}) =>
+  request<BookInsightListResponse>(`/insights/books${toQuery(filters)}`);
+
+export const getBookInsightDetail = (bookId: string, dateFrom?: string, dateTo?: string) =>
+  request<BookInsightDetail>(
+    `/insights/books/${bookId}${toQuery({ date_from: dateFrom, date_to: dateTo })}`
+  );
+
+// Royalty (listening ledger)
+export const getRoyaltyReport = (dateFrom: string, dateTo: string, includeGuests: boolean) =>
+  request<RoyaltyReport>(
+    `/royalty/report${toQuery({ date_from: dateFrom, date_to: dateTo, include_guests: includeGuests })}`
+  );
+
+export const getRoyaltySnapshots = () => request<RoyaltySnapshot[]>('/royalty/snapshots');
+
+export const getRoyaltySnapshot = (id: string) =>
+  request<RoyaltySnapshotDetail>(`/royalty/snapshots/${id}`);
+
+export const createRoyaltySnapshot = (data: RoyaltySnapshotCreate) =>
+  request<RoyaltySnapshotDetail>('/royalty/snapshots', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const deleteRoyaltySnapshot = (id: string) =>
+  request<void>(`/royalty/snapshots/${id}`, { method: 'DELETE' });
+
+export const rebuildListeningLedger = (dateFrom: string, dateTo: string) =>
+  request<LedgerRebuildResult>(
+    `/royalty/ledger/rebuild${toQuery({ date_from: dateFrom, date_to: dateTo })}`,
+    { method: 'POST' }
+  );

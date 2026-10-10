@@ -29,6 +29,8 @@ from routes import (
     admin_team_router,
     app_open_ad_router,
     activity_router,
+    insights_router,
+    royalty_router,
 )
 
 
@@ -72,6 +74,8 @@ app.include_router(news_router)
 app.include_router(admin_team_router)
 app.include_router(app_open_ad_router)
 app.include_router(activity_router)
+app.include_router(insights_router)
+app.include_router(royalty_router)
 
 
 @app.exception_handler(RequestValidationError)

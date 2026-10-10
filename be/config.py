@@ -16,6 +16,11 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "262800"))  # default: 6 months
 
+# Royalty reporting
+# Listening is bucketed into local calendar days for payout periods — the
+# business runs on this calendar, not UTC.
+ROYALTY_TIMEZONE = os.getenv("ROYALTY_TIMEZONE", "Asia/Kolkata")
+
 # Notification settings
 NOTIFICATION_MODE = os.getenv("NOTIFICATION_MODE", "development")
 

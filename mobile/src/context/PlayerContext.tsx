@@ -57,6 +57,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastSaveTimeRef = useRef<number>(0);
   const totalListenedRef = useRef<number>(0);
 
+  // Baseline for the listening heartbeat: the position and wall-clock time
+  // of the last credited sample. Null means "no baseline yet" — the next
+  // sample only establishes one, it credits nothing.
+  const heartbeatPositionRef = useRef<number | null>(null);
+  const heartbeatAtRef = useRef<number>(0);
+  const playbackSpeedRef = useRef<PlaybackSpeed>(1);
+
   // Get Zustand store actions
   const {
     setCurrentBook: setStoreCurrentBook,
@@ -107,6 +114,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     currentChapterIndexRef.current = currentChapterIndex;
   }, [currentChapterIndex]);
 
+  useEffect(() => {
+    playbackSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
+
   // Update position ref when position changes
   useEffect(() => {
     lastPositionRef.current = position;
@@ -131,6 +142,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Credit audio actually consumed since the last sample. Royalties are paid
+  // from these heartbeats, so the one thing this must never do is count a
+  // seek as listening.
+  const creditListening = (bookId: string, chapterIndex: number, position: number) => {
+    const now = Date.now();
+    const previousPosition = heartbeatPositionRef.current;
+    const elapsedSeconds = (now - heartbeatAtRef.current) / 1000;
+
+    heartbeatPositionRef.current = position;
+    heartbeatAtRef.current = now;
+
+    // First sample after starting, resuming or switching chapter.
+    if (previousPosition === null || elapsedSeconds <= 0) return;
+
+    const advanced = position - previousPosition;
+    // Paused, rewound, or a new chapter started from zero. Re-listening is
+    // credited as the position climbs again, so nothing is lost here.
+    if (advanced <= 0) return;
+
+    // Content can only advance as fast as the clock times the playback
+    // speed; anything past that is a seek. The margin absorbs a late timer.
+    const playable = elapsedSeconds * playbackSpeedRef.current * 1.25;
+    Analytics.trackListenHeartbeat(bookId, chapterIndex, Math.min(advanced, playable));
+  };
+
   // Listen for track changes - save previous chapter progress before switching
   useEffect(() => {
     const subscription = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
@@ -151,6 +187,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             Analytics.trackBookCompleted(book.id, bookDuration);
           }
         }
+
+        // A new chapter restarts the position, so the old baseline would
+        // read as a huge rewind.
+        heartbeatPositionRef.current = null;
 
         // Update to new chapter
         setCurrentChapterIndex(event.index);
@@ -198,6 +238,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         // Save chapter progress locally (always, even if not authenticated)
         await saveChapterProgress(book.id, chapterIndex, currentPosition, currentDuration);
+
+        // Logged for everyone, signed in or not — guests consume the audio
+        // too, and the ledger needs to know about it.
+        creditListening(book.id, chapterIndex, currentPosition);
 
         // Save to server if authenticated
         const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
@@ -253,6 +297,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       clearInterval(interval);
       // Save one last time when stopping
       saveProgress();
+      // Playback is over for now. Without this, seeking while paused would
+      // look like listening on the next sample.
+      heartbeatPositionRef.current = null;
     };
   }, [currentBook?.id, isPlaying]);
 
