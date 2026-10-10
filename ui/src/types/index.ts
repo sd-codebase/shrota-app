@@ -512,3 +512,169 @@ export interface ActivitySessionFilters {
   date_to?: string;
   search?: string;
 }
+
+// Book insights (listening analytics derived from progress + activity events)
+export interface InsightsSummary {
+  books_total: number;
+  books_published: number;
+  listeners_total: number;
+  likes_total: number;
+  listened_hours: number;
+  books_completed: number;
+  unique_devices: number;
+}
+
+export interface BookInsight {
+  book_id: string;
+  title: string;
+  thumbnail?: string;
+  is_published: boolean;
+  access_type: string;
+  language?: string;
+  authors: string[];
+  genres: string[];
+  chapters_total: number;
+  total_duration?: number;
+  listeners: number;
+  completed_listeners: number;
+  completion_rate: number;
+  avg_progress_percentage: number;
+  avg_chapter_reached: number;
+  listened_seconds: number;
+  last_played_at?: string;
+  dropoff_chapter_index?: number;
+  dropoff_listeners: number;
+  likes: number;
+  unique_viewers: number;
+  unique_players: number;
+  view_to_play_rate: number;
+}
+
+export interface ChapterInsight {
+  chapter_id: string;
+  order: number;
+  title: string;
+  duration?: number;
+  listeners_reached: number;
+  completions: number;
+}
+
+export interface BookListenerRow {
+  user_id: string;
+  name: string;
+  whatsapp_number?: string;
+  current_chapter_index: number;
+  progress_percentage: number;
+  total_listened_seconds: number;
+  is_completed: boolean;
+  last_played_at: string;
+}
+
+export interface BookInsightDetail extends BookInsight {
+  chapters: ChapterInsight[];
+  recent_listeners: BookListenerRow[];
+  view_sources: Record<string, number>;
+}
+
+export interface BookInsightListResponse {
+  books: BookInsight[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface BookInsightFilters {
+  search?: string;
+  language_ids?: string;
+  genre_ids?: string;
+  author_ids?: string;
+  is_published?: boolean;
+  date_from?: string;
+  date_to?: string;
+  sort_by?: string;
+  order?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+// Royalty reporting (listening ledger)
+export interface RoyaltyBookLine {
+  book_id?: string;
+  book_title: string;
+  author_names: string[];
+  publisher_name?: string;
+  seconds_listened: number;
+  hours_listened: number;
+  unique_listeners: number;
+  unique_devices: number;
+  share_percentage: number;
+}
+
+export interface RoyaltyAuthorLine {
+  author_id?: string;
+  author_name: string;
+  books: number;
+  seconds_listened: number;
+  hours_listened: number;
+  unique_listeners: number;
+  share_percentage: number;
+}
+
+export interface RoyaltyReport {
+  date_from: string;
+  date_to: string;
+  include_guests: boolean;
+  timezone: string;
+  total_seconds: number;
+  total_hours: number;
+  total_listeners: number;
+  total_devices: number;
+  books: RoyaltyBookLine[];
+  authors: RoyaltyAuthorLine[];
+}
+
+export interface RoyaltySnapshotCreate {
+  label: string;
+  period_start: string;
+  period_end: string;
+  include_guests: boolean;
+  notes?: string;
+}
+
+export interface RoyaltySnapshotLine {
+  book_id?: string;
+  book_title: string;
+  author_names: string;
+  publisher_name?: string;
+  seconds_listened: number;
+  hours_listened: number;
+  unique_listeners: number;
+  unique_devices: number;
+  share_percentage: number;
+}
+
+export interface RoyaltySnapshot {
+  id: string;
+  label: string;
+  period_start: string;
+  period_end: string;
+  include_guests: boolean;
+  total_seconds: number;
+  total_hours: number;
+  notes?: string;
+  generated_at: string;
+  generated_by_name?: string;
+  line_count: number;
+}
+
+export interface RoyaltySnapshotDetail extends RoyaltySnapshot {
+  lines: RoyaltySnapshotLine[];
+}
+
+export interface LedgerRebuildResult {
+  date_from: string;
+  date_to: string;
+  events_read: number;
+  entries_written: number;
+  seconds_credited: number;
+}

@@ -30,6 +30,10 @@ export const AnalyticsEvents = {
   PLAYBACK_SPEED_CHANGED: 'playback_speed_changed',
   SEEK: 'seek',
   SLEEP_TIMER_SET: 'sleep_timer_set',
+  // Seconds of audio actually consumed. This is what author royalties are
+  // calculated from, so it is deliberately separate from progress syncing:
+  // it is logged for guests too, and it survives offline in the event queue.
+  LISTEN_HEARTBEAT: 'listen_heartbeat',
 
   // Engagement
   BOOK_LIKED: 'book_liked',
@@ -218,6 +222,22 @@ class AnalyticsService {
   async trackPlaybackSpeedChanged(speed: number) {
     await this.track(AnalyticsEvents.PLAYBACK_SPEED_CHANGED, {
       speed,
+    });
+  }
+
+  /**
+   * Report audio consumed since the last heartbeat.
+   *
+   * `seconds` is content seconds, not wall-clock, so a book heard at 2x
+   * still counts in full. The caller is responsible for making sure a seek
+   * cannot be reported as listening — see PlayerContext.
+   */
+  async trackListenHeartbeat(bookId: string, chapterIndex: number, seconds: number) {
+    if (!(seconds > 0)) return;
+    await this.track(AnalyticsEvents.LISTEN_HEARTBEAT, {
+      book_id: bookId,
+      chapter_index: chapterIndex,
+      seconds: Math.round(seconds),
     });
   }
 

@@ -18,6 +18,8 @@ import {
   PlaySquareOutlined,
   PictureOutlined,
   HistoryOutlined,
+  BarChartOutlined,
+  AccountBookOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -33,6 +35,8 @@ import NewsPage from './pages/News';
 import Team from './pages/Team';
 import AppOpenAd from './pages/AppOpenAd';
 import ActivityLogs from './pages/ActivityLogs';
+import BookInsights from './pages/BookInsights';
+import Royalty from './pages/Royalty';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminOnlyRoute from './components/AdminOnlyRoute';
@@ -82,8 +86,18 @@ function App() {
       icon: <BookOutlined />,
       label: <Link to="/books">Books</Link>,
     },
+    {
+      key: '/book-insights',
+      icon: <BarChartOutlined />,
+      label: <Link to="/book-insights">Book Insights</Link>,
+    },
     ...(isFullAdmin
       ? [
+          {
+            key: '/royalty',
+            icon: <AccountBookOutlined />,
+            label: <Link to="/royalty">Royalty</Link>,
+          },
           {
             key: '/content',
             icon: <StarOutlined />,
@@ -192,6 +206,8 @@ function App() {
                 <Route path="/artists" element={<Artists />} />
                 <Route path="/publications" element={<Publications />} />
                 <Route path="/books" element={<Books />} />
+                <Route path="/book-insights" element={<BookInsights />} />
+                <Route path="/royalty" element={<AdminOnlyRoute><Royalty /></AdminOnlyRoute>} />
                 <Route path="/content" element={<AdminOnlyRoute><ContentPromotion /></AdminOnlyRoute>} />
                 <Route path="/users" element={<AdminOnlyRoute><Users /></AdminOnlyRoute>} />
                 <Route path="/notifications" element={<AdminOnlyRoute><Notifications /></AdminOnlyRoute>} />

@@ -14,6 +14,7 @@ from models.event import Event
 from models.news import News
 from models.app_open_ad import AppOpenAd
 from models.activity import ActivitySession, ActivityEvent
+from models.listening import BookListenDaily, RoyaltySnapshot, RoyaltySnapshotLine
 
 __all__ = [
     "Base",
@@ -44,4 +45,7 @@ __all__ = [
     "AppOpenAd",
     "ActivitySession",
     "ActivityEvent",
+    "BookListenDaily",
+    "RoyaltySnapshot",
+    "RoyaltySnapshotLine",
 ]
