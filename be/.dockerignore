@@ -1,2 +1,3 @@
-# Mounted at runtime (see docker-compose.*.yml), never baked into the image
+# Secrets are mounted at runtime (see docker-compose.*.yml), never baked into the image
+secrets/
 google-play-service-account.json

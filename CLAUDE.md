@@ -165,7 +165,7 @@ Other endpoints: `GET /v1/payments/access/{book_id}` (checked before playback, i
 
 1. **Payments profile** set up for the developer account.
 2. Upload an app build that includes `expo-iap` to the **Internal testing** track (Play only allows products once a billing-enabled build exists).
-3. **Google Cloud service account** with a JSON key → save as `be/google-play-service-account.json` (gitignored, mounted into the container in staging/prod). In Play Console → *Users and permissions*, invite its email with: *View financial data*, *Manage orders and subscriptions*, *Manage store presence*.
+3. **Google Cloud service account** with a JSON key → save as `be/secrets/google-play-service-account.json` (gitignored; `be/secrets/` is mounted into the backend container in every compose file). In Play Console → *Users and permissions*, invite its email with: *View financial data*, *Manage orders and subscriptions*, *Manage store presence*.
 4. **RTDN**: create a Pub/Sub topic, grant `google-play-developer-notifications@system.gserviceaccount.com` *Publisher* on it, set it in Play Console → *Monetization setup*, and create a **push** subscription to `https://<api>/v1/payments/google/rtdn` with authentication enabled. Put the push audience in `GOOGLE_PLAY_RTDN_AUDIENCE` and the push service account email in `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`.
 5. **License testers** (Play Console → *License testing*) for test purchases without real charges.
 

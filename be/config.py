@@ -26,7 +26,7 @@ ROYALTY_TIMEZONE = os.getenv("ROYALTY_TIMEZONE", "Asia/Kolkata")
 # with "View financial data" + "Manage orders and subscriptions" (to verify
 # and acknowledge purchases) and "Manage store presence" (to create products).
 GOOGLE_PLAY_PACKAGE_NAME = os.getenv("GOOGLE_PLAY_PACKAGE_NAME", "com.shrota.app")
-GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", "./google-play-service-account.json")
+GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", "./secrets/google-play-service-account.json")
 # Real-time developer notifications arrive as Pub/Sub push requests carrying
 # a Google-signed OIDC token. Set the audience configured on the push
 # subscription, and the service account email Pub/Sub signs as.

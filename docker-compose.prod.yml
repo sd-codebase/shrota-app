@@ -29,7 +29,7 @@ services:
       AUDIO_LIBRARY_DIR: /app/audio-library/shrota-audio-library
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-com.shrota.app}
-      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /app/google-play-service-account.json
+      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /app/secrets/google-play-service-account.json
       GOOGLE_PLAY_RTDN_AUDIENCE: ${GOOGLE_PLAY_RTDN_AUDIENCE:-}
       GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT: ${GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT:-}
       GOOGLE_PLAY_PRICE_REGIONS: ${GOOGLE_PLAY_PRICE_REGIONS:-IN}
@@ -46,10 +46,11 @@ services:
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
       FIREBASE_CREDENTIALS_PATH: /app/firebase-credentials.json
     volumes:
+      # Google Play service-account key (be/secrets/ is gitignored)
+      - ./be/secrets:/app/secrets:ro
       - uploads:/app/uploads
       - ./audio-library:/app/audio-library
       - ./be/firebase-credentials.json:/app/firebase-credentials.json:ro
-      - ./be/google-play-service-account.json:/app/google-play-service-account.json:ro
     depends_on:
       postgres:
         condition: service_healthy
