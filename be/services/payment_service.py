@@ -87,6 +87,11 @@ async def book_access(db: AsyncSession, user_id: uuid.UUID, book: Book) -> dict:
             "subscription_active": subscribed,
             "play_product_id": None,
         }
+    return open_access(book)
+
+
+def open_access(book: Book) -> dict:
+    """Free book, or a user without the payments feature: nothing to unlock."""
     return {
         "access_type": book.access_type,
         "prime_price": None,

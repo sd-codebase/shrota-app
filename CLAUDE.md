@@ -146,9 +146,25 @@ The app automatically:
 
 ---
 
+## Feature Flags
+
+Switch an app feature on for **all users** or for **specific users** from admin **Feature Flags** (full admins). Flags are defined in code in `be/services/feature_flags.FLAGS` (add a key there and a row via migration); state lives in `feature_flags` / `feature_flag_users`.
+
+- App: `GET /v1/feature-flags` → `{"flags": {"payments": true}}` for the signed-in user. `mobile/src/context/FeatureFlagsContext.tsx` (`useFeatureFlags().isEnabled('payments')`) loads it at sign-in and whenever the app returns to the foreground; everything is off until the server says otherwise.
+- Server: check with `feature_flags.is_enabled(db, key, user_id)` wherever a flag changes what a user may do — don't rely on the app hiding UI.
+- Admin API: `GET /feature-flags`, `GET|PUT /feature-flags/{key}` (`enabled_for_all`), `POST /feature-flags/{key}/users`, `DELETE /feature-flags/{key}/users/{user_id}`.
+
+| Flag | What it controls |
+|------|------------------|
+| `payments` | In-app purchases (paywall + Google Play Billing), see below |
+
+---
+
 ## Payments (Google Play Billing)
 
 Books have an `access_type`: `free`, `subscriber_only` (needs an active subscription), or `prime_only` (bought once per book at `prime_price`, owned forever). **All paid content is sold in the Android app through Google Play Billing** — no other payment provider, and the website doesn't sell anything. iOS (Apple in-app purchase) is planned later.
+
+**Behind the `payments` feature flag (off by default).** Until an admin turns it on (admin **Feature Flags**: for all users, or for chosen users), a user can play every book, `/v1/payments/plans` returns nothing, and the app shows no Prime/Subscriber badges, buy buttons or Subscription section. `/google/verify` is never gated, so a purchase that did go through is always honoured.
 
 ### How it fits together
 

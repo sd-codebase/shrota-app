@@ -33,6 +33,7 @@ import { APP_LINKS, SOCIAL_LINKS, SUPPORT_CONTACT } from '../constants/links';
 import { CountryCodePicker } from '../components/CountryCodePicker';
 import { getSubscriptionStatus, SubscriptionStatus } from '../services/paymentsApi';
 import { useBilling } from '../context/BillingContext';
+import { useFeatureFlags } from '../context/FeatureFlagsContext';
 
 type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<ProfileStackParamList>,
@@ -53,6 +54,7 @@ export function ProfileScreen() {
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [restoring, setRestoring] = useState(false);
   const billing = useBilling();
+  const paymentsEnabled = useFeatureFlags().isEnabled('payments');
 
   const handleRestorePurchases = async () => {
     setRestoring(true);
@@ -75,10 +77,11 @@ export function ProfileScreen() {
   // Refresh on focus so a purchase made elsewhere shows up straight away.
   useFocusEffect(
     useCallback(() => {
+      if (!paymentsEnabled) return;
       getSubscriptionStatus()
         .then(setSubscription)
         .catch(() => setSubscription(null));
-    }, [])
+    }, [paymentsEnabled])
   );
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [preferencesInitialStep, setPreferencesInitialStep] = useState<'genres' | 'languages'>('genres');
@@ -529,60 +532,64 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Subscription & purchases (Google Play Billing) */}
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          SUBSCRIPTION
-        </Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={() => navigation.navigate('Subscription')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <Ionicons name="star" size={20} color={colors.brand.orange} />
-              </View>
-              <View style={styles.preferenceInfo}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  {subscription?.is_active ? (subscription.plan_name || 'Subscribed') : 'Subscribe'}
-                </Text>
-                <Text style={[styles.settingDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                  {subscription?.is_active && subscription.expires_at
-                    ? `${subscription.auto_renewing ? 'Renews' : 'Ends'} on ${new Date(subscription.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                    : 'Unlock every subscriber audiobook'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
+        {/* Subscription & purchases (Google Play Billing), behind the payments flag */}
+        {paymentsEnabled && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              SUBSCRIPTION
+            </Text>
+            <View style={[styles.card, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={styles.preferenceRow}
+                onPress={() => navigation.navigate('Subscription')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.settingLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Ionicons name="star" size={20} color={colors.brand.orange} />
+                  </View>
+                  <View style={styles.preferenceInfo}>
+                    <Text style={[styles.settingLabel, { color: colors.text }]}>
+                      {subscription?.is_active ? (subscription.plan_name || 'Subscribed') : 'Subscribe'}
+                    </Text>
+                    <Text style={[styles.settingDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                      {subscription?.is_active && subscription.expires_at
+                        ? `${subscription.auto_renewing ? 'Renews' : 'Ends'} on ${new Date(subscription.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                        : 'Unlock every subscriber audiobook'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
 
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={handleRestorePurchases}
-            disabled={restoring}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <Ionicons name="refresh" size={20} color={colors.brand.blue} />
-              </View>
-              <View style={styles.preferenceInfo}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>Restore purchases</Text>
-                <Text style={[styles.settingDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                  Bought on another phone or reinstalled the app?
-                </Text>
-              </View>
+              <TouchableOpacity
+                style={styles.preferenceRow}
+                onPress={handleRestorePurchases}
+                disabled={restoring}
+                activeOpacity={0.7}
+              >
+                <View style={styles.settingLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Ionicons name="refresh" size={20} color={colors.brand.blue} />
+                  </View>
+                  <View style={styles.preferenceInfo}>
+                    <Text style={[styles.settingLabel, { color: colors.text }]}>Restore purchases</Text>
+                    <Text style={[styles.settingDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                      Bought on another phone or reinstalled the app?
+                    </Text>
+                  </View>
+                </View>
+                {restoring ? (
+                  <ActivityIndicator size="small" color={colors.brand.orange} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                )}
+              </TouchableOpacity>
             </View>
-            {restoring ? (
-              <ActivityIndicator size="small" color={colors.brand.orange} />
-            ) : (
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            )}
-          </TouchableOpacity>
-        </View>
+          </>
+        )}
 
         {/* Address Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>

@@ -9,6 +9,7 @@ import { DownloadProvider } from './src/context/DownloadContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { BillingProvider } from './src/context/BillingContext';
+import { FeatureFlagsProvider } from './src/context/FeatureFlagsContext';
 import { setupPlayer } from './src/services/trackPlayerService';
 import { Notifications } from './src/services/notifications';
 import { checkWhatsAppReminder } from './src/services/whatsappReminder';
@@ -134,15 +135,17 @@ function AppContent() {
   }
 
   return (
-    <BillingProvider>
-      <DownloadProvider>
-        <PlayerProvider>
-          <NotificationHandler />
-          <WhatsAppReminderHandler />
-          <AppNavigator />
-        </PlayerProvider>
-      </DownloadProvider>
-    </BillingProvider>
+    <FeatureFlagsProvider>
+      <BillingProvider>
+        <DownloadProvider>
+          <PlayerProvider>
+            <NotificationHandler />
+            <WhatsAppReminderHandler />
+            <AppNavigator />
+          </PlayerProvider>
+        </DownloadProvider>
+      </BillingProvider>
+    </FeatureFlagsProvider>
   );
 }
 

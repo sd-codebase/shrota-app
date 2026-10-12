@@ -30,6 +30,7 @@ import { shareBook } from '../utils/share';
 import { Analytics } from '../services/analytics';
 import { BookAccess, getBookAccess } from '../services/paymentsApi';
 import { useBilling } from '../context/BillingContext';
+import { useFeatureFlags } from '../context/FeatureFlagsContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type BookDetailsRouteProp = RouteProp<HomeStackParamList, 'BookDetails'>;
@@ -56,6 +57,8 @@ export function BookDetailsScreen() {
   const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const billing = useBilling();
+  // Off: the server opens every book and the app shows no purchase UI.
+  const paymentsEnabled = useFeatureFlags().isEnabled('payments');
 
   // Use fullBook if available, otherwise use initialBook
   const book = fullBook || initialBook;
@@ -102,7 +105,7 @@ export function BookDetailsScreen() {
       getBookAccess(initialBook.id)
         .then(setAccess)
         .catch((error) => console.log('Could not fetch book access:', error));
-    }, [initialBook.id])
+    }, [initialBook.id, paymentsEnabled])
   );
 
   const isLocked = access !== null && !access.can_listen;
@@ -453,7 +456,7 @@ export function BookDetailsScreen() {
         <View style={styles.bookInfo}>
           <Text style={[styles.title, { color: colors.text }]}>{book.title}</Text>
 
-          {access && access.access_type !== 'free' && (
+          {paymentsEnabled && access && access.access_type !== 'free' && (
             <View style={styles.accessBadgeRow}>
               <View style={[styles.accessBadge, { backgroundColor: colors.brand.orange }]}>
                 <Ionicons

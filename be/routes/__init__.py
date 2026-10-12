@@ -24,3 +24,4 @@ from routes.insights import router as insights_router
 from routes.royalty import router as royalty_router
 from routes.payments import router as payments_router
 from routes.billing import router as billing_router
+from routes.feature_flags import router as feature_flags_router, app_router as app_feature_flags_router

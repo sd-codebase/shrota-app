@@ -16,6 +16,7 @@ from models.app_open_ad import AppOpenAd
 from models.activity import ActivitySession, ActivityEvent
 from models.listening import BookListenDaily, RoyaltySnapshot, RoyaltySnapshotLine
 from models.payment import SubscriptionPlan, StorePurchase, BookPurchase, ProcessedNotification
+from models.feature_flag import FeatureFlag, FeatureFlagUser
 
 __all__ = [
     "Base",
@@ -53,4 +54,6 @@ __all__ = [
     "StorePurchase",
     "BookPurchase",
     "ProcessedNotification",
+    "FeatureFlag",
+    "FeatureFlagUser",
 ]

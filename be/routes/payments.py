@@ -37,7 +37,7 @@ from schemas.payment import (
     StorePlanResponse,
     SubscriptionStatusResponse,
 )
-from services import google_play, payment_service
+from services import feature_flags, google_play, payment_service
 from services.payment_service import PurchaseOwnershipError
 
 router = APIRouter(prefix="/v1/payments", tags=["Payments"])
@@ -56,6 +56,8 @@ async def list_plans(
     db: AsyncSession = Depends(get_db),
 ):
     """Plans on sale in Play, in display order. The app fetches live prices from Play by id."""
+    if not await feature_flags.is_enabled(db, feature_flags.PAYMENTS, current_user.id):
+        return []
     result = await db.execute(
         select(SubscriptionPlan)
         .where(
@@ -107,7 +109,11 @@ async def get_book_access(
     book = await db.get(Book, parse_uuid(book_id, "book ID"))
     if not book or book.is_deleted or not book.is_published:
         raise HTTPException(status_code=404, detail="Book not found")
-    access = await payment_service.book_access(db, current_user.id, book)
+    if not await feature_flags.is_enabled(db, feature_flags.PAYMENTS, current_user.id):
+        # In-app purchases aren't switched on for this user: every book is open.
+        access = payment_service.open_access(book)
+    else:
+        access = await payment_service.book_access(db, current_user.id, book)
     return BookAccessResponse(book_id=str(book.id), **access)
 
 
