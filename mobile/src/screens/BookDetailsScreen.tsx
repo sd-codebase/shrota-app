@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { DefaultBookCover } from '../components/DefaultBookCover';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniPlayer } from '../components/MiniPlayer';
@@ -27,6 +28,8 @@ import { useIsBookPlaying, useCurrentBook, useCurrentChapterIndex, useIsPlaying,
 import { DEFAULT_AUDIOBOOK_ARTWORK } from '../constants/placeholders';
 import { shareBook } from '../utils/share';
 import { Analytics } from '../services/analytics';
+import { BookAccess, getBookAccess } from '../services/paymentsApi';
+import { useBilling } from '../context/BillingContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList & HomeStackParamList>;
 type BookDetailsRouteProp = RouteProp<HomeStackParamList, 'BookDetails'>;
@@ -47,6 +50,12 @@ export function BookDetailsScreen() {
   // Full book data (fetched if initial book has no chapters)
   const [fullBook, setFullBook] = useState<AudioBook | null>(null);
   const [loadingBook, setLoadingBook] = useState(false);
+  // Paywall: null until the server has answered "can this user listen?"
+  const [access, setAccess] = useState<BookAccess | null>(null);
+  // Localised Google Play price for a Prime book, e.g. "₹49.00".
+  const [playPrice, setPlayPrice] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
+  const billing = useBilling();
 
   // Use fullBook if available, otherwise use initialBook
   const book = fullBook || initialBook;
@@ -84,6 +93,80 @@ export function BookDetailsScreen() {
     };
     fetchFullBook();
   }, [initialBook.id, initialBook.chapters.length]);
+
+  // Re-check on focus so a purchase finished elsewhere (restore, a pending
+  // UPI payment completing, a subscription bought on the plans screen)
+  // unlocks the book when the user comes back to it.
+  useFocusEffect(
+    useCallback(() => {
+      getBookAccess(initialBook.id)
+        .then(setAccess)
+        .catch((error) => console.log('Could not fetch book access:', error));
+    }, [initialBook.id])
+  );
+
+  const isLocked = access !== null && !access.can_listen;
+
+  // Show Play's real price on the buy button once we know it's for sale.
+  useEffect(() => {
+    if (!isLocked || !access?.play_product_id) return;
+    billing
+      .getBookPrice(access.play_product_id)
+      .then(setPlayPrice)
+      .catch((error) => console.log('Could not load Play price:', error));
+  }, [isLocked, access?.play_product_id]);
+
+  const handleBuy = async (current: BookAccess): Promise<boolean> => {
+    if (!current.play_product_id) {
+      Alert.alert('Not available yet', "This audiobook can't be bought right now. Please try again later.");
+      return false;
+    }
+    setPurchasing(true);
+    try {
+      const outcome = await billing.buyBook(current.play_product_id);
+      if (outcome.status === 'granted') {
+        setAccess(await getBookAccess(book.id));
+        return true;
+      }
+      if (outcome.status === 'pending') {
+        Alert.alert(
+          'Payment pending',
+          "We'll unlock this audiobook as soon as Google Play confirms your payment.",
+        );
+      } else if (outcome.status === 'failed') {
+        Alert.alert('Purchase failed', outcome.message);
+      }
+      return false;
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  /**
+   * Gate every playback start. Resolves true when playback may go ahead;
+   * otherwise explains the book is locked.
+   */
+  const ensureCanListen = async (): Promise<boolean> => {
+    let current = access;
+    if (current === null) {
+      try {
+        current = await getBookAccess(book.id);
+        setAccess(current);
+      } catch {
+        Alert.alert('Connection problem', 'Could not check access to this book. Please try again.');
+        return false;
+      }
+    }
+    if (current.can_listen) return true;
+
+    // Locked: buy it (Prime) or see plans (Subscriber) — both through
+    // Google Play Billing, the only payment method allowed in the app.
+    if (current.access_type === 'prime_only') {
+      return handleBuy(current);
+    }
+    navigation.navigate('Subscription');
+    return false;
+  };
 
   // Track book viewed event
   useEffect(() => {
@@ -166,6 +249,7 @@ export function BookDetailsScreen() {
     if (isThisBookPlaying) {
       await togglePlayPause();
     } else {
+      if (!(await ensureCanListen())) return;
       const sortedBook = { ...book, chapters: sortedChapters };
       await playBook(sortedBook);
       navigation.navigate('Player', { book: sortedBook });
@@ -185,6 +269,7 @@ export function BookDetailsScreen() {
     if (isThisChapterPlaying) {
       await togglePlayPause();
     } else if (publishedIndex !== -1) {
+      if (!(await ensureCanListen())) return;
       await playBook(sortedBook, publishedIndex);
       navigation.navigate('Player', { book: sortedBook, chapterIndex: publishedIndex });
     }
@@ -368,6 +453,26 @@ export function BookDetailsScreen() {
         <View style={styles.bookInfo}>
           <Text style={[styles.title, { color: colors.text }]}>{book.title}</Text>
 
+          {access && access.access_type !== 'free' && (
+            <View style={styles.accessBadgeRow}>
+              <View style={[styles.accessBadge, { backgroundColor: colors.brand.orange }]}>
+                <Ionicons
+                  name={access.access_type === 'prime_only' ? 'diamond' : 'star'}
+                  size={12}
+                  color="#fff"
+                />
+                <Text style={styles.accessBadgeText}>
+                  {access.access_type === 'prime_only' ? 'Prime' : 'Subscriber'}
+                </Text>
+              </View>
+              {access.can_listen && (
+                <Text style={[styles.accessBadgeNote, { color: colors.brand.green }]}>
+                  {access.access_type === 'prime_only' ? 'Purchased' : 'Included in your subscription'}
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* Authors row - icon + chips */}
           <View style={styles.metadataRow}>
             <Ionicons name="create-outline" size={18} color={colors.brand.orange} />
@@ -503,12 +608,29 @@ export function BookDetailsScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.playButton, { backgroundColor: colors.brand.orange }]}
+            style={[
+              styles.playButton,
+              { backgroundColor: colors.brand.orange },
+              purchasing && { opacity: 0.7 },
+            ]}
             onPress={handlePlayPauseBook}
+            disabled={purchasing}
           >
-            <Ionicons name={isThisBookPlaying ? 'pause' : 'play'} size={24} color="#fff" />
+            {purchasing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons
+                name={isLocked ? (access?.access_type === 'prime_only' ? 'cart' : 'star') : isThisBookPlaying ? 'pause' : 'play'}
+                size={24}
+                color="#fff"
+              />
+            )}
             <Text style={styles.playButtonText}>
-              {isThisBookPlaying ? 'Pause Audiobook' : hasProgress ? 'Resume Audiobook' : 'Play Audiobook'}
+              {isLocked
+                ? access?.access_type === 'prime_only'
+                  ? `Buy for ${playPrice ?? `₹${access.prime_price}`}`
+                  : 'Subscribe to Listen'
+                : isThisBookPlaying ? 'Pause Audiobook' : hasProgress ? 'Resume Audiobook' : 'Play Audiobook'}
             </Text>
           </TouchableOpacity>
 
@@ -630,6 +752,30 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginTop: 24,
     gap: 8,
+  },
+  accessBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  accessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  accessBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  accessBadgeNote: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   playButtonText: {
     fontSize: 18,

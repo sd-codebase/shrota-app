@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 from typing import Optional
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -27,6 +27,8 @@ from utils.age import is_adult as user_is_adult
 from utils.slugify import generate_unique_slug
 from utils.auth import get_current_admin, require_full_admin
 from routes.user_auth import get_optional_current_user
+
+from services.payment_service import sync_book_to_play
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
@@ -425,6 +427,7 @@ async def get_book(
 @router.post("", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
 async def create_book(
     book: BookCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
 ):
@@ -516,8 +519,14 @@ async def create_book(
     new_book.authors = authors
     new_book.artists = artists
 
+    if new_book.access_type == "prime_only":
+        new_book.play_sync_status = "pending"
     db.add(new_book)
     await db.commit()
+
+    # Prime books are sold through Google Play: create the product there.
+    if new_book.access_type == "prime_only":
+        background_tasks.add_task(sync_book_to_play, new_book.id)
 
     # Reload with relationships
     book_with_relations = await get_book_with_relations(db, new_book.id)
@@ -528,6 +537,7 @@ async def create_book(
 async def update_book(
     book_id: str,
     book: BookUpdate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
 ):
@@ -659,7 +669,16 @@ async def update_book(
 
     existing.updated_at = datetime.now(timezone.utc)
 
+    # Keep the Google Play product in step: create/update it while the book
+    # is Prime, switch sales off if it stops being Prime or is unpublished.
+    needs_play_sync = existing.access_type == "prime_only" or existing.play_sync_status is not None
+    if needs_play_sync:
+        existing.play_sync_status = "pending"
+
     await db.commit()
+
+    if needs_play_sync:
+        background_tasks.add_task(sync_book_to_play, existing.id)
 
     # Reload with relationships
     book_with_relations = await get_book_with_relations(db, uuid_id)
@@ -669,6 +688,7 @@ async def update_book(
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(
     book_id: str,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(require_full_admin),
 ):
@@ -689,6 +709,9 @@ async def delete_book(
     existing.is_deleted = True
     existing.updated_at = datetime.now(timezone.utc)
     await db.commit()
+    # Stop selling it in Google Play; buyers keep access.
+    if existing.play_sync_status is not None:
+        background_tasks.add_task(sync_book_to_play, existing.id)
     return None
 
 

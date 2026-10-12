@@ -293,6 +293,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   // Modal screens
   Player: { book: AudioBook; chapterIndex?: number };
+  Subscription: undefined;
   // Deep link handler
   DeepLinkHandler: { bookId: string };
 };

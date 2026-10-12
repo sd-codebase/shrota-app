@@ -21,6 +21,26 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 # business runs on this calendar, not UTC.
 ROYALTY_TIMEZONE = os.getenv("ROYALTY_TIMEZONE", "Asia/Kolkata")
 
+# Google Play Billing (in-app purchases on Android).
+# The service account must be linked in Play Console (Users & permissions)
+# with "View financial data" + "Manage orders and subscriptions" (to verify
+# and acknowledge purchases) and "Manage store presence" (to create products).
+GOOGLE_PLAY_PACKAGE_NAME = os.getenv("GOOGLE_PLAY_PACKAGE_NAME", "com.shrota.app")
+GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", "./google-play-service-account.json")
+# Real-time developer notifications arrive as Pub/Sub push requests carrying
+# a Google-signed OIDC token. Set the audience configured on the push
+# subscription, and the service account email Pub/Sub signs as.
+GOOGLE_PLAY_RTDN_AUDIENCE = os.getenv("GOOGLE_PLAY_RTDN_AUDIENCE", "")
+GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT = os.getenv("GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT", "")
+# Pricing regions pushed to Play for books and plans (ISO 3166 codes), and
+# the Play regions version those codes are valid in.
+GOOGLE_PLAY_PRICE_REGIONS = [
+    r.strip().upper() for r in os.getenv("GOOGLE_PLAY_PRICE_REGIONS", "IN").split(",") if r.strip()
+]
+GOOGLE_PLAY_REGIONS_VERSION = os.getenv("GOOGLE_PLAY_REGIONS_VERSION", "2022/02")
+# Turn product/plan syncing to Play off (e.g. local dev without credentials).
+GOOGLE_PLAY_SYNC_ENABLED = os.getenv("GOOGLE_PLAY_SYNC_ENABLED", "true").lower() == "true"
+
 # Notification settings
 NOTIFICATION_MODE = os.getenv("NOTIFICATION_MODE", "development")
 
