@@ -228,9 +228,11 @@ async def upsert_book_product(product_id: str, title: str, description: str, rup
             ],
         }],
     }
+    # camelCase path: the lowercase "onetimeproducts" shown in Google's
+    # reference returns 404 from the live API.
     await _request(
         "PATCH",
-        f"/onetimeproducts/{product_id}",
+        f"/oneTimeProducts/{product_id}",
         params={
             "allowMissing": "true",
             "updateMask": "listings,purchaseOptions",
