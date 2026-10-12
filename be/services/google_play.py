@@ -228,11 +228,12 @@ async def upsert_book_product(product_id: str, title: str, description: str, rup
             ],
         }],
     }
-    # camelCase path: the lowercase "onetimeproducts" shown in Google's
-    # reference returns 404 from the live API.
+    # The live API is inconsistent about path case: PATCH is only served at
+    # lowercase "onetimeproducts", while GET and batchUpdateStates are only
+    # served at camelCase "oneTimeProducts" (the others return a 404 page).
     await _request(
         "PATCH",
-        f"/oneTimeProducts/{product_id}",
+        f"/onetimeproducts/{product_id}",
         params={
             "allowMissing": "true",
             "updateMask": "listings,purchaseOptions",
