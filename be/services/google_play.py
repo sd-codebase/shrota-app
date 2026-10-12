@@ -16,6 +16,7 @@ from typing import Any, Optional
 import httpx
 
 from config import (
+    GOOGLE_PLAY_LISTING_LANGUAGE,
     GOOGLE_PLAY_PACKAGE_NAME,
     GOOGLE_PLAY_PRICE_REGIONS,
     GOOGLE_PLAY_REGIONS_VERSION,
@@ -25,9 +26,7 @@ from config import (
 
 API = "https://androidpublisher.googleapis.com/androidpublisher/v3"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
-# Language of the product listings we push. Must be a language the app's
-# store listing supports (Play rejects others).
-LISTING_LANGUAGE = "en-US"
+LISTING_LANGUAGE = GOOGLE_PLAY_LISTING_LANGUAGE
 PURCHASE_OPTION_ID = "buy"
 
 

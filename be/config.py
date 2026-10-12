@@ -38,6 +38,9 @@ GOOGLE_PLAY_PRICE_REGIONS = [
     r.strip().upper() for r in os.getenv("GOOGLE_PLAY_PRICE_REGIONS", "IN").split(",") if r.strip()
 ]
 GOOGLE_PLAY_REGIONS_VERSION = os.getenv("GOOGLE_PLAY_REGIONS_VERSION", "2022/02")
+# Language of the product listings we push: Play requires one in the app's
+# default store-listing language (en-GB for SHROTA).
+GOOGLE_PLAY_LISTING_LANGUAGE = os.getenv("GOOGLE_PLAY_LISTING_LANGUAGE", "en-GB")
 # Turn product/plan syncing to Play off (e.g. local dev without credentials).
 GOOGLE_PLAY_SYNC_ENABLED = os.getenv("GOOGLE_PLAY_SYNC_ENABLED", "true").lower() == "true"
 

@@ -169,7 +169,7 @@ Other endpoints: `GET /v1/payments/access/{book_id}` (checked before playback, i
 4. **RTDN**: create a Pub/Sub topic, grant `google-play-developer-notifications@system.gserviceaccount.com` *Publisher* on it, set it in Play Console → *Monetization setup*, and create a **push** subscription to `https://<api>/v1/payments/google/rtdn` with authentication enabled. Put the push audience in `GOOGLE_PLAY_RTDN_AUDIENCE` and the push service account email in `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`.
 5. **License testers** (Play Console → *License testing*) for test purchases without real charges.
 
-Env: `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_PATH`, `GOOGLE_PLAY_RTDN_AUDIENCE`, `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`, `GOOGLE_PLAY_PRICE_REGIONS` (default `IN`; other regions get Google-converted prices), `GOOGLE_PLAY_SYNC_ENABLED` (off by default for local dev).
+Env: `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_PATH`, `GOOGLE_PLAY_RTDN_AUDIENCE`, `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`, `GOOGLE_PLAY_PRICE_REGIONS` (default `IN`; other regions get Google-converted prices), `GOOGLE_PLAY_LISTING_LANGUAGE` (default `en-GB`, must be the app's default Play listing language), `GOOGLE_PLAY_SYNC_ENABLED` (off by default for local dev).
 
 ### Testing purchases
 
