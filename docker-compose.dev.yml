@@ -23,7 +23,7 @@ services:
       AUDIO_LIBRARY_DIR: /app/audio-library/shrota-audio-library
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-com.shrota.app}
-      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /app/google-play-service-account.json
+      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /app/secrets/google-play-service-account.json
       GOOGLE_PLAY_RTDN_AUDIENCE: ${GOOGLE_PLAY_RTDN_AUDIENCE:-}
       GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT: ${GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT:-}
       GOOGLE_PLAY_PRICE_REGIONS: ${GOOGLE_PLAY_PRICE_REGIONS:-IN}
@@ -39,6 +39,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Google Play service-account key (be/secrets/ is gitignored)
+      - ./be/secrets:/app/secrets:ro
       # Mount source code for hot-reload
       - ./be:/app
       # Persist uploads and audio library

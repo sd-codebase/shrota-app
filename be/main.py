@@ -33,6 +33,8 @@ from routes import (
     royalty_router,
     payments_router,
     billing_router,
+    feature_flags_router,
+    app_feature_flags_router,
 )
 
 
@@ -80,6 +82,8 @@ app.include_router(insights_router)
 app.include_router(royalty_router)
 app.include_router(payments_router)
 app.include_router(billing_router)
+app.include_router(feature_flags_router)
+app.include_router(app_feature_flags_router)
 
 
 @app.exception_handler(RequestValidationError)

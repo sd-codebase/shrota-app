@@ -21,6 +21,7 @@ import {
   BarChartOutlined,
   AccountBookOutlined,
   CreditCardOutlined,
+  FlagOutlined,
 } from '@ant-design/icons';
 import Languages from './pages/Languages';
 import Genres from './pages/Genres';
@@ -39,6 +40,7 @@ import ActivityLogs from './pages/ActivityLogs';
 import BookInsights from './pages/BookInsights';
 import Royalty from './pages/Royalty';
 import Billing from './pages/Billing';
+import FeatureFlags from './pages/FeatureFlags';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminOnlyRoute from './components/AdminOnlyRoute';
@@ -104,6 +106,11 @@ function App() {
             key: '/billing',
             icon: <CreditCardOutlined />,
             label: <Link to="/billing">Billing</Link>,
+          },
+          {
+            key: '/feature-flags',
+            icon: <FlagOutlined />,
+            label: <Link to="/feature-flags">Feature Flags</Link>,
           },
           {
             key: '/content',
@@ -216,6 +223,7 @@ function App() {
                 <Route path="/book-insights" element={<BookInsights />} />
                 <Route path="/royalty" element={<AdminOnlyRoute><Royalty /></AdminOnlyRoute>} />
                 <Route path="/billing" element={<AdminOnlyRoute><Billing /></AdminOnlyRoute>} />
+                <Route path="/feature-flags" element={<AdminOnlyRoute><FeatureFlags /></AdminOnlyRoute>} />
                 <Route path="/content" element={<AdminOnlyRoute><ContentPromotion /></AdminOnlyRoute>} />
                 <Route path="/users" element={<AdminOnlyRoute><Users /></AdminOnlyRoute>} />
                 <Route path="/notifications" element={<AdminOnlyRoute><Notifications /></AdminOnlyRoute>} />

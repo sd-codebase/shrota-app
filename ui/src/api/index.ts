@@ -68,6 +68,8 @@ import type {
   PrimeBookSync,
   StorePurchaseListResponse,
   StorePurchaseFilters,
+  FeatureFlag,
+  FeatureFlagDetail,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -859,3 +861,23 @@ export const resyncPrimeBook = (id: string) =>
 export const getStorePurchases = (filters: StorePurchaseFilters = {}) =>
   request<StorePurchaseListResponse>(`/billing/purchases${toQuery({ ...filters })}`);
 
+
+// Feature flags: switch an app feature on for everyone or chosen users
+export const getFeatureFlags = () => request<FeatureFlag[]>('/feature-flags');
+
+export const getFeatureFlag = (key: string) => request<FeatureFlagDetail>(`/feature-flags/${key}`);
+
+export const setFeatureFlagForAll = (key: string, enabledForAll: boolean) =>
+  request<FeatureFlagDetail>(`/feature-flags/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled_for_all: enabledForAll }),
+  });
+
+export const addFeatureFlagUser = (key: string, userId: string) =>
+  request<FeatureFlagDetail>(`/feature-flags/${key}/users`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  });
+
+export const removeFeatureFlagUser = (key: string, userId: string) =>
+  request<FeatureFlagDetail>(`/feature-flags/${key}/users/${userId}`, { method: 'DELETE' });

@@ -54,13 +54,18 @@ if (!buildGradle.includes('signingConfigs') || !buildGradle.match(/signingConfig
     console.log('✅ Added release signing config');
 }
 
-// 3. Ensure release buildType uses signingConfigs.release
-buildGradle = buildGradle.replace(
-    /signingConfig signingConfigs\.debug(\s*\n\s*def enableShrinkResources)/,
-    'signingConfig signingConfigs.release$1'
-);
-
-console.log('✅ Fixed signing config for release build type');
+// 3. Ensure release buildType uses signingConfigs.release. Newer Expo
+// templates write `signingConfig = signingConfigs.debug` (with "="), older
+// ones without it — match both, and fail loudly rather than silently
+// shipping a debug-signed release that Play will reject.
+const releaseSigningRegex = /signingConfig(\s*=?\s*)signingConfigs\.debug(\s*\n\s*def enableShrinkResources)/;
+if (releaseSigningRegex.test(buildGradle)) {
+    buildGradle = buildGradle.replace(releaseSigningRegex, 'signingConfig$1signingConfigs.release$2');
+    console.log('✅ Fixed signing config for release build type');
+} else if (!/release\s*\{[^{}]*signingConfig\s*=?\s*signingConfigs\.release/.test(buildGradle)) {
+    console.error('❌ Could not point the release build type at signingConfigs.release — check android/app/build.gradle');
+    process.exit(1);
+}
 
 fs.writeFileSync(buildGradlePath, buildGradle);
 console.log('✅ Updated build.gradle');

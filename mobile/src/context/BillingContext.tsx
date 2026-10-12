@@ -13,6 +13,7 @@ import {
   type Purchase,
 } from 'expo-iap';
 import { useAuth } from './AuthContext';
+import { useFeatureFlags } from './FeatureFlagsContext';
 import { verifyGooglePurchase, type StorePlan, type VerifyResult } from '../services/paymentsApi';
 
 /**
@@ -67,6 +68,8 @@ function describeError(error: StoreError): BuyOutcome {
 
 export function BillingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  // Users without in-app purchases switched on never talk to Play Billing.
+  const paymentsEnabled = useFeatureFlags().isEnabled('payments');
   const connected = useRef<Promise<boolean> | null>(null);
   // Screens awaiting the result of a purchase they started, by product id.
   const waiters = useRef(new Map<string, Waiter>());
@@ -120,7 +123,7 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !paymentsEnabled) return;
     let active = true;
     const updated = purchaseUpdatedListener((purchase) => {
       if (active) handlePurchase(purchase);
@@ -146,7 +149,7 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       updated.remove();
       failed.remove();
     };
-  }, [user?.id, ensureConnected, handlePurchase]);
+  }, [user?.id, paymentsEnabled, ensureConnected, handlePurchase]);
 
   useEffect(() => () => {
     endConnection().catch(() => {});

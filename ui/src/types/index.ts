@@ -759,3 +759,25 @@ export interface StorePurchaseFilters {
   kind?: StorePurchaseKind;
   include_test?: boolean;
 }
+
+// Feature flags
+export interface FeatureFlag {
+  key: string;
+  name: string;
+  description: string;
+  enabled_for_all: boolean;
+  user_count: number;
+  updated_at?: string | null;
+}
+
+export interface FeatureFlagUser {
+  id: string;
+  name: string;
+  email: string;
+  whatsapp_number?: string | null;
+  added_at: string;
+}
+
+export interface FeatureFlagDetail extends FeatureFlag {
+  users: FeatureFlagUser[];
+}

@@ -26,7 +26,7 @@ ROYALTY_TIMEZONE = os.getenv("ROYALTY_TIMEZONE", "Asia/Kolkata")
 # with "View financial data" + "Manage orders and subscriptions" (to verify
 # and acknowledge purchases) and "Manage store presence" (to create products).
 GOOGLE_PLAY_PACKAGE_NAME = os.getenv("GOOGLE_PLAY_PACKAGE_NAME", "com.shrota.app")
-GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", "./google-play-service-account.json")
+GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", "./secrets/google-play-service-account.json")
 # Real-time developer notifications arrive as Pub/Sub push requests carrying
 # a Google-signed OIDC token. Set the audience configured on the push
 # subscription, and the service account email Pub/Sub signs as.
@@ -38,6 +38,9 @@ GOOGLE_PLAY_PRICE_REGIONS = [
     r.strip().upper() for r in os.getenv("GOOGLE_PLAY_PRICE_REGIONS", "IN").split(",") if r.strip()
 ]
 GOOGLE_PLAY_REGIONS_VERSION = os.getenv("GOOGLE_PLAY_REGIONS_VERSION", "2022/02")
+# Language of the product listings we push: Play requires one in the app's
+# default store-listing language (en-GB for SHROTA).
+GOOGLE_PLAY_LISTING_LANGUAGE = os.getenv("GOOGLE_PLAY_LISTING_LANGUAGE", "en-GB")
 # Turn product/plan syncing to Play off (e.g. local dev without credentials).
 GOOGLE_PLAY_SYNC_ENABLED = os.getenv("GOOGLE_PLAY_SYNC_ENABLED", "true").lower() == "true"
 
