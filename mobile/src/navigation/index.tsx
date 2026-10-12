@@ -22,6 +22,7 @@ import { ArtistDetailsScreen } from '../screens/ArtistDetailsScreen';
 import { PublicationDetailsScreen } from '../screens/PublicationDetailsScreen';
 import { GenreDetailsScreen } from '../screens/GenreDetailsScreen';
 import { DeepLinkHandlerScreen } from '../screens/DeepLinkHandlerScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { RootStackParamList, MainTabParamList, AppOpenAd } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { Analytics, AnalyticsEvents } from '../services/analytics';
@@ -289,6 +290,9 @@ export function AppNavigator() {
               gestureDirection: 'vertical',
             }}
           />
+
+          {/* Subscription plans (Google Play Billing), reachable from any tab */}
+          <RootStack.Screen name="Subscription" component={SubscriptionScreen} />
 
           {/* Deep Link Handler */}
           <RootStack.Screen name="DeepLinkHandler" component={DeepLinkHandlerScreen} />

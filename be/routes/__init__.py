@@ -22,3 +22,5 @@ from routes.app_open_ad import router as app_open_ad_router
 from routes.activity import router as activity_router
 from routes.insights import router as insights_router
 from routes.royalty import router as royalty_router
+from routes.payments import router as payments_router
+from routes.billing import router as billing_router

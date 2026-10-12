@@ -62,6 +62,12 @@ import type {
   RoyaltySnapshotCreate,
   RoyaltySnapshotDetail,
   LedgerRebuildResult,
+  SubscriptionPlan,
+  SubscriptionPlanCreate,
+  SubscriptionPlanUpdate,
+  PrimeBookSync,
+  StorePurchaseListResponse,
+  StorePurchaseFilters,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -823,3 +829,33 @@ export const rebuildListeningLedger = (dateFrom: string, dateTo: string) =>
     `/royalty/ledger/rebuild${toQuery({ date_from: dateFrom, date_to: dateTo })}`,
     { method: 'POST' }
   );
+
+// Billing: Google Play subscription plans, Prime book sync, store purchases
+export const getSubscriptionPlans = () => request<SubscriptionPlan[]>('/billing/plans');
+
+export const createSubscriptionPlan = (data: SubscriptionPlanCreate) =>
+  request<SubscriptionPlan>('/billing/plans', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateSubscriptionPlan = (id: string, data: SubscriptionPlanUpdate) =>
+  request<SubscriptionPlan>(`/billing/plans/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export const deleteSubscriptionPlan = (id: string) =>
+  request<void>(`/billing/plans/${id}`, { method: 'DELETE' });
+
+export const resyncSubscriptionPlan = (id: string) =>
+  request<SubscriptionPlan>(`/billing/plans/${id}/sync`, { method: 'POST' });
+
+export const getPrimeBookSync = () => request<PrimeBookSync[]>('/billing/prime-books');
+
+export const resyncPrimeBook = (id: string) =>
+  request<PrimeBookSync>(`/billing/prime-books/${id}/sync`, { method: 'POST' });
+
+export const getStorePurchases = (filters: StorePurchaseFilters = {}) =>
+  request<StorePurchaseListResponse>(`/billing/purchases${toQuery({ ...filters })}`);
+

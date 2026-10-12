@@ -1,6 +1,7 @@
 import uuid
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, ForeignKey, Table, Column
+from datetime import datetime
+from sqlalchemy import String, Integer, Boolean, ForeignKey, Table, Column, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from models.base import Base, TimestampMixin, SoftDeleteMixin
@@ -42,13 +43,27 @@ class Book(Base, TimestampMixin, SoftDeleteMixin):
     is_adult: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Access tier: "free" | "subscriber_only" | "prime_only". Chosen when
-    # publishing a book. Enforcement of the paywall itself happens in the
-    # mobile app (see mobile/TODO_BOOK_ACCESS.md) — this is just the admin
-    # side of the feature for now.
+    # publishing a book. Who may listen is decided by
+    # services/payment_service.book_access and enforced in the app before
+    # playback.
     access_type: Mapped[str] = mapped_column(String(20), default="free", nullable=False)
     # Only set (and only meaningful) when access_type == "prime_only".
     # Whole rupees (₹), not paise.
     prime_price: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Google Play mirror of a prime_only book: a one-time product
+    # (`play_product_id`) kept in step with title and prime_price by
+    # services/google_play.sync_book after every admin save.
+    # "pending" until first pushed, "synced" when Play matches, "error" with
+    # the reason in play_sync_error otherwise. Retry from Billing → Prime books.
+    play_sync_status: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    play_sync_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    play_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @property
+    def play_product_id(self) -> str:
+        # Stable for the book's lifetime (titles and slugs can change).
+        return f"book_{self.id.hex}"
 
     # Foreign keys
     publisher_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("publications.id"), nullable=True)

@@ -31,6 +31,8 @@ from routes import (
     activity_router,
     insights_router,
     royalty_router,
+    payments_router,
+    billing_router,
 )
 
 
@@ -76,6 +78,8 @@ app.include_router(app_open_ad_router)
 app.include_router(activity_router)
 app.include_router(insights_router)
 app.include_router(royalty_router)
+app.include_router(payments_router)
+app.include_router(billing_router)
 
 
 @app.exception_handler(RequestValidationError)

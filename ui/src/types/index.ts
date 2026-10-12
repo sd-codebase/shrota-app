@@ -678,3 +678,84 @@ export interface LedgerRebuildResult {
   entries_written: number;
   seconds_credited: number;
 }
+
+// Billing (Google Play in-app purchases)
+export type BillingPeriod = 'P1M' | 'P3M' | 'P6M' | 'P1Y';
+export type PlaySyncStatus = 'pending' | 'synced' | 'error' | 'disabled';
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number; // whole rupees
+  billing_period: BillingPeriod;
+  is_active: boolean;
+  sort_order: number;
+  play_product_id: string;
+  play_base_plan_id: string;
+  play_sync_status: PlaySyncStatus;
+  play_sync_error?: string | null;
+  play_synced_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionPlanCreate {
+  name: string;
+  description?: string | null;
+  price: number;
+  billing_period: BillingPeriod;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export type SubscriptionPlanUpdate = Partial<Omit<SubscriptionPlanCreate, 'billing_period'>>;
+
+export interface PrimeBookSync {
+  id: string;
+  title: string;
+  prime_price?: number | null;
+  is_published: boolean;
+  play_product_id: string;
+  play_sync_status?: PlaySyncStatus | null;
+  play_sync_error?: string | null;
+  play_synced_at?: string | null;
+}
+
+export type StorePurchaseKind = 'book' | 'subscription';
+
+export interface StorePurchase {
+  id: string;
+  user_id?: string | null;
+  user_name?: string | null;
+  user_email?: string | null;
+  store: string;
+  kind: StorePurchaseKind;
+  product_id: string;
+  item_title: string;
+  list_price?: number | null;
+  status: string;
+  order_id?: string | null;
+  is_test: boolean;
+  acknowledged: boolean;
+  auto_renewing?: boolean | null;
+  purchased_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+}
+
+export interface StorePurchaseListResponse {
+  purchases: StorePurchase[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export interface StorePurchaseFilters {
+  page?: number;
+  per_page?: number;
+  status?: string;
+  kind?: StorePurchaseKind;
+  include_test?: boolean;
+}

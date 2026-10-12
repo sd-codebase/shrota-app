@@ -143,3 +143,40 @@ The app automatically:
 - Subscribes to `all_users` topic
 - Shows in-app alert for foreground notifications
 - System notification for background notifications
+
+---
+
+## Payments (Google Play Billing)
+
+Books have an `access_type`: `free`, `subscriber_only` (needs an active subscription), or `prime_only` (bought once per book at `prime_price`, owned forever). **All paid content is sold in the Android app through Google Play Billing** — no other payment provider, and the website doesn't sell anything. iOS (Apple in-app purchase) is planned later.
+
+### How it fits together
+
+- **Prime book** → a Play **one-time product** `book_<book id hex>`. Saving a Prime book in the admin (create / title / price / publish changes) pushes it to Play automatically (`services/payment_service.sync_book_to_play`); unpublishing or leaving Prime stops new sales, buyers keep it.
+- **Subscription plan** → a Play **auto-renewing subscription** `plan_<plan id hex>` with one base plan named after its period (`p1m`, `p3m`, `p6m`, `p1y`). Managed in admin **Billing → Subscription Plans**; billing period can't change after creation (Play rule).
+- **Sync status** for both shows in admin **Billing** (`synced` / `pending` / `error` / `disabled`) with a re-sync button.
+- **App purchase**: `expo-iap` (Play Billing Library 9) opens Google's payment sheet, passing the user's id (hex) as `obfuscatedAccountId`. The app sends the purchase token to `POST /v1/payments/google/verify`; the server reads it back from the Play Developer API, records it in `store_purchases`, unlocks it, and **acknowledges it** (Google refunds anything unacknowledged after 3 days). Then the app finishes the transaction.
+- **Real-time developer notifications** (renewals, cancellations, account hold, refunds, purchases the app never reported) arrive via Cloud Pub/Sub push at `POST /v1/payments/google/rtdn`, authenticated by Google's OIDC token. State is always re-read from Google.
+- **Entitlement**: Prime = a `book_purchases` row; subscription = a `store_purchases` row in `active` / `grace_period` / `canceled` with `expires_at` in the future (`on_hold`, `paused`, `expired`, `refunded` give no access).
+
+Other endpoints: `GET /v1/payments/access/{book_id}` (checked before playback, includes the Play product id), `GET /v1/payments/plans`, `GET /v1/payments/subscription`. Admin: `/billing/plans` CRUD + `/sync`, `GET /billing/prime-books` + `/sync`, `GET /billing/purchases`.
+
+### Setup (Play Console — one time)
+
+1. **Payments profile** set up for the developer account.
+2. Upload an app build that includes `expo-iap` to the **Internal testing** track (Play only allows products once a billing-enabled build exists).
+3. **Google Cloud service account** with a JSON key → save as `be/google-play-service-account.json` (gitignored, mounted into the container in staging/prod). In Play Console → *Users and permissions*, invite its email with: *View financial data*, *Manage orders and subscriptions*, *Manage store presence*.
+4. **RTDN**: create a Pub/Sub topic, grant `google-play-developer-notifications@system.gserviceaccount.com` *Publisher* on it, set it in Play Console → *Monetization setup*, and create a **push** subscription to `https://<api>/v1/payments/google/rtdn` with authentication enabled. Put the push audience in `GOOGLE_PLAY_RTDN_AUDIENCE` and the push service account email in `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`.
+5. **License testers** (Play Console → *License testing*) for test purchases without real charges.
+
+Env: `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_PATH`, `GOOGLE_PLAY_RTDN_AUDIENCE`, `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT`, `GOOGLE_PLAY_PRICE_REGIONS` (default `IN`; other regions get Google-converted prices), `GOOGLE_PLAY_SYNC_ENABLED` (off by default for local dev).
+
+### Testing purchases
+
+Google Play Billing only works in a build **installed from a Play testing track** (or a build with the same package and signing key as one uploaded there), signed in on the device with a **license tester** account. Purchases are free for testers and show as *Test* in admin.
+
+### Limits worth knowing
+
+- The paywall is enforced in the app; chapter audio on the CDN is not access-controlled, so a determined user with a URL can still fetch it.
+- Downloaded books keep playing offline after a subscription lapses.
+- `list_price` in admin is Shrota's catalogue price; actual earnings (after Google's fee and tax) are in Play Console financial reports.

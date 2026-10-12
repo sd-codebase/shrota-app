@@ -1,0 +1,2 @@
+# Mounted at runtime (see docker-compose.*.yml), never baked into the image
+google-play-service-account.json
