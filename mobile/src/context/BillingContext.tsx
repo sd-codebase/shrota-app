@@ -176,7 +176,7 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       await ensureConnected();
       const products = await fetchProducts({ skus: [productId], type: 'in-app' });
       const product = products?.find((p) => p.id === productId);
-      return product?.displayPrice ?? null;
+      return product?.displayPrice || null;
     },
 
     getPlanOffers: async (plans) => {
@@ -190,7 +190,7 @@ export function BillingProvider({ children }: { children: ReactNode }) {
           (o) => o.basePlanIdAndroid === plan.play_base_plan_id && o.offerTokenAndroid,
         );
         if (offer?.offerTokenAndroid) {
-          offers.push({ plan, displayPrice: offer.displayPrice, offerToken: offer.offerTokenAndroid });
+          offers.push({ plan, displayPrice: offer.displayPrice || `₹${plan.price}`, offerToken: offer.offerTokenAndroid });
         }
       }
       return offers;
