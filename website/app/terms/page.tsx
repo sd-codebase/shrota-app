@@ -22,7 +22,7 @@ export default function TermsPage() {
               Operated by Shravanam Soft Solutions LLP
             </p>
             <p className="text-text-secondary text-lg">
-              Effective Date: 02/02/2026
+              Effective Date: 16/10/2026
             </p>
           </FadeIn>
         </Container>
@@ -117,14 +117,17 @@ export default function TermsPage() {
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-bold text-text-primary mb-4">6. Subscriptions and Payments (If Applicable)</h2>
+                  <h2 className="text-2xl font-bold text-text-primary mb-4">6. Subscriptions and Purchases</h2>
                   <p className="text-text-secondary mb-4">
-                    Some services may require payment or subscription. By subscribing, you agree:
+                    Some audiobooks need a subscription or a one-time purchase. These are sold in the Shrota app through Google Play, and Google Play&apos;s terms also apply to every payment. By buying or subscribing, you agree:
                   </p>
                   <ul className="list-disc list-inside text-text-secondary space-y-2">
-                    <li>Payments are non-refundable unless stated</li>
-                    <li>Prices may change with prior notice</li>
-                    <li>Access may be revoked if payment fails</li>
+                    <li>Subscriptions renew automatically at the end of each billing period until you cancel</li>
+                    <li>You can cancel anytime in Play Store → Payments &amp; subscriptions; you keep access until the end of the period you paid for</li>
+                    <li>An audiobook bought once stays available in your account</li>
+                    <li>Refunds follow Google Play&apos;s refund policy and are requested through Google Play</li>
+                    <li>Prices may change with prior notice; a new price applies to a subscription only from a later renewal</li>
+                    <li>Access may be paused or ended if a renewal payment fails or a purchase is refunded</li>
                   </ul>
                 </div>
 
