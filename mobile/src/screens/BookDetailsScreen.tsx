@@ -631,7 +631,7 @@ export function BookDetailsScreen() {
             <Text style={styles.playButtonText}>
               {isLocked
                 ? access?.access_type === 'prime_only'
-                  ? `Buy for ${playPrice ?? `₹${access.prime_price}`}`
+                  ? `Buy for ${playPrice || `₹${access.prime_price}`}`
                   : 'Subscribe to Listen'
                 : isThisBookPlaying ? 'Pause Audiobook' : hasProgress ? 'Resume Audiobook' : 'Play Audiobook'}
             </Text>
