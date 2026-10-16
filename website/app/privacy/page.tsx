@@ -22,7 +22,7 @@ export default function PrivacyPage() {
               Operated by Shravanam Soft Solutions LLP
             </p>
             <p className="text-text-secondary text-lg">
-              Effective Date: 02/02/2026
+              Effective Date: 16/10/2026
             </p>
           </FadeIn>
         </Container>
@@ -78,6 +78,16 @@ export default function PrivacyPage() {
                   <p className="text-text-secondary">
                     We do not claim ownership of user-uploaded content. However, metadata related to content usage (like listening history) may be stored to improve user experience.
                   </p>
+
+                  <h3 className="text-xl font-semibold text-text-primary mt-4 mb-2">d) Purchase Information</h3>
+                  <p className="text-text-secondary mb-2">
+                    In-app purchases and subscriptions are paid through Google Play. Google processes the payment; we never see or store your card, UPI or bank details. We keep:
+                  </p>
+                  <ul className="list-disc list-inside text-text-secondary space-y-2">
+                    <li>Which audiobooks you have bought</li>
+                    <li>Your subscription plan, its status and renewal or end date</li>
+                    <li>The Google Play order ID and purchase record, so we can confirm the purchase with Google</li>
+                  </ul>
                 </div>
 
                 <div>
@@ -88,6 +98,7 @@ export default function PrivacyPage() {
                   <ul className="list-disc list-inside text-text-secondary space-y-2">
                     <li>To provide and maintain our services</li>
                     <li>To manage user accounts</li>
+                    <li>To confirm purchases and subscriptions with Google Play and give you access to what you paid for</li>
                     <li>To personalize content and recommendations</li>
                     <li>To improve app and website performance</li>
                     <li>To communicate updates, offers, or important notices</li>
@@ -105,6 +116,7 @@ export default function PrivacyPage() {
                   </p>
                   <ul className="list-disc list-inside text-text-secondary space-y-2">
                     <li>With service providers for hosting, analytics, or support</li>
+                    <li>With Google Play, to process and verify in-app purchases and subscriptions</li>
                     <li>If required by law or government authorities</li>
                     <li>To protect the rights, safety, or property of users or our firm</li>
                   </ul>
