@@ -92,7 +92,11 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    // 422s carry a list of field errors; show their messages.
+    const detail = Array.isArray(error.detail)
+      ? error.detail.map((e: { msg?: string }) => (e.msg || '').replace(/^Value error, /, '')).join('; ')
+      : error.detail;
+    throw new Error(detail || 'Request failed');
   }
 
   if (response.status === 204) {

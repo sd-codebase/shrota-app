@@ -146,6 +146,15 @@ The app automatically:
 
 ---
 
+## Website URLs (slugs)
+
+Books (`/book/<slug>`), categories/genres (`/category/<slug>`) and news (`/news/<slug>`) have a **URL slug** field in their admin forms. Slugs are English only: `a-z`, `0-9`, single hyphens, max 100 chars. The form drops any other character as you type or paste, and the server rejects a slug containing anything else (`be/utils/slugify.validate_slug_input`). Blank = generated from the title/name; titles with no English letters fall back to `book`, `category`, `news` (+ `-2`…), so type one for Marathi titles.
+
+- A slug changes only when an admin edits it (not on title change). The old slug is kept in `slug_redirects` and the website 308-redirects it to the current URL. A slug used by another item, now or previously, is rejected with 409.
+- `/category/<slug>` pages list non-adult genres with at least one public book (`GET /genres/public`); they're in the sitemap and linked from `/books` and book pages.
+
+---
+
 ## Feature Flags
 
 Switch an app feature on for **all users** or for **specific users** from admin **Feature Flags** (full admins). Flags are defined in code in `be/services/feature_flags.FLAGS` (add a key there and a row via migration); state lives in `feature_flags` / `feature_flag_users`.

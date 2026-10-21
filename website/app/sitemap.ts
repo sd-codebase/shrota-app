@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { fetchBookCatalog, fetchAllNews } from "@/lib/api";
+import { fetchBookCatalog, fetchAllNews, fetchCategories } from "@/lib/api";
 
 const SITE_URL = "https://shrota.in";
 
@@ -21,7 +21,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: Me
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [books, news] = await Promise.all([fetchBookCatalog(), fetchAllNews()]);
+  const [books, news, categories] = await Promise.all([fetchBookCatalog(), fetchAllNews(), fetchCategories()]);
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({
     url: `${SITE_URL}${route.path}`,
@@ -37,6 +37,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
+    url: `${SITE_URL}/category/${category.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
   const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
     url: `${SITE_URL}/news/${item.slug}`,
     lastModified: new Date(item.updated_at || item.created_at),
@@ -44,5 +51,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...bookEntries, ...newsEntries];
+  return [...staticEntries, ...categoryEntries, ...bookEntries, ...newsEntries];
 }

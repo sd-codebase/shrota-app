@@ -11,6 +11,12 @@ export interface BookShareChapter {
   duration?: number;
 }
 
+// A book's genre with the slug of its /category/<slug> page.
+export interface GenreLink {
+  name: string;
+  slug: string;
+}
+
 export interface BookShareData {
   id: string;
   slug: string;
@@ -21,6 +27,7 @@ export interface BookShareData {
   author_names: string[];
   artist_names: string[];
   genre_names: string[];
+  genres: GenreLink[];
   language_name?: string;
   chapter_count: number;
   chapters: BookShareChapter[];
@@ -33,9 +40,10 @@ export interface BookShareError {
 }
 
 // `identifier` may be either a book UUID (app deep/share links) or a slug
-// (website catalog links) — the backend resolves whichever it matches.
+// (website catalog links) — the backend resolves whichever it matches. An old
+// slug returns the book with its current `slug`, so the page can redirect.
 export async function fetchBookForShare(identifier: string): Promise<BookShareData> {
-  const response = await fetch(`${SERVER_API_URL}/books/${identifier}/share`, {
+  const response = await fetch(`${SERVER_API_URL}/books/${encodeURIComponent(identifier)}/share`, {
     next: { revalidate: 60 }, // Cache for 60 seconds
   });
 
@@ -64,9 +72,32 @@ export interface BookCatalogItem {
   author_names: string[];
   artist_names: string[];
   genre_names: string[];
+  genres: GenreLink[];
   language_name?: string;
   chapter_count: number;
   updated_at: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  thumbnail?: string;
+  book_count: number;
+}
+
+// Genres that have books on the public catalog, for /category/<slug> pages.
+export async function fetchCategories(): Promise<Category[]> {
+  try {
+    const response = await fetch(`${SERVER_API_URL}/genres/public`, {
+      next: { revalidate: 300 }, // Cache for 5 minutes
+    });
+    if (!response.ok) return [];
+    return response.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchBookCatalog(): Promise<BookCatalogItem[]> {
@@ -78,6 +109,19 @@ export async function fetchBookCatalog(): Promise<BookCatalogItem[]> {
     return response.json();
   } catch {
     return [];
+  }
+}
+
+// Current slug for a category slug an admin has since changed, or null.
+export async function fetchCategoryRedirect(oldSlug: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${SERVER_API_URL}/genres/redirect/${encodeURIComponent(oldSlug)}`, {
+      next: { revalidate: 300 },
+    });
+    if (!response.ok) return null;
+    return (await response.json()).slug;
+  } catch {
+    return null;
   }
 }
 
@@ -156,7 +200,7 @@ export async function fetchAllNews(): Promise<News[]> {
 
 export async function fetchNewsBySlug(slug: string): Promise<News | null> {
   try {
-    const response = await fetch(`${SERVER_API_URL}/news/${slug}`, {
+    const response = await fetch(`${SERVER_API_URL}/news/${encodeURIComponent(slug)}`, {
       cache: 'no-store',
     });
     if (!response.ok) return null;

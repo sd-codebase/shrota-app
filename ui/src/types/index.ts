@@ -14,6 +14,7 @@ export interface LanguageCreate {
 export interface Genre {
   id: string;
   name: string;
+  slug: string;
   description?: string;
   thumbnail?: string;
   is_adult: boolean;
@@ -23,6 +24,7 @@ export interface Genre {
 
 export interface GenreCreate {
   name: string;
+  slug?: string;  // URL slug; blank = generate from the name
   description?: string;
   thumbnail?: string;
   is_adult?: boolean;
@@ -136,6 +138,7 @@ export interface Book {
 
 export interface BookCreate {
   title: string;
+  slug?: string;  // URL slug; blank = generate from the title
   genre_ids: string[];  // Multiple genres
   information: string;
   author_ids: string[];  // Multiple authors
@@ -427,6 +430,7 @@ export interface News {
 
 export interface NewsCreate {
   title: string;
+  slug?: string;  // URL slug; blank = generate from the title
   text: string;
   cover_image?: string;
   is_active: boolean;

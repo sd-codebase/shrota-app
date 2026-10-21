@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
+from utils.slugify import validate_slug_input
 
 # "free" — anyone can listen.
 # "subscriber_only" — visible to everyone, but listening requires an active
@@ -46,6 +47,8 @@ class ChapterResponse(BaseModel):
 
 class BookCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
+    # URL slug; blank = generate from the title. Sanitized by validate_slug_input.
+    slug: Optional[str] = Field(None, max_length=200)
     genre_ids: list[str] = Field(..., min_length=1)  # Multiple genres
     information: str = Field(..., max_length=1000)
     author_ids: list[str] = Field(..., min_length=1)  # Multiple authors
@@ -72,9 +75,16 @@ class BookCreate(BaseModel):
             raise ValueError(f"access_type must be one of: {', '.join(BOOK_ACCESS_TYPES)}")
         return v
 
+    @field_validator("slug")
+    @classmethod
+    def clean_slug(cls, v: Optional[str]) -> Optional[str]:
+        return validate_slug_input(v)
+
 
 class BookUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
+    # URL slug; blank = generate from the title. Sanitized by validate_slug_input.
+    slug: Optional[str] = Field(None, max_length=200)
     genre_ids: Optional[list[str]] = None  # Multiple genres
     information: Optional[str] = Field(None, max_length=1000)
     author_ids: Optional[list[str]] = None  # Multiple authors
@@ -102,6 +112,11 @@ class BookUpdate(BaseModel):
         if v is not None and v not in BOOK_ACCESS_TYPES:
             raise ValueError(f"access_type must be one of: {', '.join(BOOK_ACCESS_TYPES)}")
         return v
+
+    @field_validator("slug")
+    @classmethod
+    def clean_slug(cls, v: Optional[str]) -> Optional[str]:
+        return validate_slug_input(v)
 
 
 class BookResponse(BaseModel):

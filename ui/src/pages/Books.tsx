@@ -38,6 +38,7 @@ import {
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { Book, BookCreate, Genre, Author, Publication, Chapter, ChapterCreate, Artist, Language } from '../types';
 import MiniPlayer from '../components/MiniPlayer';
+import SlugInput, { cleanSlug } from '../components/SlugInput';
 import {
   getBooks,
   createBook,
@@ -110,6 +111,7 @@ function Books() {
   const [isUploading, setIsUploading] = useState(false);
   const [bookForm] = Form.useForm();
   const [chapterForm] = Form.useForm();
+  const bookTitle = Form.useWatch('title', bookForm);
   const accessType = Form.useWatch('access_type', bookForm);
 
   const fetchBooks = async (bookFilters?: BookFilters) => {
@@ -279,6 +281,7 @@ function Books() {
 
       const bookData: BookCreate = {
         ...values,
+        slug: cleanSlug(values.slug),
         thumbnail: thumbnailFilename,
       };
 
@@ -292,7 +295,7 @@ function Books() {
       setBookModalOpen(false);
       refreshBooks();
     } catch (error) {
-      message.error('Failed to save book');
+      message.error(error instanceof Error && error.message !== 'Request failed' ? error.message : 'Failed to save book');
     }
   };
 
@@ -986,6 +989,11 @@ function Books() {
 
             {/* Book Details */}
             <Descriptions column={1} size="small" bordered>
+              <Descriptions.Item label="Website link">
+                <a href={`https://shrota.in/book/${viewingBook.slug}`} target="_blank" rel="noreferrer">
+                  shrota.in/book/{viewingBook.slug}
+                </a>
+              </Descriptions.Item>
               <Descriptions.Item label="Authors">{getAuthorNames(viewingBook.author_ids)}</Descriptions.Item>
               <Descriptions.Item label="Genres">{getGenreNames(viewingBook.genre_ids)}</Descriptions.Item>
               <Descriptions.Item label="Narrators">{getArtistNames(viewingBook.artist_ids)}</Descriptions.Item>
@@ -1032,6 +1040,7 @@ function Books() {
           >
             <Input />
           </Form.Item>
+          <SlugInput pathPrefix="/book/" source={bookTitle} />
           <Form.Item
             name="author_ids"
             label="Authors"

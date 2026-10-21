@@ -8,7 +8,7 @@ from models import News
 from models.admin import Admin
 from schemas.news import NewsCreate, NewsUpdate, NewsResponse
 from utils.auth import require_full_admin
-from utils.slugify import generate_unique_slug
+from services.slugs import choose_slug, record_slug_change, find_redirect_target
 
 router = APIRouter(prefix="/news", tags=["News"])
 
@@ -25,14 +25,6 @@ def news_to_response(news: News) -> dict:
         "created_at": news.created_at,
         "updated_at": news.updated_at,
     }
-
-
-async def _slug_exists(db: AsyncSession, slug: str, exclude_id: UUID | None = None) -> bool:
-    query = select(News.id).where(News.slug == slug)
-    if exclude_id is not None:
-        query = query.where(News.id != exclude_id)
-    result = await db.execute(query)
-    return result.scalar_one_or_none() is not None
 
 
 @router.get("", response_model=list[NewsResponse])
@@ -64,10 +56,15 @@ async def get_public_news(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{slug}", response_model=NewsResponse)
 async def get_news_item(slug: str, db: AsyncSession = Depends(get_db)):
-    """Website news detail page: lookup by hyphen-separated slug."""
+    """
+    Website news detail page: lookup by hyphen-separated slug. An old slug
+    returns the item with its current slug, so the website can redirect.
+    """
+    target_id = await find_redirect_target(db, "news", slug)
+    condition = News.id == target_id if target_id else News.slug == slug
     result = await db.execute(
         select(News).where(
-            News.slug == slug,
+            condition,
             News.is_deleted == False,
             News.is_active == True,
         )
@@ -84,9 +81,7 @@ async def create_news(
     db: AsyncSession = Depends(get_db),
     admin: Admin = Depends(require_full_admin),
 ):
-    slug = await generate_unique_slug(
-        news.title, lambda candidate: _slug_exists(db, candidate)
-    )
+    slug = await choose_slug(db, News, "news", news.slug, news.title, fallback="news")
 
     new_news = News(
         title=news.title,
@@ -121,11 +116,17 @@ async def update_news(
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    if "title" in update_data and update_data["title"] != existing.title:
-        update_data["slug"] = await generate_unique_slug(
-            update_data["title"],
-            lambda candidate: _slug_exists(db, candidate, exclude_id=uuid_id),
+    # The slug changes only when the admin edits it (blank = generate from
+    # the title), so shared links stay put. The old slug keeps redirecting.
+    requested_slug = update_data.pop("slug", None)
+    if requested_slug is not None and requested_slug != existing.slug:
+        new_slug = await choose_slug(
+            db, News, "news", requested_slug,
+            update_data.get("title", existing.title), fallback="news", exclude_id=uuid_id,
         )
+        if new_slug != existing.slug:
+            await record_slug_change(db, "news", existing.id, existing.slug, new_slug)
+            existing.slug = new_slug
 
     for key, value in update_data.items():
         setattr(existing, key, value)

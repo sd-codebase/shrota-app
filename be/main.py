@@ -98,9 +98,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     print(f"[VALIDATION ERROR] Body: {body}")
     print(f"[VALIDATION ERROR] Errors: {exc.errors()}")
     print(f"{'='*50}\n")
+    # `ctx` holds the raised exception object for custom validators (e.g. a
+    # ValueError), which isn't JSON serializable.
+    errors = [{k: v for k, v in error.items() if k != "ctx"} for error in exc.errors()]
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors()},
+        content={"detail": errors},
     )
 
 
