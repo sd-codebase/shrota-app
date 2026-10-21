@@ -26,6 +26,7 @@ import {
   getGenreThumbnailUrl,
 } from '../api';
 import { useAuth } from '../context/AuthContext';
+import SlugInput, { cleanSlug } from '../components/SlugInput';
 
 function Genres() {
   const { isFullAdmin } = useAuth();
@@ -37,6 +38,7 @@ function Genres() {
   const [thumbnailFileList, setThumbnailFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
   const [bulkForm] = Form.useForm();
+  const genreName = Form.useWatch('name', form);
 
   const fetchGenres = async () => {
     setLoading(true);
@@ -100,6 +102,7 @@ function Genres() {
 
       const genreData: GenreCreate = {
         ...values,
+        slug: cleanSlug(values.slug),
         thumbnail: thumbnailFilename,
       };
 
@@ -113,7 +116,7 @@ function Genres() {
       setDrawerOpen(false);
       fetchGenres();
     } catch (error) {
-      message.error('Failed to save genre');
+      message.error(error instanceof Error && error.message !== 'Request failed' ? error.message : 'Failed to save genre');
     }
   };
 
@@ -182,6 +185,16 @@ function Genres() {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+    },
+    {
+      title: 'Website link',
+      dataIndex: 'slug',
+      key: 'slug',
+      render: (slug: string) => (
+        <a href={`https://shrota.in/category/${slug}`} target="_blank" rel="noreferrer">
+          /category/{slug}
+        </a>
+      ),
     },
     {
       title: 'Description',
@@ -262,6 +275,7 @@ function Genres() {
           >
             <Input placeholder="e.g., Fiction" />
           </Form.Item>
+          <SlugInput pathPrefix="/category/" source={genreName} sourceLabel="name" />
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} placeholder="Optional description" />
           </Form.Item>

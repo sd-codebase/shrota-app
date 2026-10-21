@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { FadeIn } from "@/components/animations/FadeIn";
 import { BooksCatalog } from "@/components/sections/BooksCatalog";
-import { fetchBookCatalog } from "@/lib/api";
+import { fetchBookCatalog, fetchCategories } from "@/lib/api";
 
 const SITE_URL = "https://shrota.in";
 
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BooksPage() {
-  const books = await fetchBookCatalog();
+  const [books, categories] = await Promise.all([fetchBookCatalog(), fetchCategories()]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -60,7 +60,7 @@ export default async function BooksPage() {
             <p className="text-text-secondary text-center py-20">No audiobooks available yet.</p>
           </FadeIn>
         ) : (
-          <BooksCatalog books={books} />
+          <BooksCatalog books={books} categories={categories} />
         )}
       </Container>
     </main>

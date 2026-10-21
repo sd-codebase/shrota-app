@@ -162,15 +162,16 @@ export function BookDetails({ book }: BookDetailsProps) {
                 </div>
 
                 {/* Genres */}
-                {book.genre_names.length > 0 && (
+                {book.genres.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-6">
-                    {book.genre_names.map((genre) => (
-                      <span
-                        key={genre}
-                        className="px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue-light text-sm border border-brand-blue/20"
+                    {book.genres.map((genre) => (
+                      <Link
+                        key={genre.slug}
+                        href={`/category/${genre.slug}`}
+                        className="px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue-light text-sm border border-brand-blue/20 hover:border-brand-blue/50 transition-colors"
                       >
-                        {genre}
-                      </span>
+                        {genre.name}
+                      </Link>
                     ))}
                   </div>
                 )}

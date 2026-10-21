@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Container } from "@/components/ui/Container";
 import { FadeIn } from "@/components/animations/FadeIn";
 import { fetchNewsBySlug, getNewsCoverUrl } from "@/lib/api";
@@ -64,6 +64,11 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
 
   if (!news) {
     notFound();
+  }
+
+  // An old slug (the admin changed it): redirect to the current URL.
+  if (newsSlug !== news.slug) {
+    permanentRedirect(`/news/${news.slug}`);
   }
 
   const url = `${SITE_URL}/news/${news.slug}`;

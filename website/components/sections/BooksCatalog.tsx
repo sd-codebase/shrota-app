@@ -4,37 +4,38 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FadeIn } from "@/components/animations/FadeIn";
-import { getThumbnailUrl, formatDuration, type BookCatalogItem } from "@/lib/api";
+import { getThumbnailUrl, formatDuration, type BookCatalogItem, type Category } from "@/lib/api";
 
 interface BooksCatalogProps {
   books: BookCatalogItem[];
+  categories: Category[];
+  /** Slug of the /category/<slug> page being shown; none on /books. */
+  activeCategory?: string;
 }
 
-export function BooksCatalog({ books }: BooksCatalogProps) {
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState<string | null>(null);
+const chipClass = (active: boolean) =>
+  `px-3 py-1 rounded-full text-sm border transition-colors ${
+    active
+      ? "bg-brand-orange text-white border-brand-orange"
+      : "bg-bg-card text-text-secondary border-white/10 hover:border-white/20"
+  }`;
 
-  const genres = useMemo(() => {
-    const set = new Set<string>();
-    books.forEach((b) => b.genre_names.forEach((g) => set.add(g)));
-    return Array.from(set).sort();
-  }, [books]);
+export function BooksCatalog({ books, categories, activeCategory }: BooksCatalogProps) {
+  const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return books.filter((b) => {
-      const matchesGenre = !genre || b.genre_names.includes(genre);
-      const matchesSearch =
+    return books.filter(
+      (b) =>
         !q ||
         b.title.toLowerCase().includes(q) ||
-        b.author_names.some((a) => a.toLowerCase().includes(q));
-      return matchesGenre && matchesSearch;
-    });
-  }, [books, search, genre]);
+        b.author_names.some((a) => a.toLowerCase().includes(q))
+    );
+  }, [books, search]);
 
   return (
     <div>
-      {/* Search + genre filters */}
+      {/* Search + category links (real pages, so search engines index them) */}
       <div className="mb-10 space-y-4">
         <input
           type="search"
@@ -43,32 +44,22 @@ export function BooksCatalog({ books }: BooksCatalogProps) {
           placeholder="Search by title or author..."
           className="w-full sm:w-96 px-4 py-2.5 rounded-full bg-bg-card border border-white/10 text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-brand-orange/50 transition-colors"
         />
-        {genres.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setGenre(null)}
-              className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                genre === null
-                  ? "bg-brand-orange text-white border-brand-orange"
-                  : "bg-bg-card text-text-secondary border-white/10 hover:border-white/20"
-              }`}
-            >
+        {categories.length > 0 && (
+          <nav aria-label="Categories" className="flex flex-wrap gap-2">
+            <Link href="/books" className={chipClass(!activeCategory)}>
               All
-            </button>
-            {genres.map((g) => (
-              <button
-                key={g}
-                onClick={() => setGenre(g === genre ? null : g)}
-                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                  genre === g
-                    ? "bg-brand-orange text-white border-brand-orange"
-                    : "bg-bg-card text-text-secondary border-white/10 hover:border-white/20"
-                }`}
+            </Link>
+            {categories.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/category/${c.slug}`}
+                className={chipClass(c.slug === activeCategory)}
+                aria-current={c.slug === activeCategory ? "page" : undefined}
               >
-                {g}
-              </button>
+                {c.name}
+              </Link>
             ))}
-          </div>
+          </nav>
         )}
       </div>
 

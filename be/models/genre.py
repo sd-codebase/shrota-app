@@ -11,6 +11,8 @@ class Genre(Base, TimestampMixin, SoftDeleteMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Website category page: /category/<slug>
+    slug: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     thumbnail: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_adult: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

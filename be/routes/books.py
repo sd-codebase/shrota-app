@@ -24,7 +24,7 @@ from schemas.book import (
 )
 from utils.hls_converter import convert_to_hls, HLSConversionError
 from utils.age import is_adult as user_is_adult
-from utils.slugify import generate_unique_slug
+from services.slugs import choose_slug, record_slug_change, find_redirect_target
 from utils.auth import get_current_admin, require_full_admin
 from routes.user_auth import get_optional_current_user
 
@@ -127,12 +127,9 @@ async def get_book_with_relations_by_slug(db: AsyncSession, slug: str) -> Option
     return result.scalar_one_or_none()
 
 
-async def _book_slug_exists(db: AsyncSession, slug: str, exclude_id: Optional[UUID] = None) -> bool:
-    query = select(Book.id).where(Book.slug == slug)
-    if exclude_id is not None:
-        query = query.where(Book.id != exclude_id)
-    result = await db.execute(query)
-    return result.scalar_one_or_none() is not None
+def _public_genres(book: Book) -> list[dict]:
+    """Genres for the website, with slugs for /category/<slug> links."""
+    return [{"name": g.name, "slug": g.slug} for g in book.genres if not g.is_deleted and not g.is_adult]
 
 
 def _require_book_owner(book: Book, admin: Admin) -> None:
@@ -328,6 +325,7 @@ async def get_public_books_catalog(db: AsyncSession = Depends(get_db)):
             "author_names": [a.name for a in book.authors],
             "artist_names": [a.name for a in book.artists],
             "genre_names": [g.name for g in book.genres],
+            "genres": _public_genres(book),
             "language_name": languages.get(book.language_id) if book.language_id else None,
             "chapter_count": chapter_count,
             "access_type": book.access_type,
@@ -350,6 +348,12 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
         book = await get_book_with_relations(db, uuid_id)
     except ValueError:
         book = await get_book_with_relations_by_slug(db, book_id)
+        if not book:
+            # An old slug: return the book (with its current slug) so the
+            # website can redirect to the new URL.
+            target_id = await find_redirect_target(db, "book", book_id)
+            if target_id:
+                book = await get_book_with_relations(db, target_id)
 
     if not book or book.is_deleted or not book.is_published:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -378,6 +382,7 @@ async def get_book_for_share(book_id: str, db: AsyncSession = Depends(get_db)):
         "author_names": [a.name for a in book.authors],
         "artist_names": [a.name for a in book.artists],
         "genre_names": [g.name for g in book.genres],
+        "genres": _public_genres(book),
         "language_name": language_name,
         "chapter_count": chapter_count,
         "chapters": [
@@ -496,9 +501,7 @@ async def create_book(
         )
 
     # Create the book
-    slug = await generate_unique_slug(
-        book.title, lambda candidate: _book_slug_exists(db, candidate)
-    )
+    slug = await choose_slug(db, Book, "book", book.slug, book.title, fallback="book")
     new_book = Book(
         title=book.title,
         slug=slug,
@@ -656,12 +659,18 @@ async def update_book(
         # one was explicitly sent in the same request.
         update_data.setdefault("prime_price", None)
 
-    # Regenerate the slug if the title changed, keeping it unique
-    if "title" in update_data and update_data["title"] != existing.title:
-        update_data["slug"] = await generate_unique_slug(
-            update_data["title"],
-            lambda candidate: _book_slug_exists(db, candidate, exclude_id=uuid_id),
+    # The slug (the book's public URL) changes only when the admin edits it —
+    # not on a title change — so shared and indexed links stay put. Blank
+    # means "generate from the title". The old slug keeps redirecting.
+    requested_slug = update_data.pop("slug", None)
+    if requested_slug is not None and requested_slug != existing.slug:
+        new_slug = await choose_slug(
+            db, Book, "book", requested_slug,
+            update_data.get("title", existing.title), fallback="book", exclude_id=uuid_id,
         )
+        if new_slug != existing.slug:
+            await record_slug_change(db, "book", existing.id, existing.slug, new_slug)
+            existing.slug = new_slug
 
     # Update remaining fields
     for key, value in update_data.items():

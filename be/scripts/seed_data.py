@@ -645,7 +645,7 @@ async def seed():
         print("\n[2/6] Creating genres...")
         genres = {}
         for genre_data in GENRES:
-            genre = Genre(**genre_data)
+            genre = Genre(**genre_data, slug=slugify(genre_data["name"], "category"))
             session.add(genre)
             genres[genre_data["name"]] = genre
         await session.flush()
@@ -690,7 +690,7 @@ async def seed():
 
         for book_data in BOOKS:
             # Create book
-            base_slug = slugify(book_data["title"])
+            base_slug = slugify(book_data["title"], "book")
             slug = base_slug
             suffix = 2
             while slug in seen_slugs:

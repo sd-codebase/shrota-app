@@ -17,6 +17,7 @@ from models.activity import ActivitySession, ActivityEvent
 from models.listening import BookListenDaily, RoyaltySnapshot, RoyaltySnapshotLine
 from models.payment import SubscriptionPlan, StorePurchase, BookPurchase, ProcessedNotification
 from models.feature_flag import FeatureFlag, FeatureFlagUser
+from models.slug_redirect import SlugRedirect
 
 __all__ = [
     "Base",
@@ -56,4 +57,5 @@ __all__ = [
     "ProcessedNotification",
     "FeatureFlag",
     "FeatureFlagUser",
+    "SlugRedirect",
 ]

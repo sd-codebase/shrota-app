@@ -16,6 +16,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { News, NewsCreate } from '../types';
+import SlugInput, { cleanSlug } from '../components/SlugInput';
 import {
   getNews,
   createNews,
@@ -32,6 +33,7 @@ function NewsPage() {
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [coverFileList, setCoverFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
+  const newsTitle = Form.useWatch('title', form);
 
   const fetchNews = async () => {
     setLoading(true);
@@ -94,6 +96,7 @@ function NewsPage() {
 
       const newsData: NewsCreate = {
         ...values,
+        slug: cleanSlug(values.slug),
         cover_image: coverFilename,
       };
 
@@ -106,8 +109,8 @@ function NewsPage() {
       }
       setDrawerOpen(false);
       fetchNews();
-    } catch {
-      message.error('Failed to save news');
+    } catch (error) {
+      message.error(error instanceof Error && error.message !== 'Request failed' ? error.message : 'Failed to save news');
     }
   };
 
@@ -218,6 +221,7 @@ function NewsPage() {
           >
             <Input placeholder="News title" />
           </Form.Item>
+          <SlugInput pathPrefix="/news/" source={newsTitle} />
           <Form.Item
             name="text"
             label="Text"
